@@ -15,7 +15,7 @@
 
 \newcommand{\folge}[1]{\left \lbrace #1 \right \rbrace }
 \author{ckh340 Steffen Karlsson}
-\title{Master Thesis - Outline \\ \small{rev. 1}}
+\title{Master Thesis - Outline \\ \small{rev. 2}}
 
 \definecolor{mygreen}{rgb}{0,0.6,0}
 \definecolor{mygray}{rgb}{0.5,0.5,0.5}
@@ -44,14 +44,16 @@
 \begin{document}
 \maketitle
 
-A progressively\footnote{By the escalation of data, both amount and volume.} increasing challange in high performance and scientific computing (HPC) is how to store the enormuous amount of data on disk efficiently. Nowadays widely used integrated file system solutions, such as Hadoop\footnote{\url{https://hadoop.apache.org/}}, are developed under other circumstances and with another purpose, than what they are used for currently. These systems are usually not designed with HPC in mind, which is noticeable. The systems does not address the fundamental problem of hiding massive IO cost, among others.
+\subsection*{BigFS - A semantics aware big data file system}
+
+A progressively\footnote{By the escalation of data, both amount and volume.} increasing challenge in high performance and scientific computing (HPC) is how to store the enormous amount of data on disk, efficiently. Nowadays widely used integrated file system solutions, such as Hadoop\footnote{\url{https://hadoop.apache.org/}}, are developed under other circumstances and with another purpose, than what they are used for now. These systems are usually not designed with HPC in mind, which is noticeable. The systems do not address the fundamental problem of hiding massive IO cost, among others.
 \newline
 
-The purpose of this projekt is to frist of all to investigate, whether a distributed parallel file system, that efficiently hides latency and reduce IO-cost is achievable. And secondly, implement such system in a sensibly selected language and environment. 
+The purpose of this project is to first of all to investigate, whether a distributed parallel file system, that efficiently hides latency and reduce IO-cost is achievable. And secondly, implement such system in a sensibly selected language and environment. 
 \newline
 
-By using, what will be defined as, computational filteres on incomming data streams and thereby extending the computation time with a fraction, it is presumable possible to hide the latency, streamline the IO operations and thereby reduce the massive cost, when the data eventually need to be fetched and evaluated, computationally. 
+By using, what will be defined as, computational filters on incoming data streams and thereby extending the computation time with a fraction, it is presumable possible to hide the latency, streamline the IO operations and thereby reduce the massive cost, when the data eventually need to be fetched and evaluated, computationally. 
 
-This can be archived by adding an additional meta-data dimension to the file system, in terms of \textit{e.q.} a HDF5\footnote{\url{http://www.hdfgroup.org/HDF5/}} format file. In addition could the computational filters be defined \textit{e.q.} as part of the configuration to the system.
+This can be archived by adding a meta-data dimension to the file system, in terms of \textit{e.g.} a HDF5\footnote{\url{http://www.hdfgroup.org/HDF5/}} format file. In addition could the computational filters be defined \textit{e.g.} as part of the configuration to the system.
 
 \end{document}\grid
