@@ -1,0 +1,113 @@
+\documentclass[11pt,a4paper,final,oneside,openany]{memoir}
+
+\usepackage[titelside, en, nat]{ku-forside}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[british]{isodate}
+\usepackage{booktabs}
+\usepackage{fixltx2e}
+\usepackage{nameref}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage[lofdepth,lotdepth]{subfig}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{url}
+\usepackage[verbose]{wrapfig}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{footnote}
+
+\titel{BigFS}
+\undertitel{A semantics aware big data file system}
+\forfatter{Steffen Karlsson -- \texttt{ckh340@alumni.ku.dk}}
+\opgave{Master's Thesis}
+\dato{August 2016}
+\vejleder{Supervisor: Brian Vinter}
+
+\renewcommand*{\cftpartname}{Part\space}
+\cftpagenumbersoff{part}
+
+\newcommand{\subimgwidth}{.5\textwidth}
+\newcommand{\imgwidth}{.8\textwidth}
+
+\def\thefigure{\arabic{figure}}
+\setcounter{tocdepth}{1}
+
+\usepackage{tikz, blindtext}
+\makechapterstyle{box}{
+  \renewcommand*{\printchaptername}{}
+  \renewcommand*{\chapnumfont}{\normalfont\sffamily\huge\bfseries}
+  \renewcommand*{\printchapternum}{
+    \flushright
+    \begin{tikzpicture}
+      \draw[fill,color=black] (0,0) rectangle (1.5cm,1.5cm);
+      \draw[color=white] (0.75cm,0.75cm) node { \chapnumfont\thechapter };
+    \end{tikzpicture}
+  }
+  \renewcommand*{\chaptitlefont}{\normalfont\sffamily\Huge\bfseries}
+  \renewcommand*{\printchaptertitle}[1]{\flushright\chaptitlefont##1}
+}
+
+\makepagestyle{diku}
+\makeevenhead{diku}{\sffamily\rightmark}{}{}
+\makeoddhead{diku}{\sffamily\rightmark}{}{\sffamily\currenttitle}
+\makeevenfoot{diku}{}{\sffamily\thepage}{}
+\makeoddfoot{diku}{}{\sffamily\thepage}{}
+\makeheadrule{diku}{\textwidth}{1pt}
+\makeheadposition{diku}{flushright}{flushright}{}{}   
+
+\bibliography{bibliography}
+
+\begin{document}
+\pagestyle{plain}
+\frontmatter
+\clearpage
+\maketitle
+
+\vspace{3cm}
+\begin{abstract}
+\input{tex/abstract.tex}
+\end{abstract}
+
+\setlength{\cftpartnumwidth}{4em}
+
+\input{tex/preface.tex}
+
+\clearpage
+\tableofcontents*
+
+%\clearpage
+%\listoffigures*
+
+\mainmatter
+\chapterstyle{box}
+\pagestyle{diku}
+
+\counterwithout{table}{chapter}
+\counterwithout{figure}{chapter}
+\input{tex/introduction.tex}
+
+%\part{Foo}
+%\label{part:foo}
+
+\appendix
+\input{tex/outline.tex}
+%\input{appendix.tex}
+
+\backmatter
+\chaptermark{Bibliography}
+\renewcommand{\sectionmark}[1]{\markright{#1}}
+\sectionmark{Bibliography}
+\addcontentsline{toc}{chapter}{Bibliography}        %Force addition of Bibliography to TOC
+\bibliographystyle{alpha}                           %Use alpha codes for references
+%\bibliography{src/References}                           %Bibliography file called
+
+\end{document}
