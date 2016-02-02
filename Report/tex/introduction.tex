@@ -1,1 +1,97 @@
-\chapter{Introduction}
+\chapter{Introduction} \label{chap:introduction}
+
+\firstletter{A} progressively increasing challenge in high performance and scientific computing (HPC) is how to store the enormous amount of data on disk, efficiently. Particularly with the ubiquitous enthusiasm for Big Data Analysis (BDA) frameworks, within the sphere of influence. A commonly used distributed computation framework for BDA and transformation is Apache's Hadoop\cite{PageHadoop}, where data access is based on HDFS (Hadoop Distributed File System) \cite{Shvachko:2010:HDF:1913798.1914427} and the primary execution model based on MapReduce\cite{Dean:2008:MSD:1327452.1327492}. Frameworks as aforementioned are developed under other circumstances, and with another purpose, than what they are used for now, such as HPC. 
+\newline
+
+HDFS, as well as the Google File System \cite{Ghemawat:2003:GFS:945445.945450}, follows a centralized architectural master/slave organization (described in \eg \cite{Tanenbaum:2006:DSP:1202502} and briefly in \cite{Wilkinson:1998:PPT:289352}) where whats denoted as NameNode acts as the master. This server maintains attributes such as permissions and namespace tree for slaves (DataNodes). In addition it implements a proxy to handle operations realised on the file system at the slaves. 
+\newline
+
+Writing to the file system can likely cause, whats known as the data residual problem. Thus semantically correlated or coherent data can be distributed across different DataNodes in HDFS, due to the physical distribution. Latter is implemented using a conventional file system approach, \ie in fixed sized blocks of 64MB. 
+\newpage
+
+As a matter of fact, the only case where partitioning the data is insured to be avoided, is when the size of the data modulo the block size is zero. Individual programmers are necessitated to implement a network communication protocol  between DataNodes, which causing increased latency. This is in order to ensure a consistent processing of the coherent data representations, as a consequence of the heretofore mentioned.
+\newline
+
+% Explain massive I/O cost
+
+\section{Problem definition} \label{sec:problem}
+\begin{quotation}
+\hspace*{-7mm}
+\textit{First and foremost, analyze and investigate whether a distributed parallel file system that efficiently hides latency and reduce IO-cost is durable. Secondly, if achievable implement a prototype in a sensibly selected language, architecture and environment.} \newline
+\end{quotation}
+
+\section{Related work} \label{sec:related}
+Existing implementations and research projects within the field of big data analysis frameworks and distributed parallel file systems relevant for this project, will be described in this section, including the once previously mentioned.
+
+\subsection*{Hadoop}
+Hadoop was originally described in 2010 by Shvachko \etal in \cite{Shvachko:2010:HDF:1913798.1914427}. The Apache and Yahoo! developed framework is designed to store and analyze very large data sets. It provides the distributed hierarchical file system with directories and files HDFS (Hadoop Distributed File System), as data access layer (DAL) and a primary execution model based on the programming paradigm MapReduce (sharing this feature with the subsequent computing platform), briefly described in Definition \ref{def:mapreduce}.
+\vspace*{5mm}
+
+\begin{definition}[MapReduce] \label{def:mapreduce}
+\textit{A programming paradigm and an associated implementation presented by Dean and Ghemawat in} \cite{Dean:2008:MSD:1327452.1327492} \textit{used for data generation, analysis and processing. Fundamentally it is assembled by two separate user specified functions:} \texttt{map} \textit{and} \texttt{reduce}\textit{, which at execution time are parallelized automatically.}
+\end{definition}
+
+HDFS implements a master/slave architecture where the previously momentarily described NameNode server is the master and the DataNodes are the slaves. Metadata and application data is stored separately on respectively master and slave, just as in the Google File System, which is examined later in this section. Having a stateful master without replication is a single point of failure and a potential bottleneck in a system, but is in this project a tradeoff for throughput and accessibility
+
+\subsection*{Disco}
+Mundkur \etal at Nokia Research Center publish in 2011 a paper about their implementation of the distributed computing platform Disco\cite{PageDisco}\cite{Mundkur:2011:DCP:2034654.2034670}. Disco is an easy customizable MapReduce framework with regards to environment and requirements, designed for clusters of commodity server machines. Disco is likewise based on the master/slave architecture and relies on a standard file system and thus deprioritize persistent fault tolerance, achievable by a dedicated custom implementation. The single-master pattern is as mentioned a single point of failure, but is preferred due to consistency over availability (CAP theorem is touched briefly in Definition \ref{def:cap}).
+\vspace*{3mm}
+
+\begin{definition}[CAP Theorem] \label{def:cap}
+\textit{Eric Brewer's presented in his keynote speech}\cite{Brewer2000} \textit{the CAP (Consistency, Availability and Partition Tolerance) theorem that states, a distributed system (set of independent computers working together) only can guarantees two of the three listed acronym properties.}
+\end{definition}
+
+\vspace*{3mm}
+\subsection*{Dynamo}
+Dynamo is a highly available key-value storage system presented by Amazon engineers in \cite{DeCandia:2007:DAH:1294261.1294281}. The system is implemented using an eventual consistency protocol and thereby sacrifices it under certain scenarios, by cause of availability. The reason for this choice is the \textit{"always-on"} user experience on core services at the Amazon platform that Dynamo is used to function. Dynamo uses consistent hashing (described in Definition \ref{def:ch}) to partition the key space across all available machines. A uniform distribution ultimately causes a uniform load assuming the key space access is not too skewed.
+\vspace*{3mm}
+
+\begin{definition}[Consitent hashing] \label{def:ch}
+\textit{Engineer at Apache, White, describes in his blog post} \cite{PageWhiteCH} \textit{the purpose and demand for consistent hashing. It arose from the problems and limitations experienced with a naive hash-based key space distribution in a distributed system, where adding and removing machines in the network can be a catastrophe from a network bandwidth point of view, due to redistribution of the key space. In consistent hashing only a fair share proportion from each of the machines is reassigned, while adding or removing machines.}
+\end{definition}
+
+\subsection*{Google File System}
+Ghemawat \etal at Google describes the scalable distributed file system (GFS: Google File System) designed at implemented for primary developed for internal usage in \cite{Ghemawat:2003:GFS:945445.945450}. The file system is designed to run on inexpensive commodity hardware just as \eg Dynamo explained previously in this section, in addition to provide fault tolerance. The architecture is a single stateful master and slave(s) organization, where the (GFS) master maintains all metadata file in the system. 
+\newline
+
+A vastly simplified design and sophisticated placement of data on the slaves, together with a clever recovery protocol has been prioritized compared to the risk of a single master (as explained previously). In addition are communication between clients and the master widely reduced, by caching slave metadata for further intercommunication on the client, such that bottleneck effect on the master absents.
+
+\section{Proposal} \label{sec:proposal}
+The knowledge, features and compromises achieved in the papers discussed and described in the latter section, related work, provides the foundation of the introductory piece of research in the project. It is first and foremost the ambition to investigate and evaluate different types of distributed file system architectures. The ambition of the research is to subsequently design and implement a prototype of an alternative to the existing file archives used in big data analysis.
+\newline
+
+The design of the architectural organization of the project is intended to eliminate the complications and issues in the existing solutions described among others. A desired outcome of latter is a substitute system with reduced I/O-cost, complexity and increased performance. 
+
+The before mentioned specification and requirements can be empowered by splitting data semantically consistent at substantial positions by the file system, thus, data will be divided into arbitrarily sized chunks instead of fixed. Striking challenges includes:
+\vspace*{3mm}
+\begin{itemize}
+	\item Describing a domain specific language (DSL) to characterize the data semantics.
+	\item Defining a direct data mapping for storing and retrieval.
+	\item Designing a system that scales as the data and request rate grows, \ie provides consistent and intelligent load balancing.
+\end{itemize}
+\vspace*{3mm}
+
+A feasible solution to reduce I/O-cost includes the mechanism of data cleaning, which is an important preprocessing step in big data analysis where \ie following actions can be performed:
+\vspace*{3mm}
+\begin{itemize}
+	\item Reformat multidimensional scientific data set such that identical features are grouped.
+	\item Noise reduction.
+	\item Removing redundancy.
+\end{itemize}
+\vspace*{3mm}
+
+The system seeks to perform the above-mentioned actions in real time since they are computationally simple on modern high-end processors and are attractive to perform before writing data to disk. Furthermore, a straightforward extension is to measure and store elemental statistics per data set in a fashionable and state-of-the-art way. It is ultimately an ambition to integrate the same execution model as in \eg Hadoop and Disco, namely MapReduce around the implemented file archive in order to compose a complete BDA framework alternative.
+
+\section{Expected results}
+The fundamental project description, protocol and intention described in \eg section \ref{sec:problem} and \ref{sec:proposal} can be delineated by following statements:
+
+\begin{itemize}
+	\item Investigate and evaluate different file system architectures, in order to optimize performance for big data.	
+	\item Analyze one or more approaches, to efficiently pipeline described computations on incoming data.
+	\item Define or use existing descriptive configuration language to specify computational filters.
+	\item Understand and apply suitable high performance computing and other efficiency measures.
+	\item Examine and reflect on performance benchmark results.
+\end{itemize}
+
+\section{Outline}
+\todo{Write outline}
