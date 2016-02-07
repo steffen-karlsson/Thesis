@@ -52,9 +52,13 @@
 \setcounter{tocdepth}{1}
 
 \renewcommand{\LettrineFontHook}{\sffamily}
-\newcommand{\firstletter}[1]{\lettrine[lines=2, loversize=0.2, findent=0.4em]{\textbf{#1}}}
+
+\newcommand\textlc[1]{\MakeLowercase{#1}}
+\newcommand\BigLetter[2]{\lettrine[lines=2, loversize=0.2, findent=0.2em]{\textbf{#1}}{}\textlc{#2}}
 
 \newcommand{\todo}[1]{{\color{red} \textbf{TODO:}} #1}
+
+\newcommand{\reference}[2]{outlined in Definition \ref{#1} and descried in further details in section \ref{#2}}
 
 \newcommand{\etal}{\textit{et al}. }
 \newcommand{\ie}{\textit{i}.\textit{e}., }
@@ -113,7 +117,12 @@
 
 \counterwithout{table}{chapter}
 \counterwithout{figure}{chapter}
+
 \input{tex/introduction.tex}
+
+\input{tex/background.tex}
+
+\input{tex/analysis.tex}
 
 %\part{Big Data Area Network} \label{part:bdan}
 %\input{tex/architecture.tex}
