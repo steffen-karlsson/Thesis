@@ -26,7 +26,8 @@
 \usepackage{footnote}
 \usepackage{amsthm}
 \usepackage{lettrine}
-
+\usepackage[labelfont=bf]{caption}
+ 
 \newtheorem{theorem}{Theorem}
 
 \theoremstyle{definition}
@@ -34,12 +35,17 @@
 
 \def \CodeName{BDOS }
 \def \CodeNameFull{BDOS (Big Data Object Store)}
+\def \Gateway{BDQE }
+\def \Network{BDAN }
+
+\def \FullName{Steffen Karlsson}
+\def \HandinDate{August 2016}
 
 \titel{\CodeName}
 \undertitel{A semantics aware big data object-based storage system}
-\forfatter{Steffen Karlsson -- \texttt{ckh340@alumni.ku.dk}}
+\forfatter{\FullName -- \texttt{ckh340@alumni.ku.dk}}
 \opgave{Master's Thesis}
-\dato{August 2016}
+\dato{\HandinDate}
 \vejleder{\textbf{Supervisor:} Professor Brian Vinter}
 
 \renewcommand*{\cftpartname}{Part\space}
@@ -58,11 +64,20 @@
 
 \newcommand{\todo}[1]{{\color{red} \textbf{TODO:}} #1}
 
-\newcommand{\reference}[2]{outlined in Definition \ref{#1} and descried in further details in section \ref{#2}}
+\newcommand{\reference}[2]{outlined in Definition \ref{#1} and described in further details in section \ref{#2}}
 
 \newcommand{\etal}{\textit{et al}. }
 \newcommand{\ie}{\textit{i}.\textit{e}., }
 \newcommand{\eg}{\textit{e}.\textit{g}. }
+
+\newcommand{\cfigure}[4]{
+	\vspace*{5mm}
+	\begin{figure}[ht!]
+		\centering
+		\includegraphics[scale=#4]{pdf/#1}
+		\caption[#3]{#2 \label{fig:#1}}
+	\end{figure}
+}
 
 \usepackage{tikz, blindtext}
 \makechapterstyle{box}{
@@ -108,8 +123,8 @@
 \clearpage
 \tableofcontents*
 
-%\clearpage
-%\listoffigures*
+\clearpage
+\listoffigures*
 
 \mainmatter
 \chapterstyle{box}
@@ -124,8 +139,7 @@
 
 \input{tex/analysis.tex}
 
-%\part{Big Data Area Network} \label{part:bdan}
-%\input{tex/architecture.tex}
+\input{tex/architecture.tex}
 
 %\part{Big Data Context Descriptor} \label{part:bdcd}
 
