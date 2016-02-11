@@ -1,0 +1,56 @@
+\chapter{Big Data Area Network}
+
+\BigLetter{D}{efining}, designing and orchestrating a distributed system used as a file archive is a compromising process of electing architecture, communication and security, etc. This chapter describes and discusses the choices and opportunities regarding what henceforward will be denoted as \CodeNameFull. 
+
+\section{Overview}
+\cfigure{general-overview}{General flow and overview of the framework including the gateway(s) used by the user to query the system for information from the big data area network.}{General flow and overview of the framework}{0.85}
+
+As mentioned is the project an alternative to the existing big data analysis frameworks, and file archives described previously, and the architecture will be influenced and inspired by those, both inaccuracies and characteristics. The underlying file archive architecture in the framework seek to model an interpretation of a Storage Area Network (SAN) used for BDA operating in a trusted homogeneous computing environment designated as a \Network (Big Data Area Network). The illustration at Figure \ref{fig:general-overview} depicts the general overview and flow of the system just described, where each component are examined subsequently.
+
+\section{Hardware}
+The framework will first and foremost be designed to execute on a homogeneous collection of machines connected to a network, \ie a cluster, the choice could have been a grid (a collection of heterogeneous machines) too. 
+
+The fact that the underlying component is a file archive related system built by bricks (defined in Definition \ref{def:brick}) make clusters an obvious choice for a prototype.
+
+\vspace*{3mm}
+\begin{definition}[Brick] \label{def:brick}
+\textit{A brick is defined as a component of a homogeneous distributed system, where each of them is functional equivalent and are contributing uniformly and have equal rights.}
+\end{definition}
+\vspace*{3mm}
+
+The implementation will be targeted inexpensive commodity hardware just as \eg Dynamo or the Google File System (both described as part of section \ref{sec:related}) and will be assembled by JBODs (described in Defintion \ref{def:jbod}) for this first version.
+
+\vspace*{3mm}
+\begin{definition}[JBOD] \label{def:jbod}
+\textit{It is an acronym for Just a Bunch of Disks and is a hardware architecture with multiple hard drives, but without configuration of RAID and thus doesn't provide redundancy nor performance improvements.}
+\end{definition}
+
+\section{Architecture}
+Section \ref{sec:architectures} describes a collection of different distributed system architectures\cite{Tanenbaum:2006:DSP:1202502}, where the architecture of the project will be affected by knowledge and benefits from existing solutions (described in section \ref{sec:related}). 
+
+The result will implement the notion of a hybrid related distributed system with a decentralized collection of interconnected storage nodes accessible by potentially multiple replicated stateless gateway servers and observed by one or more monitors. 
+\newline
+
+The architecture of the interconnected storage nodes is highly influenced by Dynamo and will reflect a zero-hop distributed hash table (DHT, described as part of the decentralized architecture in section \ref{sec:architectures}) and thus provide full data consistency concerning the CAP theorem, \reference{def:cap}{sec:cap}. Unfortunately, this also means that complexity regarding the consistency protocol increases at a membership level.
+
+\cfigure{overview}{Detailed overview of the influencing components in the BDAN including \textit{n} gateways denoted by $\text{g}1 \cdots \text{g}n$, storage nodes by $\text{s}1 \cdots \text{s}n$ and monitors by $\text{m}1 \cdots \text{m}n$.}{Detailed overview of the influencing components}{0.63}
+
+The design and structure of the storage node will be described in chapter \ref{chap:storage}, the gateway in chapter \ref{chap:gateway} and the monitor in chapter \ref{chap:monitor}.
+
+\section{Partition and distribution}
+The partitioning and distribution protocol in the Big Data Area Network is based on consistent hashing (\reference{def:ch}{sec:partitioning}) and round robin (described in section \ref{sec:distribution}).
+
+\cfigure{rr-partitioning}{General flow of the partitioning and data distribution protocol in BDAN, assuming one gateway server \textit{g} and a client \textit{c} attempting to insert a data set \textit{A} consisting of \textit{n} blocks $\text{d}1 \cdots \text{d}n$.}{Overview of the partitioning and data distribution protocol}{0.5}
+
+Figure \ref{fig:rr-partitioning} illustrates the general flow of the preferred partitioning and distribution protocol. The dataset is from the client sent to one of the gateway servers, where it is using consistent hashing (as in Amazons Dynamo project) assigned a unique identifier and partitioned into approximately\footnote{As described in section \ref{sec:ambitions} is one of the ambitions to store arbitrary sized block.} equal block sizes. The blocks are then by the client distributed in a round robin manner to the storage nodes. It is presumably sufficient as a distribution protocol  under the assumptions outlined in section \ref{sec:assumptions} with regards to big data.
+
+%implements a fail-stop failure model  
+
+\section{Redundancy}
+Redundancy in the \Network is carried out using \eg software RAID in ZFS (described in Description \ref{def:zfs}), which provides block-level striping with double distributed parity, that ensures fault tolerance by upto two failed drives. The motivation for this is that the existing replication protocols in \eg Hadoop and the Google File System are using a vast amount of space and considering that the primary usage of this is big data is this too expensive. 
+\newline
+
+If their protocol, on the other hand, is based on erasure codes then it is no longer replication, but fault tolerance with a degree of durability. This type of responsibility is in this system carried out in hardware by the JBODs, such that there is no need for the extensive amount of network data transfer.
+
+\section{Security}
+As outlined while characterizing the assumptions of the project in section \ref{sec:assumptions} security and data integrity was mentioned, and the conclusion is that it internally in the BDAN has been given a reduced priority since it is expected to execute in a trusted environment, just as the Amazon Dynamo framework. Having said that are security by all means prioritized eventually on the gateway server as input to this is not originating from trusted components.
