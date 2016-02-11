@@ -192,3 +192,5 @@ target/
 
 !Report/pdf/*.pdf
 !Report/img/*.pdf
+
+.idea/
