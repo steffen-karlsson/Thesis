@@ -1,6 +1,6 @@
 ConfigParser
 ============
 
-.. automodule:: bdos.boot.configparser
+.. automodule:: config.parser
     :members:
     :private-members:
