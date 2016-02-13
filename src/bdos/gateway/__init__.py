@@ -3,5 +3,5 @@
 
 from handler import GatewayApi, GatewayHandler
 
-api = GatewayApi()
+api = GatewayApi
 handler = GatewayHandler
