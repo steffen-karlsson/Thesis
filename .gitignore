@@ -194,3 +194,4 @@ target/
 !Report/img/*.pdf
 
 .idea/
+_build/
