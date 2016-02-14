@@ -4,6 +4,7 @@
 from marshal import dumps, loads
 from types import FunctionType
 from hashlib import sha256
+from imp import load_source
 
 
 def serialize(fun, args):
@@ -20,8 +21,16 @@ def find_identifier(name):
     return sha256(name).hexdigest()
 
 
-def import_class(cl):
-    d = cl.rfind(".")
-    classname = cl[d + 1:]
-    m = __import__(cl[0:d], globals(), locals(), [classname])
+def import_class(cls):
+    d = cls.rfind(".")
+    classname = cls[d + 1:]
+    m = __import__(cls[0:d], globals(), locals(), [classname])
     return getattr(m, classname)
+
+
+def import_class_from_source(source_file, cls_name):
+    mod = load_source(cls_name, source_file)
+    if not hasattr(mod, cls_name):
+        return None
+
+    return getattr(mod, cls_name)
