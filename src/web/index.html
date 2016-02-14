@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="">
+      <meta name="author" content="Steffen Karlsson">
+
+      <title>Big Data Object Store</title>
+
+      <link href="static/bootstrap.min.css" rel="stylesheet">
+      <link href="static/jumbotron-narrow.css" rel="stylesheet">
+      <link href="static/custom.css" rel="stylesheet">
+  </head>
+
+  <body>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#query").width($(".page-header").width() - $("#query-submit").outerWidth(true) - $("#query-dropdown").outerWidth(true) - ($("#query").outerWidth(true) - $("#query").innerWidth()) - 15)
+            $("#dropdown-selection").text($("#dropdown-first").text())
+            $(".dropdown-menu li a").click(function(){
+                var selText = $(this).text();
+                $("#dropdown-selection").text(selText + " ");
+                $("#dropdown-selection").val(selText + " ");
+            });
+        });
+    </script>
+    <div class="container">
+        <div class="header clearfix">
+            <nav>
+                <ul class="nav nav-pills pull-right">
+                    <li role="presentation" class="active"><a href="../docs/_build/html/index.html">Documentation</a></li>
+                    <li role="presentation" class="active"><a href="mailto:ckh340@alumni.ku.dk">Contact</a></li>
+                </ul>
+            </nav>
+            <h3 class="text-muted">Big Data Object Store</h3>
+        </div>
+        <div class="jumbotron">
+            <img src="static/general-overview.png" width="100%" height="100%">
+        </div>
+
+        <div class="page-header">
+            <h1>Query</h1>
+        </div>
+        <div class="dropdown" style="display: inline; margin-right: 10px; font-size: 18px;" id="query-dropdown">
+            <button class="btn btn-primary dropdown-toggle custom-button" type="button" data-toggle="dropdown" id="query-dropdown-button" aria-haspopup="true" aria-expanded="true">
+                <span id="dropdown-selection" class="selection">Option 1</span><span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="query-dropdown-button">
+                <li id="dropdown-first"><a href="#">HTML</a></li>
+                <li><a href="#">CSS</a></li>
+                <li><a href="#">JavaScript</a></li>
+            </ul>
+        </div>
+        <input id="query" type="text" class="form-control" placeholder="Query" aria-describedby="sizing-addon1" style="height: 40px; margin-right: 10px;">
+        <div id="query-submit" style="display: inline; float: right;">
+            <button type="button" class="btn btn-lg btn-primary custom-button">Search »</button>
+        </div>
+
+        <div class="page-header">
+            <h1>Dataset</h1>
+        </div>
+
+        <div>
+            <input id="new-dataset" type="text" class="form-control" placeholder="Name" aria-describedby="sizing-addon1" style="height: 40px; width: 75%;">
+            <div id="new-dataset-submit" style="display: inline; float: right;">
+                <button type="button" class="btn btn-lg btn-success custom-button">Add »</button>
+            </div>
+        </div>
+
+        <div style="padding-top: 20px">
+            <input id="remove-dataset" type="text" class="form-control" placeholder="Identifier" aria-describedby="sizing-addon1" style="height: 40px; width: 75%;">
+            <div id="remove-dataset-submit" style="display: inline; float: right;">
+                <button type="button" class="btn btn-lg btn-danger custom-button">Remove »</button>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2016 The Niels Bohr Institute, UCPH. All rights reserved.</p>
+        </footer>
+
+    </div> <!-- /container -->
+  </body>
+</html>
