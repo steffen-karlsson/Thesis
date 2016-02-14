@@ -31,7 +31,6 @@ def parse_project_cfg(path):
         #
 
         [general]
-        port =
         project-path =
         log-file =
 
@@ -109,7 +108,6 @@ class Configuration:
         self.project_path = None
         self.use_logging = False
         self.gateway = None
-        self.port = 9999
 
 
 if __name__ == "__main__":
