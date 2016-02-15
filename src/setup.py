@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-from setuptools import find_packages, setup
+from setuptools import setup, find_packages
 
 import bdos
 
 install_requires = [
-    'Pyro4'
+    'Pyro4',
+    'tornado',
 ]
 
 setup(
@@ -18,6 +19,23 @@ setup(
     author_email='ckh340@alumni,ku.dk',
     license=bdos.__licence__,
     packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "bdos.web": [
+            "index.html",
+            "static/custom.js",
+            "static/custom.css",
+            "static/bootstrap.min.css",
+            "static/jumbotron-narrow.css",
+            "static/general-overview.png"
+        ],
+        "bdos.web.docs": [
+            "conf.py",
+            "Makefile",
+            "configparser.rst",
+            "index.rst"
+        ]
+    },
     install_requires=install_requires,
     classifiers=[
         'Programming Language :: Python',

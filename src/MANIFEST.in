@@ -1,0 +1,7 @@
+recursive-include bdos *.py
+include bdos/web/index.html
+include bdos/web/static/ *
+include bdos/web/static/custom.js
+include bdos/web/docs/index.rst
+include bdos/web/docs/configparser.rst
+include bdos/web/docs/Makefile
