@@ -5,13 +5,15 @@
 .. module:: absdatasetcontext
 """
 
+from abc import abstractmethod, ABCMeta
 
-from abc import abstractmethod
 
 class AbsDatasetContext:
     """
     Abstract and not initializable class to define the context of a dataset by overriding it.
     """
+
+    __metaclass__ = ABCMeta
 
     _PRIVATE = "You should not create an instance yourself"
 
@@ -38,7 +40,7 @@ class AbsDatasetContext:
         pass
 
     @staticmethod
-    def _initialize(identifier):
+    def instance(identifier):
         cls = AbsDatasetContext(AbsDatasetContext._PRIVATE)
         cls._identifier = identifier
         return cls
