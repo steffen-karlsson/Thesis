@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+      <script src="//code.jquery.com/jquery-1.12.0.min.js"></script>
+
       <meta charset="utf-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,29 +11,18 @@
 
       <title>Big Data Object Store</title>
 
-      <link href="static/bootstrap.min.css" rel="stylesheet">
-      <link href="static/jumbotron-narrow.css" rel="stylesheet">
-      <link href="static/custom.css" rel="stylesheet">
+      <link rel="stylesheet" href="{{ static_url('bootstrap.min.css') }}" />
+      <link rel="stylesheet" href="{{ static_url('jumbotron-narrow.css') }}" />
+      <link rel="stylesheet" href="{{ static_url('custom.css') }}" />
   </head>
 
   <body>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $("#query").width($(".page-header").width() - $("#query-submit").outerWidth(true) - $("#query-dropdown").outerWidth(true) - ($("#query").outerWidth(true) - $("#query").innerWidth()) - 15)
-            $("#dropdown-selection").text($("#dropdown-first").text())
-            $(".dropdown-menu li a").click(function(){
-                var selText = $(this).text();
-                $("#dropdown-selection").text(selText + " ");
-                $("#dropdown-selection").val(selText + " ");
-            });
-        });
-    </script>
+    <script src="{{ static_url('custom.js')}}"></script>
     <div class="container">
         <div class="header clearfix">
             <nav>
                 <ul class="nav nav-pills pull-right">
-                    <li role="presentation" class="active"><a href="../docs/_build/html/index.html">Documentation</a></li>
+                    <li role="presentation" class="active"><a href="/docs/">Documentation</a></li>
                     <li role="presentation" class="active"><a href="mailto:ckh340@alumni.ku.dk">Contact</a></li>
                 </ul>
             </nav>
