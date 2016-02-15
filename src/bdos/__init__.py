@@ -10,6 +10,3 @@ from sys import path
 from os import getcwd
 path.append(getcwd())
 
-from Pyro4 import locateNS
-NS = locateNS()
-
