@@ -5,7 +5,7 @@
 
 set_bootfile () {
     if [ "${type}" = "gateway" ] || [ "${type}" = "storage" ] || [ "${type}" = "monitor" ] ;
-    then bootfile="boot_"${type}".py"
+    then bootfile="boot.py"
     else
         echo "Invalid type, supported types are: gateway, storage, monitor"
         exit 1
@@ -53,8 +53,8 @@ start_gateway () {
     for address in $(echo $(find_cfg_param_in_type addresses) | tr ',' "\n")
     do
         ip=$(echo ${address} | awk -F ':' '{print $1}')
-        echo "Booting node as: python "${bdosdir}/${bootfile} ${cfg_file} ${i} "at" ${address}
-        nohup ssh ${ip} bash -c "'python "${bdosdir}/${bootfile} ${cfg_file} ${i}"'" > /dev/null 2>&1 &
+        echo "Booting node as: python "${bdosdir}/${bootfile} ${type} ${cfg_file} ${i} "at" ${address}
+        nohup ssh ${ip} bash -c "'python "${bdosdir}/${bootfile} ${type} ${cfg_file} ${i}"'" > /dev/null 2>&1 &
         i=$((i+1))
     done
 }
