@@ -7,6 +7,7 @@ import bdos
 install_requires = [
     'Pyro4',
     'tornado',
+    'ujson',
 ]
 
 setup(
