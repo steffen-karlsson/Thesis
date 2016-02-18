@@ -59,7 +59,7 @@ start_gateway () {
     done
 }
 
-if [ $# -eq 2 ]
+if [ ! $# -ge 2 ]
 then
   echo "Illegal ammount of argument, \$1: config file \$2: sections parsed from the file (first is booted)"
   echo "Supported types: gateway, storage, monitor"
