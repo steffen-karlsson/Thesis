@@ -1,20 +1,7 @@
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from marshal import dumps, loads
-from types import FunctionType
 from hashlib import sha256
-from imp import load_source
-
-
-def serialize(fun, args):
-    return fun.__name__, dumps(fun.func_code), args
-
-
-def deserialize(bundle):
-    name, fun, args = bundle
-    fun_code = loads(fun)
-    return FunctionType(fun_code, globals(), name), args
 
 
 def find_identifier(name):
@@ -22,15 +9,44 @@ def find_identifier(name):
 
 
 def import_class(cls):
-    d = cls.rfind(".")
-    classname = cls[d + 1:]
-    m = __import__(cls[0:d], globals(), locals(), [classname])
+    package, classname = cls.rsplit('.', 1)
+    m = __import__(package, globals(), locals(), [classname])
     return getattr(m, classname)
 
+# Error codes
+STATUS_SUCCESS = 200
+STATUS_INVALID_DATA = 400
+STATUS_NOT_FOUND = 404
+STATUS_NOT_ALLOWED = 405
+STATUS_ALREADY_EXISTS = 409
 
-def import_class_from_source(source_file, cls_name):
-    mod = load_source(cls_name, source_file)
-    if not hasattr(mod, cls_name):
-        return None
+CODES = [STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_NOT_ALLOWED, STATUS_ALREADY_EXISTS]
 
-    return getattr(mod, cls_name)
+
+def verify_error(res, message=""):
+    if is_error(res):
+        raise __get_exception_from_status(res, message)
+
+
+def is_error(res):
+    return res in CODES
+
+
+def __get_exception_from_status(res, message):
+    if res == STATUS_NOT_FOUND:
+        return DatasetNotExistsException(message)
+
+    if res == STATUS_ALREADY_EXISTS:
+        return DatasetAlreadyExistsException(message)
+
+    return Exception(message)
+
+
+class DatasetAlreadyExistsException(Exception):
+    def __init__(self, message):
+        super(DatasetAlreadyExistsException, self).__init__(message)
+
+
+class DatasetNotExistsException(Exception):
+    def __init__(self, message):
+        super(DatasetNotExistsException, self).__init__(message)
