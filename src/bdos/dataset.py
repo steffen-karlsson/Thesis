@@ -15,14 +15,6 @@ class AbsDatasetContext:
 
     __metaclass__ = ABCMeta
 
-    _PRIVATE = "You should not create an instance yourself"
-
-    _identifier = None
-
-    def __init__(self, token):
-        if token is not self._PRIVATE:
-            raise NotImplemented(self._PRIVATE)
-
     @abstractmethod
     def get_map_functions(self):
         pass
@@ -32,15 +24,17 @@ class AbsDatasetContext:
         pass
 
     @abstractmethod
-    def get_operations_functions(self):
+    def get_operation_functions(self):
         pass
 
     @abstractmethod
-    def next_entry(self):
-        pass
+    def next_entry(self, data):
+        """
+        Abstract method to override when implementing a new AbsDatasetContext implementation.
 
-    @staticmethod
-    def instance(identifier):
-        cls = AbsDatasetContext(AbsDatasetContext._PRIVATE)
-        cls._identifier = identifier
-        return cls
+        Yields:
+            A requirement for the method is to implement a generator.
+
+        :param data: The full dataset
+        """
+        pass
