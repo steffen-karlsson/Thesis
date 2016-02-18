@@ -3,7 +3,7 @@
 
 from sys import argv
 from os import path
-from config import parser
+from bdos.config import parser
 
 
 class _InvalidConfigurationFile(Exception):
@@ -11,9 +11,9 @@ class _InvalidConfigurationFile(Exception):
         super(_InvalidConfigurationFile, self).__init__(message)
 
 
-def validate_configuration():
-    cfg_file = argv[1]
+def validate_configuration(index, node_types):
+    cfg_file = argv[2]
     if not path.exists(cfg_file) and not cfg_file.endswith(".cfg"):
         raise _InvalidConfigurationFile("Configuration file has to be .cfg format")
 
-    return parser.parse_project_cfg(cfg_file)
+    return parser.parse_project_cfg(cfg_file, index, node_types)

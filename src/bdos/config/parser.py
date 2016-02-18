@@ -8,6 +8,9 @@
 from ConfigParser import SafeConfigParser
 from logging import basicConfig, INFO, debug
 
+DEFAULT_BLOCK_SIZE = 64
+DEFAULT_PORT = 9090
+
 
 class ParameterRequiredException(Exception):
     """
@@ -18,7 +21,7 @@ class ParameterRequiredException(Exception):
         super(ParameterRequiredException, self).__init__(message)
 
 
-def parse_project_cfg(path):
+def parse_project_cfg(path, index, node_types):
     """
     Function to parse .cfg file defined by the parameter ``path``.
 
@@ -26,7 +29,7 @@ def parse_project_cfg(path):
 
     .. code-block:: cfg
 
-        ##
+        ###
         # Big Data Object-Based Storage System Configuration
         #
 
@@ -34,22 +37,34 @@ def parse_project_cfg(path):
         project-path =
         log-file =
 
+        # Defined in megabytes
+        block-size =
+
         ##
-        # Configuration of the gateway servers
+        # Configuration of the nodes
+        # Available section types:
+        #   * gateway, storage, monitor
+        #
         # Supported parameters:
-        #   * name - class name of the python gateway implementation
-        #   * file - file including the class implementation, relative to general path
         #   * addresses - list of ip addresses and port pairs (= number of gateways started)
         #   * ns-registry-name - identifier at the nameserver
         #
 
         [gateway]
-        name =
-        file =
         addresses =
         ns-registry-name =
 
+        [storage]
+        addresses =
+        ns-registry-name =
+
+        [monitor]
+        addresses =
+        ns-registry-name =
+
+
     :param path: full path to the .cfg project configuration file
+    :param node_type: The node type to parse: gateway, storage, monitor
     :type path: str
     :returns :class:`.Configuration`
     """
@@ -67,24 +82,31 @@ def parse_project_cfg(path):
         basicConfig(filename=config.get("general", "log-file"), level=INFO)
         global_config.use_logging = True
 
-    if config.has_section("gateway"):
-        gateway = Configuration.GatewayConfiguration()
-        if not config.has_option("gateway", "name") \
-                or not config.has_option("gateway", "file") \
-                or not config.has_option("gateway", "addresses"):
-            raise ParameterRequiredException("name, file and ips in gateway is required")
+    if config.has_option("general", "block-size"):
+        global_config.block_size = config.getint("general", "block-size")
 
-        gateway.name = config.get("gateway", "name")
-        gateway.file = config.get("gateway", "file")
-        gateway.addresses = config.get("gateway", "addresses").split(",")
+    for idx, node in enumerate(node_types):
+        if config.has_section(node):
+            if not config.has_option(node, "addresses"):
+                raise ParameterRequiredException("addresses in %s is required" % node)
 
-        if config.has_option("gateway", "ns-registry-name"):
-            gateway.ns_registry_name = config.get("gateway", "ns-registry-name")
+            addresses = config.get(node, "addresses").split(",")
 
-        global_config.gateway = gateway
-    else:
-        if global_config.use_logging:
-            debug("Starting system without gateway")
+            ns_registry_name = node
+            if config.has_option(node, "ns-registry-name"):
+                ns_registry_name = config.get(node, "ns-registry-name")
+
+            if idx == 0:
+                global_config.node = "%s-%d" % (ns_registry_name, index)
+                global_config.port = int(addresses[index].split(":")[1])
+            else:
+                num_nodes = len(addresses)
+                global_config.others = ["%s-%d" % (ns_registry_name, i)
+                                        for i in range(num_nodes)]
+
+        else:
+            if global_config.use_logging:
+                debug("Starting system without %s" % node)
 
     return global_config
 
@@ -94,22 +116,15 @@ class Configuration:
     Container class for configuration parameters defined in the .cfg project configuration file
     """
 
-    class GatewayConfiguration:
-        def __init__(self):
-            self.name = None
-            self.file = None
-            self.addresses = []
-            self.ns_registry_name = "bdos.gateway"
-
-        def get_port(self, i):
-            return int(self.addresses[i].split(":")[1])
-
     def __init__(self):
         self.project_path = None
         self.use_logging = False
-        self.gateway = None
+        self.block_size = DEFAULT_BLOCK_SIZE
+        self.node = None
+        self.others = []
+        self.port = DEFAULT_PORT
 
 
 if __name__ == "__main__":
     # Only used for test the parsing of .cfg file
-    parse_project_cfg("../../bdos.cfg")
+    parse_project_cfg("../../bdos.cfg", 0, ["gateway", "storage"])

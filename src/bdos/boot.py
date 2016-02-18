@@ -22,36 +22,35 @@ def _handle_kill_signal(signal, frame):
 
 
 if __name__ == "__main__":
-    node_type = argv[1]
-    index = int(argv[3])
+    index = int(argv[1])
+    node_types = argv[3:]
 
-    config = validate_configuration(node_type)
+    config = validate_configuration(index, node_types)
+    node_type = node_types[index]
 
-    if config.node is None:
+    if config is None:
         error("Unable to start %s without configuration" % node_type)
         exit(1)
 
     instance = None
-    if config.node.type == "gateway":
+    if node_type == "gateway":
         instance = gateway_handler
-    if config.node.type == "storage":
+    if node_type == "storage":
         instance = storage_handler
-    if config.node.type == "monitor":
+    if node_type == "monitor":
         instance = monitor_handler
 
     if instance is None:
         error("Node with type: %s is not supported" % config.node.type)
         exit(1)
 
-    REGISTRY_NAME = "%s-%d" % (config.node.ns_registry_name, index)
-    daemon = Daemon(port=config.node.get_port(index))
+    daemon = Daemon(port=config.port)
 
-    # TODO: define list other storage nodes instead of None
-    uri = daemon.register(instance(config.block_size, None))
-    NS.register(REGISTRY_NAME, uri)
+    uri = daemon.register(instance(config.block_size, config.others))
+    NS.register(config.node, uri)
 
     signal(SIGTERM, _handle_kill_signal)
     signal(SIGINT, _handle_kill_signal)
 
-    info("%s ready at %s with registry: %s" % (node_type, str(uri), REGISTRY_NAME))
+    info("%s ready at %s with registry: %s" % (node_type, str(uri), config.node))
     daemon.requestLoop()

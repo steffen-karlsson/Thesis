@@ -53,21 +53,23 @@ start_gateway () {
     for address in $(echo $(find_cfg_param_in_type addresses) | tr ',' "\n")
     do
         ip=$(echo ${address} | awk -F ':' '{print $1}')
-        echo "Booting node as: python "${bdosdir}/${bootfile} ${type} ${cfg_file} ${i} "at" ${address}
-        nohup ssh ${ip} bash -c "'python "${bdosdir}/${bootfile} ${type} ${cfg_file} ${i}"'" > /dev/null 2>&1 &
+        echo "Booting node as: python "${bdosdir}/${bootfile} ${i} ${cfg_file} ${types[@]} "at" ${address}
+        nohup ssh ${ip} bash -c "'python " ${bdosdir}/${bootfile} ${i} ${cfg_file} ${types[@]}"'" > /dev/null 2>&1 &
         i=$((i+1))
     done
 }
 
-if [ $# -ne 2 ]
+if [ $# -eq 2 ]
 then
-  echo "Illegal ammount of argument, \$1: type \$2: config file"
+  echo "Illegal ammount of argument, \$1: config file \$2: sections parsed from the file (first is booted)"
   echo "Supported types: gateway, storage, monitor"
   exit
 fi
 
-type=$1
-cfg_file=$2
+args=( $@ )
+cfg_file=${args[0]}
+types=( ${args[@]:1} )
+type=${types[0]}
 
 validate_bdos
 set_bootfile
