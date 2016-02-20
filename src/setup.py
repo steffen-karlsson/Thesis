@@ -28,12 +28,14 @@ setup(
             "static/custom.css",
             "static/bootstrap.min.css",
             "static/jumbotron-narrow.css",
-            "static/general-overview.png"
+            "static/glyphicons-halflings-regular.ttf"
         ],
         "bdos.web.docs": [
             "conf.py",
             "Makefile",
             "configparser.rst",
+            "absdatasetcontext.rst",
+            "libbdosadmin.rst",
             "index.rst"
         ]
     },
