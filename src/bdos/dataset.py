@@ -13,6 +13,9 @@ class AbsDatasetContext:
     Abstract and not initializable class to define the context of a dataset by overriding it.
     """
 
+    def __init__(self):
+        pass
+
     __metaclass__ = ABCMeta
 
     @abstractmethod
