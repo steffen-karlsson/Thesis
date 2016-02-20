@@ -7,9 +7,9 @@ from signal import signal, SIGTERM, SIGINT
 
 from Pyro4 import Daemon, locateNS
 
-from bdos.gateway import handler as gateway_handler
-from bdos.storage import handler as storage_handler
-from bdos.monitor import handler as monitor_handler
+from bdae.gateway import handler as gateway_handler
+from bdae.storage import handler as storage_handler
+from bdae.monitor import handler as monitor_handler
 from config import validate_configuration
 
 REGISTRY_NAME = None

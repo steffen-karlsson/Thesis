@@ -5,15 +5,15 @@ from shelve import open
 
 from Pyro4 import Proxy, locateNS
 
-from bdos.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS
-from bdos.secure import secure_load, secure_send
+from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS
+from bdae.secure import secure_load, secure_send
 
 # TODO: Generalize to support multiple storage handlers
 class StorageHandler(object):
     def __init__(self, _, storage_uris):
         # self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri in storage_uris]
-        self.__RAW = open("bdos_raw.db", writeback=True)
-        self.__FLAG = open("bdos_flag.db", writeback=True)
+        self.__RAW = open("bdae_raw.db", writeback=True)
+        self.__FLAG = open("bdae_flag.db", writeback=True)
 
     def create(self, bundle):
         identifier, jdataset = secure_load(bundle)

@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-import bdos
+import bdae
 
 install_requires = [
     'Pyro4',
@@ -11,18 +11,18 @@ install_requires = [
 ]
 
 setup(
-    name='bdos',
-    version=bdos.__version__,
-    description=bdos.__doc__,
+    name='bdae',
+    version=bdae.__version__,
+    description=bdae.__doc__,
     url='https://github.com/steffenkarlsson/Thesis',
     download_url='https://github.com/steffenkarlsson/Thesis',
-    author=bdos.__author__,
+    author=bdae.__author__,
     author_email='ckh340@alumni,ku.dk',
-    license=bdos.__licence__,
+    license=bdae.__licence__,
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "bdos.web": [
+        "bdae.web": [
             "index.html",
             "static/custom.js",
             "static/custom.css",
@@ -30,12 +30,12 @@ setup(
             "static/jumbotron-narrow.css",
             "static/glyphicons-halflings-regular.ttf"
         ],
-        "bdos.web.docs": [
+        "bdae.web.docs": [
             "conf.py",
             "Makefile",
             "configparser.rst",
             "absdatasetcontext.rst",
-            "libbdosadmin.rst",
+            "libbdaeadmin.rst",
             "index.rst"
         ]
     },

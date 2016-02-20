@@ -10,9 +10,9 @@ from ujson import dumps as udumps, loads as uloads
 
 from Pyro4 import Proxy, locateNS
 
-from bdos.utils import find_identifier, import_class, is_error
-from bdos.secure import secure_load, secure_load2, secure_send, secure
-from bdos.storage import api as storage_api
+from bdae.utils import find_identifier, import_class, is_error
+from bdae.secure import secure_load, secure_load2, secure_send, secure
+from bdae.storage import api as storage_api
 
 
 def _dataset_from_source(source, name):

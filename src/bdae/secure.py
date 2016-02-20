@@ -4,7 +4,7 @@
 from cPickle import dumps as cdumps, loads as cloads
 from hmac import new
 from hashlib import sha256
-from bdos.utils import find_identifier, STATUS_INVALID_DATA
+from bdae.utils import find_identifier, STATUS_INVALID_DATA
 
 
 def __generate_digest(data):

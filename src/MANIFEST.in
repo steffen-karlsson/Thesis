@@ -1,9 +1,12 @@
-recursive-include bdos *.py
-include bdos/web/index.html
-include bdos/web/static/ *
-include bdos/web/static/custom.js
-include bdos/web/docs/index.rst
-include bdos/web/docs/configparser.rst
-include bdos/web/docs/absdatasetcontext.rst
-include bdos/web/docs/libbdosadmin.rst
-include bdos/web/docs/Makefile
+recursive-include bdae *.py
+include bdae/web/index.html
+include bdae/web/static/custom.js
+include bdae/web/static/custom.css
+include bdae/web/static/bootstrap.min.css
+include bdae/web/static/jumbotron-narrow.css
+include bdae/web/static/glyphicons-halflings-regular.ttf
+include bdae/web/docs/index.rst
+include bdae/web/docs/configparser.rst
+include bdae/web/docs/absdatasetcontext.rst
+include bdae/web/docs/libbdaeadmin.rst
+include bdae/web/docs/Makefile

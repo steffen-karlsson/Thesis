@@ -1,6 +1,6 @@
 libBDOSAdmin
 ============
 
-.. automodule:: bdos.libs.libbdosadmin
+.. automodule:: bdae.libs.libbdaeadmin
     :members:
     :private-members:

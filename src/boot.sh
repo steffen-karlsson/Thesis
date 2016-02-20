@@ -21,18 +21,18 @@ find_cfg_param () {
     echo $(awk '/^\['$1'\]/{f=1} f==1&&/^'${argument}'/{print $3;exit}' ${cfg_file})
 }
 
-validate_bdos () {
-    pythonlocallib='/usr/lib/python2.7/dist-packages/bdos'
-    pythonlib='/usr/local/lib/python2.7/dist-packages/bdos'
+validate_bdae () {
+    pythonlocallib='/usr/lib/python2.7/dist-packages/bdae'
+    pythonlib='/usr/local/lib/python2.7/dist-packages/bdae'
 
     if [ -d "$pythonlocallib" ] ;
     then
-        bdosdir=${pythonlocallib}
+        bdaedir=${pythonlocallib}
     elif [ -d "$pythonlib" ] ;
     then
-        bdosdir=${pythonlib}
+        bdaedir=${pythonlib}
     else
-        echo "Aborting, please try to run the install.sh script again to succesfully install bdos"
+        echo "Aborting, please try to run the install.sh script again to succesfully install bdae"
         exit 1
     fi
 }
@@ -53,8 +53,8 @@ start_gateway () {
     for address in $(echo $(find_cfg_param_in_type addresses) | tr ',' "\n")
     do
         ip=$(echo ${address} | awk -F ':' '{print $1}')
-        echo "Booting node as: python "${bdosdir}/${bootfile} ${i} ${cfg_file} ${types[@]} "at" ${address}
-        nohup ssh ${ip} bash -c "'python " ${bdosdir}/${bootfile} ${i} ${cfg_file} ${types[@]}"'" > /dev/null 2>&1 &
+        echo "Booting node as: python "${bdaedir}/${bootfile} ${i} ${cfg_file} ${types[@]} "at" ${address}
+        nohup ssh ${ip} bash -c "'python " ${bdaedir}/${bootfile} ${i} ${cfg_file} ${types[@]}"'" > /dev/null 2>&1 &
         i=$((i+1))
     done
 }
@@ -71,7 +71,7 @@ cfg_file=${args[0]}
 types=( ${args[@]:1} )
 type=${types[0]}
 
-validate_bdos
+validate_bdae
 set_bootfile
 validate_pyro
 start_gateway

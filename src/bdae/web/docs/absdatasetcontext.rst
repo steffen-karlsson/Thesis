@@ -1,6 +1,6 @@
 AbsDatasetContext
 =================
 
-.. automodule:: bdos.dataset
+.. automodule:: bdae.dataset
     :members:
     :private-members:

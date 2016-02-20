@@ -50,7 +50,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Big Data Object Store'
+project = u'Big Data Analysis Engine'
 copyright = u'2016, ckh340@alumni.ku.dk'
 author = u'ckh340@alumni.ku.dk'
 
@@ -204,7 +204,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'BigDataObjectStoredoc'
+htmlhelp_basename = 'BigDataAnalysisEnginedoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -226,7 +226,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'BigDataObjectStore.tex', u'Big Data Object Store Documentation',
+    (master_doc, 'BigDataAnalysisEngine.tex', u'Big Data Analysis Engine Documentation',
      u'ckh340@alumni.ku.dk', 'manual'),
 ]
 
@@ -256,7 +256,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'bigdataobjectstore', u'Big Data Object Store Documentation',
+    (master_doc, 'bigdataanalysisengine', u'Big Data Analysis Engine Documentation',
      [author], 1)
 ]
 
@@ -270,8 +270,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'BigDataObjectStore', u'Big Data Object Store Documentation',
-     author, 'BigDataObjectStore', 'One line description of project.',
+    (master_doc, 'BigDataAnalysisEngine', u'Big Data Analysis Engine Documentation',
+     author, 'BigDataAnalysisEngine', 'One line description of project.',
      'Miscellaneous'),
 ]
 

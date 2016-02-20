@@ -2,7 +2,7 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 """
-.. module:: libbdosadmin
+.. module:: libbdaeadmin
 """
 
 from abc import abstractmethod, ABCMeta
@@ -13,15 +13,15 @@ from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler, asynchronous, StaticFileHandler
 
-from bdos.utils import verify_error
-from bdos.gateway import api as gateway_api
-import bdos
+from bdae.utils import verify_error
+from bdae.gateway import api as gateway_api
+import bdae
 
 ADMIN = None
 
 
 def get_path():
-    return path.dirname(path.abspath(bdos.__file__))
+    return path.dirname(path.abspath(bdae.__file__))
 
 
 class RootHandler(RequestHandler):

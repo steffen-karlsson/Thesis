@@ -29,8 +29,8 @@ def parse_project_cfg(path, index, node_types):
 
     .. code-block:: cfg
 
-        ###
-        # Big Data Object-Based Storage System Configuration
+        ##
+        # Big Data Analysis Engine Configuration
         #
 
         [general]
@@ -127,4 +127,4 @@ class Configuration:
 
 if __name__ == "__main__":
     # Only used for test the parsing of .cfg file
-    parse_project_cfg("../../bdos.cfg", 0, ["gateway", "storage"])
+    parse_project_cfg("../../bdae.cfg", 0, ["gateway", "storage"])

@@ -3,7 +3,7 @@
 
 from sys import argv
 from os import path
-from bdos.config import parser
+from bdae.config import parser
 
 
 class _InvalidConfigurationFile(Exception):
