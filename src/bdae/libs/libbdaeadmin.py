@@ -84,7 +84,7 @@ class AbsPyAdminGateway(Application):
 
     def __init__(self, gateway_uri):
         super(AbsPyAdminGateway, self).__init__()
-        # self.api = gateway_api(gateway_uri)
+        self.api = gateway_api(gateway_uri)
 
     def create_dataset(self, name, dataset_type):
         """
