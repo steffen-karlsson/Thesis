@@ -7,6 +7,7 @@
 
 from abc import abstractmethod, ABCMeta
 from os import path
+from ujson import dumps as udumps
 
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
@@ -15,6 +16,8 @@ from tornado.web import Application, RequestHandler, asynchronous, StaticFileHan
 from bdos.utils import verify_error
 from bdos.gateway import api as gateway_api
 import bdos
+
+ADMIN = None
 
 
 def get_path():
@@ -43,6 +46,21 @@ class DocumentationHandler(RequestHandler):
         self.render("%s/web/docs/_build/html/%s" % (get_path(), index))
 
 
+class RegisterDatasetHandler(RequestHandler):
+    SUPPORTED_METHODS = {'GET'}
+
+    def compute_etag(self):
+        return None
+
+    @asynchronous
+    def get(self):
+        datasets = ADMIN.get_implemented_datasets()
+
+        self.set_header('Content-Type', 'application/json')
+        self.set_status(200)
+        self.finish(udumps(dict() if datasets is None else datasets))
+
+
 TORNADO_SETTINGS = {
     r'static_path': r"%s/web/static" % get_path(),
     r'static_url_prefix': r'/static/',
@@ -50,7 +68,9 @@ TORNADO_SETTINGS = {
 
 TORNADO_ROUTES = [
     (r'/', RootHandler),
+    (r'/register_implemented_datasets', RegisterDatasetHandler),
     (r"/docs/_static/(.*)", StaticFileHandler, {"path": "%s/web/docs/_build/html/_static" % get_path()}),
+    (r"/fonts/(.*)", StaticFileHandler, {"path": "%s/web/static" % get_path()}),
     (r'/docs/(.*)', DocumentationHandler),
 ]
 
@@ -64,7 +84,7 @@ class AbsPyAdminGateway(Application):
 
     def __init__(self, gateway_uri):
         super(AbsPyAdminGateway, self).__init__()
-        self.api = gateway_api(gateway_uri)
+        # self.api = gateway_api(gateway_uri)
 
     def create_dataset(self, name, dataset_type):
         """
@@ -94,7 +114,7 @@ class AbsPyAdminGateway(Application):
                      "Dataset with name: %s, doesn't exists" % name)
 
     @abstractmethod
-    def get_available_datasets(self):
+    def get_implemented_datasets(self):
         """
         Abstract method to be overriden to return a dictionary of name, class reference combinations.
 
@@ -117,8 +137,10 @@ class AbsPyAdminGateway(Application):
         :param hostname (optional): default value is 'localhost'
         :type hostname: str
         """
-        Application.__init__(self, TORNADO_ROUTES, **TORNADO_SETTINGS)
+        global ADMIN
+        ADMIN = self
 
+        Application.__init__(self, TORNADO_ROUTES, **TORNADO_SETTINGS)
         server = HTTPServer(self)
         server.listen(address=hostname, port=port)
         print "*** Running on localhost:%d" % port
