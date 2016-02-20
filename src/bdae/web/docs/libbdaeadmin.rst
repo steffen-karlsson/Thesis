@@ -1,4 +1,4 @@
-libBDOSAdmin
+libBDAEAdmin
 ============
 
 .. automodule:: bdae.libs.libbdaeadmin
