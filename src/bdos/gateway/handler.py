@@ -11,7 +11,7 @@ from ujson import dumps as udumps, loads as uloads
 from Pyro4 import Proxy, locateNS
 
 from bdos.utils import find_identifier, import_class, is_error
-from bdos.secure import secure_load, secure_send, secure
+from bdos.secure import secure_load, secure_load2, secure_send, secure
 from bdos.storage import api as storage_api
 
 
@@ -37,14 +37,16 @@ class GatewayHandler(object):
                           'source': pdata})
         return self.__get_storage_node().create(find_identifier(name), dataset)
 
-    def append(self, identifier, url):
+    def append(self, name, url):
+        identifier = find_identifier(name)
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
         if is_error(res):
             # TODO: decide whether to try again
             pass
 
         jdataset = uloads(res)
-        dataset = _dataset_from_source(jdataset['source'], jdataset['name'])
+        source = secure_load2(jdataset['digest'], jdataset['source'])
+        dataset = _dataset_from_source(source, jdataset['name'])
 
         with closing(urlopen(url)) as f:
             start = randint(0, self.__num_storage_nodes - 1)
