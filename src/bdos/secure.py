@@ -16,16 +16,24 @@ def secure_send(data, fun):
 
 
 def secure_load(bundle):
-    digist, pdata = bundle
+    digest, pdata = bundle
+    return secure_load2(digest, pdata)
 
+
+def secure_load2(digest, pdata):
     if isinstance(pdata, unicode):
         pdata = pdata.encode("ascii")
 
-    if digist != __generate_digest(pdata):
-        return STATUS_INVALID_DATA
+    return validate(pdata, digest)
 
-    return cloads(pdata)
 
 def secure(data):
     pdata = cdumps(data)
     return __generate_digest(pdata), pdata
+
+
+def validate(pdata, digest):
+    if digest != __generate_digest(pdata):
+        return STATUS_INVALID_DATA
+
+    return cloads(pdata)

@@ -29,10 +29,11 @@ class StorageHandler(object):
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, identifier):
+        identifier = identifier.encode('ascii')
         if not self.__dataset_exists(identifier):
             return STATUS_NOT_FOUND
 
-        return self.__RAW[identifier]
+        return self.__RAW[identifier][0]
 
     def __dataset_exists(self, identifier):
         return identifier in self.__FLAG

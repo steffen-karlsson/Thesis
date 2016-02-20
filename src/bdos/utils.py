@@ -5,7 +5,7 @@ from hashlib import sha256
 
 
 def find_identifier(name):
-    return sha256(name).hexdigest()
+    return sha256(name).hexdigest().encode('ascii')
 
 
 def import_class(cls):
