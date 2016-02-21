@@ -10,6 +10,7 @@ from logging import basicConfig, INFO, debug
 
 DEFAULT_BLOCK_SIZE = 64
 DEFAULT_PORT = 9090
+DEFAULT_HEARTBEAT_DELAY = 5
 
 
 class ParameterRequiredException(Exception):
@@ -85,6 +86,9 @@ def parse_project_cfg(path, index, node_types):
     if config.has_option("general", "block-size"):
         global_config.block_size = config.getint("general", "block-size")
 
+    if config.has_option("general", "heartbeat_scheduler_delay"):
+        global_config.heartbeat_scheduler_delay = config.getint("general", "heartbeat_scheduler_delay")
+
     for idx, node in enumerate(node_types):
         if config.has_section(node):
             if not config.has_option(node, "addresses"):
@@ -123,6 +127,7 @@ class Configuration:
         self.node = None
         self.others = []
         self.port = DEFAULT_PORT
+        self.heartbeat_scheduler_delay = DEFAULT_HEARTBEAT_DELAY
 
 
 if __name__ == "__main__":
