@@ -18,6 +18,7 @@ from bdae.gateway import api as gateway_api
 import bdae
 
 ADMIN = None
+API = None
 
 
 def get_path():
@@ -61,6 +62,21 @@ class RegisterDatasetHandler(RequestHandler):
         self.finish(udumps(dict() if datasets is None else datasets))
 
 
+class FunctionsHandler(RequestHandler):
+    SUPPORTED_METHODS = {'GET'}
+
+    @asynchronous
+    def get(self, dataset_name, functions_name):
+        functions = None
+
+        if functions_name == 'operations':
+            functions = API.get_dataset_operations(dataset_name)
+
+        self.set_header('Content-Type', 'application/json')
+        self.set_status(200)
+        self.finish(udumps(list() if functions is None else functions))
+
+
 TORNADO_SETTINGS = {
     r'static_path': r"%s/web/static" % get_path(),
     r'static_url_prefix': r'/static/',
@@ -69,6 +85,7 @@ TORNADO_SETTINGS = {
 TORNADO_ROUTES = [
     (r'/', RootHandler),
     (r'/register_implemented_datasets', RegisterDatasetHandler),
+    (r'/get_functions/(.*)/(.*)', FunctionsHandler),
     (r"/docs/_static/(.*)", StaticFileHandler, {"path": "%s/web/docs/_build/html/_static" % get_path()}),
     (r"/fonts/(.*)", StaticFileHandler, {"path": "%s/web/static" % get_path()}),
     (r'/docs/(.*)', DocumentationHandler),
@@ -84,7 +101,7 @@ class AbsPyAdminGateway(Application):
 
     def __init__(self, gateway_uri):
         super(AbsPyAdminGateway, self).__init__()
-        self.api = gateway_api(gateway_uri)
+        self.__api = gateway_api(gateway_uri)
 
     def create_dataset(self, name, dataset_type):
         """
@@ -96,7 +113,7 @@ class AbsPyAdminGateway(Application):
         :type dataset_type: str
         :raises DatasetAlreadyExistsException: If the name of the dataset already exists
         """
-        verify_error(self.api.create(name, dataset_type),
+        verify_error(self.__api.create(name, dataset_type),
                      "Dataset with name: %s, already exists" % name)
 
     def append_to_dataset(self, name, url):
@@ -110,7 +127,7 @@ class AbsPyAdminGateway(Application):
         :raises DatasetNotExistsException: If the dataset isn't already created by :func:`create_dataset`
         """
 
-        verify_error(self.api.append(name, url),
+        verify_error(self.__api.append(name, url),
                      "Dataset with name: %s, doesn't exists" % name)
 
     @abstractmethod
@@ -137,8 +154,9 @@ class AbsPyAdminGateway(Application):
         :param hostname (optional): default value is 'localhost'
         :type hostname: str
         """
-        global ADMIN
+        global ADMIN, API
         ADMIN = self
+        API = self.__api
 
         Application.__init__(self, TORNADO_ROUTES, **TORNADO_SETTINGS)
         server = HTTPServer(self)
