@@ -16,8 +16,8 @@ from bdae.storage import api as storage_api
 
 
 class GatewayHandler(object):
-    def __init__(self, block_size, storage_uris):
-        self.__block_size = block_size
+    def __init__(self, config, storage_uris):
+        self.__block_size = config.block_size
         self.__num_storage_nodes = len(storage_uris)
         self.__storage_nodes = [storage_api(storage_uri) for storage_uri in storage_uris]
 
