@@ -38,6 +38,11 @@ class StorageHandler(object):
     def __dataset_exists(self, identifier):
         return identifier in self.__FLAG
 
+    # Internal Monitor Api
+
+    def heartbeat(self):
+        pass
+
 
 class StorageApi(object):
     def __init__(self, storage_uri):
@@ -54,5 +59,13 @@ class StorageApi(object):
         return self.api.get_meta_from_identifier(identifier)
 
 
-class _InternalStorageApi(object):
+class InternalStorageMonitorApi(object):
+    def __init__(self, storage_uri):
+        self.api = Proxy(locateNS().lookup(storage_uri))
+
+    def heartbeat(self):
+        self.api.heartbeat()
+
+
+class InternalStorageApi(object):
     pass
