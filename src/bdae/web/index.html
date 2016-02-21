@@ -48,9 +48,6 @@
                 <span id="query-dropdown-selection" class="selection"></span><span class="caret"></span>
             </button>
             <ul class="dropdown-menu" aria-labelledby="query-dropdown-button" id="query-dropdown-menu">
-                <li id="query-first"><a href="#">HTML</a></li>
-                <li><a href="#">CSS</a></li>
-                <li><a href="#">JavaScript</a></li>
             </ul>
         </div>
         <input id="query" type="text" class="form-control" placeholder="Query" aria-describedby="sizing-addon1">
@@ -90,23 +87,31 @@
         <div class="page-header">
             <h1>Admin</h1>
         </div>
-        <input id="registry-name" type="text" class="form-control" placeholder="Registry name" aria-describedby="sizing-addon1">
-        <div class="dropdown" style="display: inline; font-size: 18px;" id="registry-name-dropdown">
-            <button class="btn btn-default dropdown-toggle custom-button" type="button" data-toggle="dropdown" id="registry-name-dropdown-button" aria-haspopup="true" aria-expanded="true">
-                <span id="registry-name-dropdown-selection" class="selection"></span><span class="caret"></span>
+        <input id="add-registry-name" type="text" class="form-control" placeholder="Registry name" aria-describedby="sizing-addon1">
+        <div class="dropdown" style="display: inline; font-size: 18px;" id="add-registry-name-dropdown">
+            <button class="btn btn-default dropdown-toggle custom-button" type="button" data-toggle="dropdown" id="add-registry-name-dropdown-button" aria-haspopup="true" aria-expanded="true">
+                <span id="add-registry-name-dropdown-selection" class="selection"></span><span class="caret"></span>
             </button>
-            <ul class="dropdown-menu" aria-labelledby="registry-name-dropdown-button" id="registry-name-dropdown-menu">
-                <li id="registry-name-first"><a href="#">Gateway </a></li>
+            <ul class="dropdown-menu" aria-labelledby="add-registry-name-dropdown-button" id="add-registry-name-dropdown-menu">
+                <li id="add-registry-name-first"><a href="#">Gateway </a></li>
                 <li><a href="#">Storage</a></li>
                 <li><a href="#">Monitor</a></li>
             </ul>
         </div>
-        <div id="registry-name-submit" style="display: inline; float: right;">
+        <div id="add-registry-name-submit" style="display: inline; float: right;">
             <button type="button" class="btn btn-lg btn-success custom-button">
                 <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             </button>
         </div>
-
+        <div style="padding-top: 20px">
+            <input id="remove-registry-name" type="text" class="form-control" placeholder="Registry name" aria-describedby="sizing-addon1">
+            <div id="remove-registry-name-submit" style="display: inline; float: right;">
+                <button type="button" class="btn btn-lg btn-danger custom-button">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                </button>
+            </div>
+        </div>
+        
         <footer class="footer">
             <p>&copy; 2016 The Niels Bohr Institute, UCPH. All rights reserved.</p>
         </footer>

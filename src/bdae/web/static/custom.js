@@ -4,38 +4,50 @@
  */
 
 $(document).ready(function() {
-    addDropDownListener("#query");
-    addDropDownListener("#registry-name");
-
-    adjustWidthBySelf("#query");
-    adjustWidthBySelf("#registry-name");
+    addDropDownListener("#add-registry-name");
 
     var ndDropdown = $("#new-dataset-dropdown");
     var width = ndDropdown.outerWidth(true);
     ndDropdown.outerWidth(0);
     adjustWidth("#remove-dataset", "#new-dataset");
 
+
+    adjustWidthBySelf("#add-registry-name");
+    adjustWidth("#remove-registry-name", "#new-dataset");
+
     $.getJSON( "/register_implemented_datasets", function( data ) {
         $.each( data, function( key, val ) {
-            console.log(val);
             $("#dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"dataset-first\"><a href=\"#\">"
                 + key + " </a></li>");
 
             $("#new-dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"new-dataset-first\"><a href=\"#\">"
                 + val.substring(val.lastIndexOf(".") + 1) + " </a></li>");
         });
-        addDropDownListener("#dataset", function(value) {
-            window.dataset = value;
+        addDropDownListener("#dataset", function( text ) {
+            setDatasetFunctions(text, "operations");
         });
-        window.dataset = $("#dataset-first").attr("value");
+        setDatasetFunctions($("#dataset-first").text(), "operations");
 
-        addDropDownListener("#new-dataset", function(value) {
-            console.log(">> " + value);
+        addDropDownListener("#new-dataset", function( text ) {
+            console.log(">> " + text);
         });
         ndDropdown.outerWidth(width).css("display", "inline");
         adjustWidthBySelf("#new-dataset");
     });
 });
+
+function setDatasetFunctions(dataset_name, functions_name) {
+    window.dataset = dataset_name
+    $.getJSON("/get_functions/" + dataset_name + "/" + functions_name, function( data ) {
+        $.each( data, function( idx, entry ) {
+            $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">"
+                + entry + " </a></li>");
+        });
+
+        addDropDownListener("#query");
+        adjustWidthBySelf("#query");
+    });
+}
 
 function addDropDownListener(label, valueCallback) {
     $(label + "-dropdown-selection").text($(label + "-first").text())
@@ -47,7 +59,7 @@ function addDropDownListener(label, valueCallback) {
         adjustWidthBySelf(label);
 
         if (valueCallback !== null)
-            valueCallback($(this).parent().attr("value"));
+            valueCallback(selText);
     });
 }
 
