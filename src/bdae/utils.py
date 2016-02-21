@@ -2,6 +2,9 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from hashlib import sha256
+from re import compile
+
+CLASS_PATTERN = compile("\'(.*?)\'")
 
 
 def find_identifier(name):
@@ -9,9 +12,21 @@ def find_identifier(name):
 
 
 def import_class(cls):
-    package, classname = cls.rsplit('.', 1)
+    package, classname = split_class_path(cls)
     m = __import__(package, globals(), locals(), [classname])
     return getattr(m, classname)
+
+
+def find_package(cls):
+    return CLASS_PATTERN.findall(str(cls))[0] if cls is not None else None
+
+
+def split_class_path(path):
+    return path.rsplit(".", 1)
+
+
+def get_class_from_path(path):
+    return split_class_path(path)[1] if path is not None else None
 
 # Error codes
 STATUS_SUCCESS = 200
