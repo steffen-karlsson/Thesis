@@ -1,14 +1,14 @@
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from hashlib import sha256
 from re import compile
 
 CLASS_PATTERN = compile("\'(.*?)\'")
 
 
-def find_identifier(name):
-    return sha256(name).hexdigest().encode('ascii')
+def find_identifier(name, mod):
+    identifier = hash(name)
+    return identifier if mod is None else identifier % mod
 
 
 def import_class(cls):
@@ -30,6 +30,7 @@ def get_class_from_path(path):
 
 # Error codes
 STATUS_SUCCESS = 200
+STATUS_PROCESSING = 202
 STATUS_INVALID_DATA = 400
 STATUS_NOT_FOUND = 404
 STATUS_NOT_ALLOWED = 405

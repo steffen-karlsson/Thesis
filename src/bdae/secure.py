@@ -4,11 +4,11 @@
 from cPickle import dumps as cdumps, loads as cloads
 from hmac import new
 from hashlib import sha256
-from bdae.utils import find_identifier, STATUS_INVALID_DATA
+from bdae.utils import STATUS_INVALID_DATA
 
 
 def __generate_digest(data):
-    return new(find_identifier(__generate_digest.__module__), data, sha256).hexdigest()
+    return new(sha256(__generate_digest.__module__).hexdigest(), data, sha256).hexdigest()
 
 
 def secure_send(data, fun):
