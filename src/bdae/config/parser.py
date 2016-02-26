@@ -11,6 +11,7 @@ from logging import basicConfig, INFO, debug
 DEFAULT_BLOCK_SIZE = 64
 DEFAULT_PORT = 9090
 DEFAULT_HEARTBEAT_DELAY = 5
+DEFAULT_KEYSPACE_SIZE = pow(2, 64)
 
 
 class ParameterRequiredException(Exception):
@@ -86,8 +87,11 @@ def parse_project_cfg(path, index, node_types):
     if config.has_option("general", "block-size"):
         global_config.block_size = config.getint("general", "block-size")
 
-    if config.has_option("general", "heartbeat_scheduler_delay"):
-        global_config.heartbeat_scheduler_delay = config.getint("general", "heartbeat_scheduler_delay")
+    if config.has_option("general", "heartbeat-scheduler-delay"):
+        global_config.heartbeat_scheduler_delay = config.getint("general", "heartbeat-scheduler-delay")
+
+    if config.has_option("general", "keyspace-size"):
+        global_config.keyspace_size = eval(config.get("general", "keyspace-size"))
 
     for idx, node in enumerate(node_types):
         if config.has_section(node):
@@ -95,6 +99,7 @@ def parse_project_cfg(path, index, node_types):
                 raise ParameterRequiredException("addresses in %s is required" % node)
 
             addresses = config.get(node, "addresses").split(",")
+            num_nodes = len(addresses)
 
             ns_registry_name = node
             if config.has_option(node, "ns-registry-name"):
@@ -102,12 +107,15 @@ def parse_project_cfg(path, index, node_types):
 
             if idx == 0:
                 global_config.node = "%s-%d" % (ns_registry_name, index)
+                global_config.node_idx = index
                 global_config.port = int(addresses[index].split(":")[1])
-            else:
-                num_nodes = len(addresses)
-                global_config.others = ["%s-%d" % (ns_registry_name, i)
-                                        for i in range(num_nodes)]
 
+                if len(addresses) > 1:
+                    global_config.others[node] = ["%s-%d" % (ns_registry_name, i + 1)
+                                                  for i in range(num_nodes)]
+            else:
+                global_config.others[node] = ["%s-%d" % (ns_registry_name, i)
+                                              for i in range(num_nodes)]
         else:
             if global_config.use_logging:
                 debug("Starting system without %s" % node)
@@ -125,7 +133,9 @@ class Configuration:
         self.use_logging = False
         self.block_size = DEFAULT_BLOCK_SIZE
         self.node = None
-        self.others = []
+        self.node_idx = None
+        self.others = {}
+        self.keyspace_size = DEFAULT_KEYSPACE_SIZE
         self.port = DEFAULT_PORT
         self.heartbeat_scheduler_delay = DEFAULT_HEARTBEAT_DELAY
 
