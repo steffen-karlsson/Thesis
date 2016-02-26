@@ -33,12 +33,24 @@ $(document).ready(function() {
         });
         ndDropdown.outerWidth(width).css("display", "inline");
         adjustWidthBySelf("#new-dataset");
+
+        onClickListener("#query", function () {
+            var url = "/submit/" + window.dataset + "/" + $.trim($("#query-dropdown-button").text()) + "/" + $("#query").val();
+            $.ajax({
+                url: url,
+                statusCode: {
+                    202: function () {
+                        waitingDialog.show("Querying");
+                    }
+                }
+            });
+        });
     });
 });
 
-function setDatasetFunctions(dataset_name, functions_name) {
+function setDatasetFunctions(dataset_name, functions_type) {
     window.dataset = dataset_name
-    $.getJSON("/get_functions/" + dataset_name + "/" + functions_name, function( data ) {
+    $.getJSON("/get_functions/" + dataset_name + "/" + functions_type, function( data ) {
         $.each( data, function( idx, entry ) {
             $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">"
                 + entry + " </a></li>");
@@ -46,6 +58,12 @@ function setDatasetFunctions(dataset_name, functions_name) {
 
         addDropDownListener("#query");
         adjustWidthBySelf("#query");
+    });
+}
+
+function onClickListener(label, callback) {
+    $(label + "-submit").click(function () {
+        callback();
     });
 }
 

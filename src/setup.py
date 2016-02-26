@@ -28,6 +28,8 @@ setup(
             "static/custom.js",
             "static/custom.css",
             "static/bootstrap.min.css",
+            "static/bootstrap.min.js",
+            "static/bootstrap-waitingfor.min.js",
             "static/jumbotron-narrow.css",
             "static/glyphicons-halflings-regular.ttf"
         ],

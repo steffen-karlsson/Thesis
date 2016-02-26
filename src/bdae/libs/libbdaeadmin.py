@@ -66,15 +66,25 @@ class FunctionsHandler(RequestHandler):
     SUPPORTED_METHODS = {'GET'}
 
     @asynchronous
-    def get(self, dataset_name, functions_name):
+    def get(self, dataset_name, functions_type):
         functions = None
 
-        if functions_name == 'operations':
+        if functions_type == 'operations':
             functions = API.get_dataset_operations(dataset_name)
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
         self.finish(udumps(list() if functions is None else functions))
+
+
+class SubmitJobHandler(RequestHandler):
+    @asynchronous
+    def get(self, dataset_name, function_name, query):
+        res = API.submit_job(dataset_name, function_name, query)
+        verify_error(res)
+
+        self.set_status(res)
+        self.finish()
 
 
 TORNADO_SETTINGS = {
@@ -86,6 +96,7 @@ TORNADO_ROUTES = [
     (r'/', RootHandler),
     (r'/register_implemented_datasets', RegisterDatasetHandler),
     (r'/get_functions/(.*)/(.*)', FunctionsHandler),
+    (r'/submit/(.*)/(.*)/(.*)', SubmitJobHandler),
     (r"/docs/_static/(.*)", StaticFileHandler, {"path": "%s/web/docs/_build/html/_static" % get_path()}),
     (r"/fonts/(.*)", StaticFileHandler, {"path": "%s/web/static" % get_path()}),
     (r'/docs/(.*)', DocumentationHandler),
