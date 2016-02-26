@@ -10,9 +10,9 @@ from ujson import dumps as udumps, loads as uloads
 
 from Pyro4 import Proxy, locateNS, async
 
-from bdae.utils import find_identifier, import_class, is_error, get_class_from_path, find_package, STATUS_PROCESSING
+from bdae.utils import find_identifier, import_class, is_error, get_class_from_path, STATUS_PROCESSING
 from bdae.secure import secure_load, secure_load2, secure_send, secure
-from bdae.storage import api as storage_api
+from bdae.handler.storage import StorageApi
 
 
 class GatewayHandler(object):
@@ -20,7 +20,7 @@ class GatewayHandler(object):
         self.__config = config
         self.__block_size = config.block_size * 1000000  # To bytes from MB
         self.__num_storage_nodes = len(others['storage'])
-        self.__storage_nodes = [storage_api(storage_uri) for storage_uri in others['storage']]
+        self.__storage_nodes = [StorageApi(storage_uri) for storage_uri in others['storage']]
 
     def __find_identifier(self, name):
         return find_identifier(name, self.__config.keyspace_size)
@@ -57,7 +57,7 @@ class GatewayHandler(object):
         name, dataset_source, dataset_name = secure_load(bundle)
 
         dataset = GatewayHandler.__get_class_from_source(dataset_source, dataset_name)
-        operation_name = get_class_from_path(find_package(dataset.get_operation_functions()))
+        operation_name = get_class_from_path(dataset.get_operation_functions())
         reduce_name = get_class_from_path(dataset.get_reduce_functions())
         map_name = get_class_from_path(dataset.get_map_functions())
         digest, pdata = secure(dataset_source)

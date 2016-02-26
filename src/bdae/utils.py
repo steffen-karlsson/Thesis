@@ -17,16 +17,16 @@ def import_class(cls):
     return getattr(m, classname)
 
 
-def find_package(cls):
-    return CLASS_PATTERN.findall(str(cls))[0] if cls is not None else None
-
-
 def split_class_path(path):
     return path.rsplit(".", 1)
 
 
 def get_class_from_path(path):
-    return split_class_path(path)[1] if path is not None else None
+    if path is None:
+        return None
+
+    package = CLASS_PATTERN.findall(str(path))[0]
+    return split_class_path(package)[1]
 
 # Error codes
 STATUS_SUCCESS = 200

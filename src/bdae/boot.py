@@ -7,9 +7,9 @@ from signal import signal, SIGTERM, SIGINT
 
 from Pyro4 import Daemon, locateNS
 
-from bdae.gateway import handler as gateway_handler
-from bdae.storage import handler as storage_handler
-from bdae.monitor import handler as monitor_handler
+from bdae.handler.gateway import GatewayHandler
+from bdae.handler.storage import StorageHandler
+from bdae.handler.monitor import MonitorHandler
 from config import validate_configuration
 
 REGISTRY_NAME = None
@@ -36,11 +36,11 @@ if __name__ == "__main__":
 
     instance = None
     if node_type == "gateway":
-        instance = gateway_handler
+        instance = GatewayHandler
     if node_type == "storage":
-        instance = storage_handler
+        instance = StorageHandler
     if node_type == "monitor":
-        instance = monitor_handler
+        instance = MonitorHandler
 
     if instance is None:
         error("Node with type: %s is not supported" % config.node.type)

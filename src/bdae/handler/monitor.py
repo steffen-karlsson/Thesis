@@ -2,7 +2,7 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from bdae.storage.handler import InternalStorageMonitorApi
+from bdae.handler.storage import InternalStorageMonitorApi
 from Pyro4.errors import CommunicationError
 
 

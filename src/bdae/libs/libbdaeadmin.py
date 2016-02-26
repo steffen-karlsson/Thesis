@@ -14,7 +14,7 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler, asynchronous, StaticFileHandler
 
 from bdae.utils import verify_error
-from bdae.gateway import api as gateway_api
+from bdae.handler.gateway import GatewayApi
 import bdae
 
 ADMIN = None
@@ -112,7 +112,7 @@ class AbsPyAdminGateway(Application):
 
     def __init__(self, gateway_uri):
         super(AbsPyAdminGateway, self).__init__()
-        self.__api = gateway_api(gateway_uri)
+        self.__api = GatewayApi(gateway_uri)
 
     def create_dataset(self, name, dataset_type):
         """
