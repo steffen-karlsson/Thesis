@@ -8,28 +8,38 @@ from urllib2 import urlopen
 from random import choice, randint
 from ujson import dumps as udumps, loads as uloads
 
-from Pyro4 import Proxy, locateNS
+from Pyro4 import Proxy, locateNS, async
 
-from bdae.utils import find_identifier, import_class, is_error, get_class_from_path, find_package
+from bdae.utils import find_identifier, import_class, is_error, get_class_from_path, find_package, STATUS_PROCESSING
 from bdae.secure import secure_load, secure_load2, secure_send, secure
 from bdae.storage import api as storage_api
 
 
 class GatewayHandler(object):
-    def __init__(self, config, storage_uris):
-        self.__block_size = config.block_size
-        self.__num_storage_nodes = len(storage_uris)
-        self.__storage_nodes = [storage_api(storage_uri) for storage_uri in storage_uris]
+    def __init__(self, config, others):
+        self.__config = config
+        self.__block_size = config.block_size * 1000000  # To bytes from MB
+        self.__num_storage_nodes = len(others['storage'])
+        self.__storage_nodes = [storage_api(storage_uri) for storage_uri in others['storage']]
+
+    def __find_identifier(self, name):
+        return find_identifier(name, self.__config.keyspace_size)
 
     def __get_storage_node(self):
         return choice(self.__storage_nodes)
 
     @staticmethod
     def __get_class_from_source(source, cls_name):
-        exec (source, globals())
-        return eval("%s()" % cls_name)
+        def __instantiate():
+            return eval("%s()" % cls_name)
 
-    def __get_source_from_identifier(self, identifier):
+        try:
+            return __instantiate()
+        except NameError:
+            exec (source, globals())
+            return __instantiate()
+
+    def __get_class_from_identifier(self, identifier, key):
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
         if is_error(res):
             # TODO: decide whether to try again
@@ -41,7 +51,7 @@ class GatewayHandler(object):
             # TODO: decide what to do
             pass
 
-        return jdataset, source
+        return GatewayHandler.__get_class_from_source(source, jdataset[key])
 
     def create(self, bundle):
         name, dataset_source, dataset_name = secure_load(bundle)
@@ -61,12 +71,14 @@ class GatewayHandler(object):
             ddata['reduce-name'] = reduce_name
         if map_name is not None:
             ddata['map-name'] = map_name
-        return self.__get_storage_node().create(find_identifier(name), udumps(ddata))
+        return self.__get_storage_node().create(self.__find_identifier(name.strip()), udumps(ddata))
+
+    def update(self, bundle):
+        pass
 
     def append(self, name, url):
-        identifier = find_identifier(name)
-        jdataset, source = self.__get_source_from_identifier(identifier)
-        dataset = GatewayHandler.__get_class_from_source(source, jdataset['dataset-name'])
+        identifier = self.__find_identifier(name.strip())
+        dataset = self.__get_class_from_identifier(identifier, 'dataset-name')
 
         with closing(urlopen(url)) as f:
             start = randint(0, self.__num_storage_nodes - 1)
@@ -93,10 +105,19 @@ class GatewayHandler(object):
             yield block
 
     def get_dataset_operations(self, name):
-        identifier = find_identifier(name.strip())
-        jdataset, source = self.__get_source_from_identifier(identifier)
-        om = GatewayHandler.__get_class_from_source(source, jdataset['operation-name'])
+        identifier = self.__find_identifier(name.strip())
+        om = self.__get_class_from_identifier(identifier, 'operation-name')
         return om.define().keys()
+
+    def submit_job(self, name, function, query):
+        didentifier = self.__find_identifier(name.strip())
+        fidentifier = find_identifier("%s:%s" % (didentifier, function), None)
+        # TODO: Save fidentifier in cache for speedup and function recognition
+        async(self.__get_storage_node()).submit_job(didentifier, fidentifier, function, query, self.__config.node)
+        return STATUS_PROCESSING
+
+        # om = self.__get_class_from_identifier(identifier, 'operation-name')
+        # fun = om.define()[function]
 
 
 class GatewayApi(object):
@@ -105,12 +126,21 @@ class GatewayApi(object):
 
         self.api = Proxy(locateNS().lookup(gateway_uri))
 
-    def create(self, name, dataset_type):
+    def __set_dataset_by_function(self, name, dataset_type, funcion):
         with open(getsourcefile(import_class(dataset_type)), "r") as f:
-            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), self.api.create)
+            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
+
+    def create(self, name, dataset_type):
+        return self.__set_dataset_by_function(name, dataset_type, self.api.create)
+
+    def update(self, name, dataset_type):
+        return self.__set_dataset_by_function(name, dataset_type, self.api.update)
 
     def append(self, name, url):
         return self.api.append(name, str(url))
 
     def get_dataset_operations(self, name):
         return self.api.get_dataset_operations(name)
+
+    def submit_job(self, name, function, query):
+        return self.api.submit_job(name, function, query)
