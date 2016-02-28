@@ -40,8 +40,16 @@ $(document).ready(function() {
                          "query": $("#query").val(),
                          "is-polling": false };
 
-            waitingDialog.show("Querying");
-            pollForQueryResult(callData, 0);
+            window.dialog = BootstrapDialog.show( {
+                closable: false,
+                message: function (dialog) {
+                    var $content = $('<div><button class="btn btn-success">Revert button status right now.</button></div>');
+                    var $progress = $('<div class="progress"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div></div>');
+                    return $progress;
+                },
+                title: "Querying"
+            });
+            pollForQueryResult(callData, 200, 0);
         });
     });
 });
@@ -65,7 +73,7 @@ function onClickListener(label, callback) {
     });
 }
 
-function pollForQueryResult(callData, delay){
+function pollForQueryResult(callData, delay, itr){
     setTimeout(function () {
         $.ajax({
             type: "POST",
@@ -75,20 +83,26 @@ function pollForQueryResult(callData, delay){
                 // Success
                 200: function ( data ) {
                     console.log("DATA >> " + data)
-                    waitingDialog.hide();
+                    window.dialog.close();
 
                     resMessage = callData["function-name"] + "('" + callData["query"] + "') at " + callData["dataset-name"] + " is: " + data
                     BootstrapDialog.show({
                         label: BootstrapDialog.TYPE_SUCCESS,
-                        title: "Execution result for " + callData["function-name"],
-                        message: resMessage
+                        title: function (dialog) {
+                            var $title = $('<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> <span>Execution success</span>');
+                            return $title;
+                        },
+                        message: function (dialog) {
+                            var $message = $('<strong>Result for ' + callData["function-name"] + ' with argument: "' + callData["query"] + '" is: ' + data + '</strong>');
+                            return $message;
+                        }
                     });
                 },
                 // Processing
                 202: function () {
                     console.log("Still processing");
                     callData['is-polling'] = true;
-                    pollForQueryResult(callData, 2000);
+                    pollForQueryResult(callData, delay, itr + 1);
                 },
                 // Invalid data
                 400: function () {
@@ -100,7 +114,7 @@ function pollForQueryResult(callData, delay){
                 },
             }
         });
-    }, delay);
+    }, delay * itr);
 }
 
 function addDropDownListener(label, valueCallback) {

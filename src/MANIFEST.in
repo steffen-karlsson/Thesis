@@ -6,7 +6,6 @@ include bdae/web/static/bootstrap.min.css
 include bdae/web/static/bootstrap.min.js
 include bdae/web/static/bootstrap-dialog.min.css
 include bdae/web/static/bootstrap-dialog.min.js
-include bdae/web/static/bootstrap-waitingfor.min.js
 include bdae/web/static/jumbotron-narrow.css
 include bdae/web/static/glyphicons-halflings-regular.ttf
 include bdae/web/docs/index.rst
