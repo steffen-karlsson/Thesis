@@ -1,32 +1,9 @@
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from re import compile
-
-CLASS_PATTERN = compile("\'(.*?)\'")
-
-
 def find_identifier(name, mod):
     identifier = hash(name)
     return identifier if mod is None else identifier % mod
-
-
-def import_class(cls):
-    package, classname = split_class_path(cls)
-    m = __import__(package, globals(), locals(), [classname])
-    return getattr(m, classname)
-
-
-def split_class_path(path):
-    return path.rsplit(".", 1)
-
-
-def get_class_from_path(path):
-    if path is None:
-        return None
-
-    package = CLASS_PATTERN.findall(str(path))[0]
-    return split_class_path(package)[1]
 
 # Error codes
 STATUS_SUCCESS = 200

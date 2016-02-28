@@ -1,24 +1,25 @@
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from inspect import getsourcefile
 from sys import getsizeof
 from contextlib import closing
 from urllib2 import urlopen
 from random import choice, randint
 from ujson import dumps as udumps, loads as uloads
 
-from Pyro4 import Proxy, locateNS, async
-
-from bdae.utils import find_identifier, import_class, is_error, get_class_from_path, STATUS_PROCESSING
-from bdae.secure import secure_load, secure_load2, secure_send, secure
+from bdae.cache import CacheSystem
+from bdae.utils import find_identifier, is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, \
+    STATUS_PROCESSING
+from bdae.secure import secure_load, secure_load2, secure
 from bdae.handler.storage import StorageApi
+from bdae.handler import get_class_from_path, get_class_from_source
 
 
 class GatewayHandler(object):
     def __init__(self, config, others):
         self.__config = config
         self.__block_size = config.block_size * 1000000  # To bytes from MB
+        self.__gcs = CacheSystem(dict)
         self.__num_storage_nodes = len(others['storage'])
         self.__storage_nodes = [StorageApi(storage_uri) for storage_uri in others['storage']]
 
@@ -27,17 +28,6 @@ class GatewayHandler(object):
 
     def __get_storage_node(self):
         return choice(self.__storage_nodes)
-
-    @staticmethod
-    def __get_class_from_source(source, cls_name):
-        def __instantiate():
-            return eval("%s()" % cls_name)
-
-        try:
-            return __instantiate()
-        except NameError:
-            exec (source, globals())
-            return __instantiate()
 
     def __get_class_from_identifier(self, identifier, key):
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
@@ -48,15 +38,14 @@ class GatewayHandler(object):
         jdataset = uloads(res)
         source = secure_load2(jdataset['digest'], jdataset['source'])
         if is_error(source):
-            # TODO: decide what to do
-            pass
+            return STATUS_INVALID_DATA
 
-        return GatewayHandler.__get_class_from_source(source, jdataset[key])
+        return get_class_from_source(source, jdataset[key])
 
     def create(self, bundle):
         name, dataset_source, dataset_name = secure_load(bundle)
 
-        dataset = GatewayHandler.__get_class_from_source(dataset_source, dataset_name)
+        dataset = get_class_from_source(dataset_source, dataset_name)
         operation_name = get_class_from_path(dataset.get_operation_functions())
         reduce_name = get_class_from_path(dataset.get_reduce_functions())
         map_name = get_class_from_path(dataset.get_map_functions())
@@ -64,7 +53,8 @@ class GatewayHandler(object):
 
         ddata = {'digest': digest,
                  'dataset-name': dataset_name,
-                 'source': pdata}
+                 'source': pdata,
+                 'num-blocks': 0}
         if operation_name is not None:
             ddata['operation-name'] = operation_name
         if reduce_name is not None:
@@ -78,8 +68,11 @@ class GatewayHandler(object):
 
     def append(self, name, url):
         identifier = self.__find_identifier(name.strip())
-        dataset = self.__get_class_from_identifier(identifier, 'dataset-name')
+        res = self.__get_class_from_identifier(identifier, 'dataset-name')
+        if is_error(res):
+            return res
 
+        dataset = res
         with closing(urlopen(url)) as f:
             start = randint(0, self.__num_storage_nodes - 1)
             for block in self.__next_block(dataset, f.read()):
@@ -106,41 +99,29 @@ class GatewayHandler(object):
 
     def get_dataset_operations(self, name):
         identifier = self.__find_identifier(name.strip())
-        om = self.__get_class_from_identifier(identifier, 'operation-name')
+        res = self.__get_class_from_identifier(identifier, 'operation-name')
+        if is_error(res):
+            return res
+
+        om = res
         return om.define().keys()
 
-    def submit_job(self, name, function, query):
+    def submit_job(self, name, function_type, function, query):
         didentifier = self.__find_identifier(name.strip())
-        fidentifier = find_identifier("%s:%s" % (didentifier, function), None)
-        # TODO: Save fidentifier in cache for speedup and function recognition
-        async(self.__get_storage_node()).submit_job(didentifier, fidentifier, function, query, self.__config.node)
-        return STATUS_PROCESSING
+        fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
+        # TODO: Check if STATUS_PROCESSING for fidentifier
 
-        # om = self.__get_class_from_identifier(identifier, 'operation-name')
-        # fun = om.define()[function]
+        self.__gcs.put(fidentifier, (STATUS_PROCESSING, None))
+        self.__get_storage_node().submit_job(didentifier, fidentifier, function_type,
+                                             function, query, self.__config.node)
 
+    def poll_for_result(self, name, function, query):
+        identifier = find_identifier("%s:%s:%s" % (self.__find_identifier(name.strip()), function, query), None)
+        if not self.__gcs.contains(identifier):
+            return STATUS_NOT_FOUND, None
 
-class GatewayApi(object):
-    def __init__(self, gateway_uri):
-        super(GatewayApi, self).__init__()
+        return self.__gcs.get(identifier)
 
-        self.api = Proxy(locateNS().lookup(gateway_uri))
-
-    def __set_dataset_by_function(self, name, dataset_type, funcion):
-        with open(getsourcefile(import_class(dataset_type)), "r") as f:
-            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
-
-    def create(self, name, dataset_type):
-        return self.__set_dataset_by_function(name, dataset_type, self.api.create)
-
-    def update(self, name, dataset_type):
-        return self.__set_dataset_by_function(name, dataset_type, self.api.update)
-
-    def append(self, name, url):
-        return self.api.append(name, str(url))
-
-    def get_dataset_operations(self, name):
-        return self.api.get_dataset_operations(name)
-
-    def submit_job(self, name, function, query):
-        return self.api.submit_job(name, function, query)
+    # Internal Result Api
+    def set_status_result(self, fidentifier, status, result):
+        self.__gcs.put(fidentifier, (status, result))

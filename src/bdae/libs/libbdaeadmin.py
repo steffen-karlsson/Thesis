@@ -7,14 +7,14 @@
 
 from abc import abstractmethod, ABCMeta
 from os import path
-from ujson import dumps as udumps
+from ujson import dumps as udumps, loads as uloads
 
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler, asynchronous, StaticFileHandler
 
 from bdae.utils import verify_error
-from bdae.handler.gateway import GatewayApi
+from bdae.handler.api import GatewayApi
 import bdae
 
 ADMIN = None
@@ -77,14 +77,19 @@ class FunctionsHandler(RequestHandler):
         self.finish(udumps(list() if functions is None else functions))
 
 
-class SubmitJobHandler(RequestHandler):
+class JobHandler(RequestHandler):
     @asynchronous
-    def get(self, dataset_name, function_name, query):
-        res = API.submit_job(dataset_name, function_name, query)
-        verify_error(res)
+    def post(self, *args, **kwargs):
+        body = dict(uloads(self.request.body))
 
-        self.set_status(res)
-        self.finish()
+        if body['is-polling']:
+            status, res = API.poll_for_result(body['dataset-name'], body['function-name'], body['query'])
+            self.set_status(status)
+            self.finish(str(res))
+        else:
+            API.submit_job(body['dataset-name'], "operation", body['function-name'], body['query'])
+            self.set_status(202)
+            self.finish()
 
 
 TORNADO_SETTINGS = {
@@ -96,7 +101,7 @@ TORNADO_ROUTES = [
     (r'/', RootHandler),
     (r'/register_implemented_datasets', RegisterDatasetHandler),
     (r'/get_functions/(.*)/(.*)', FunctionsHandler),
-    (r'/submit/(.*)/(.*)/(.*)', SubmitJobHandler),
+    (r'/operation/', JobHandler),
     (r"/docs/_static/(.*)", StaticFileHandler, {"path": "%s/web/docs/_build/html/_static" % get_path()}),
     (r"/fonts/(.*)", StaticFileHandler, {"path": "%s/web/static" % get_path()}),
     (r'/docs/(.*)', DocumentationHandler),

@@ -5,13 +5,15 @@ from shelve import open
 from math import floor
 from sys import getsizeof
 from logging import info
+from ujson import loads as uloads, dumps as udumps
 
-from Pyro4 import Proxy, locateNS, async
-
-from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS
-from bdae.secure import secure_load, secure_send
+from bdae.handler import get_class_from_source
+from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, \
+    STATUS_SUCCESS, STATUS_INVALID_DATA, STATUS_PROCESSING, is_error
+from bdae.secure import secure_load, secure_load2
 from bdae.tree_barrier import TreeBarrier
 from bdae.cache import CacheSystem
+from bdae.handler.api import StorageApi, InternalGatewayApi
 
 
 class StorageHandler(object):
@@ -69,6 +71,13 @@ class StorageHandler(object):
         info("Writing block of size %d to datatset with identifier %s on %s." % (
             getsizeof(block), identifier, self.__config.node))
         self.__RAW[str(identifier)].append(block)
+
+        res = self.get_meta_from_identifier(identifier)
+        jdataset = uloads(res)
+        jdataset['num-blocks'] = + 1
+
+        self.__RAW[str(identifier)][0] = udumps(jdataset)
+
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, identifier):
@@ -83,30 +92,79 @@ class StorageHandler(object):
 
         return self.__RAW[str(identifier)][0]
 
-    def submit_job(self, didentifier, fidentifier, function, query, gateway, callback):
+    def submit_job(self, didentifier, fidentifier, function_type, function_name, query, gateway):
         # Check whether its self who is responsible
         responsible = self.__find_responsibility(didentifier)
         if responsible:
-            return responsible.submit_job(didentifier, fidentifier, function, query, gateway, callback)
+            return responsible.submit_job(didentifier, fidentifier, function_name, query, gateway)
 
         # Else do the job self.
-        # TODO: Save fidentifier in cache for speedup and function recognition
-        for node in self.__storage_nodes:
-            async(node).execute_function(0, self.__config.node, didentifier, fidentifier, function, query)
+        if self.__scs.contains(fidentifier):
+            is_working, res, gateway = self.__scs.get(fidentifier)
+            if is_working:
+                # Similar job is in progress
+                self.__terminate_job(fidentifier, STATUS_PROCESSING)
+                return
+            else:
+                # Result already calculated with no dataset change
+                self.__terminate_job(fidentifier, STATUS_SUCCESS)
+                return
 
-        # TODO: Broadcast storm to all storage_nodes to execute_function and start self
-        pass
+        res = self.get_meta_from_identifier(didentifier)
+        if is_error(res):
+            self.__terminate_job(fidentifier, res)
+            return
 
-    def execute_function(self, itr, root, didentifier, fidentifier, function, query):
+        jdataset = uloads(res)
+        source = secure_load2(jdataset['digest'], jdataset['source'])
+        if is_error(source):
+            self.__terminate_job(fidentifier, STATUS_INVALID_DATA)
+            return
+
+        if jdataset['num-blocks'] == 0:
+            # No data found for data identifier
+            self.__terminate_job(fidentifier, STATUS_NOT_FOUND)
+            return
+
+        fm = get_class_from_source(source, jdataset["%s-name" % function_type])
+        if function_name not in fm.define():
+            # No function for name found
+            self.__terminate_job(fidentifier, STATUS_NOT_FOUND)
+            return
+
+        def __root_execution():
+            function = fm.define()[function_name]
+            block_itr = (block for block in self.__RAW[str(didentifier)][1:])
+            return function(block_itr, query)
+
+        if len(self.__storage_nodes) == 0:
+            # Im the only one
+            res = __root_execution()
+            self.__scs.put(fidentifier, (False, res, gateway))
+            self.__terminate_job(fidentifier, STATUS_SUCCESS)
+        else:
+            # Broadcast storm to all other nodes and calculate self after
+            for node in self.__storage_nodes:
+                node.execute_function(0, self.__config.node, didentifier, fidentifier, function_name, query)
+
+            self.__scs.put(fidentifier, (True, __root_execution(), gateway))
+
+    def __terminate_job(self, fidentifier, status):
+        _, res, gateway = self.__scs.get(fidentifier)
+        InternalGatewayApi(gateway).set_status_result(fidentifier, status, res)
+
+    def execute_function(self, itr, root, didentifier, fidentifier, function, query, prev_value):
         if itr == 0:
             self.__tb = TreeBarrier(self.__config.node, self.__storage_nodes, root)
+
             # TODO: Calculate partial value
             partial_value = 0
-            self.__scs.put(fidentifier, partial_value)
+            self.__scs.put(fidentifier, partial_value)  # TODO: triple as value
 
         try:
             if self.__tb.should_send(itr):
                 self.__tb.get_receiver().execute_function(itr + 1, root, didentifier, function, query)
+                self.__scs.delete(fidentifier)
         except StopIteration:
             # TODO: Send result back to gateway and save locally in metadata for didentifier
             pass
@@ -114,35 +172,6 @@ class StorageHandler(object):
     # Internal Monitor Api
     def heartbeat(self):
         pass
-
-
-class StorageApi(object):
-    def __init__(self, storage_uri):
-        self.api = Proxy(locateNS().lookup(storage_uri))
-
-    def create(self, identifier, jdataset):
-        return secure_send((identifier, jdataset), self.api.create)
-
-    def append(self, identifier, block):
-        return secure_send((identifier, block), self.api.append)
-
-    def get_meta_from_identifier(self, identifier):
-        # TODO: secure return
-        return self.api.get_meta_from_identifier(identifier)
-
-    def submit_job(self, didentifier, fidentifier, function, query, gateway, callback):
-        return self.api.submit_job(didentifier, fidentifier, function, query, gateway, callback)
-
-    def execute_function(self, itr, root, didentifier, function, query):
-        return self.api.execute_function(itr, root, didentifier, function, query)
-
-
-class InternalStorageMonitorApi(object):
-    def __init__(self, storage_uri):
-        self.api = Proxy(locateNS().lookup(storage_uri))
-
-    def heartbeat(self):
-        self.api.heartbeat()
 
 
 class _InternalStorageApi(StorageApi):

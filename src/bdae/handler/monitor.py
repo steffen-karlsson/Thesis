@@ -2,14 +2,14 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from bdae.handler.storage import InternalStorageMonitorApi
+from bdae.handler.api import StorageToMonitorApi
 from Pyro4.errors import CommunicationError
 
 
 class MonitorHandler(object):
     def __init__(self, config, storage_uris):
         self.__config = config
-        self.__storage_nodes = [(storage_uri, InternalStorageMonitorApi(storage_uri)) for storage_uri in storage_uris]
+        self.__storage_nodes = [(storage_uri, StorageToMonitorApi(storage_uri)) for storage_uri in storage_uris]
         self.__heartbeat_scheduler = None
 
         self.setup_schedulers()
