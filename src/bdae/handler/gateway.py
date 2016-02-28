@@ -109,18 +109,20 @@ class GatewayHandler(object):
     def submit_job(self, name, function_type, function, query):
         didentifier = self.__find_identifier(name.strip())
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
-        # TODO: Check if STATUS_PROCESSING for fidentifier
+        if self.__gcs.contains(fidentifier):
+            # We already have the value
+            return
 
         self.__gcs.put(fidentifier, (STATUS_PROCESSING, None))
         self.__get_storage_node().submit_job(didentifier, fidentifier, function_type,
                                              function, query, self.__config.node)
 
     def poll_for_result(self, name, function, query):
-        identifier = find_identifier("%s:%s:%s" % (self.__find_identifier(name.strip()), function, query), None)
-        if not self.__gcs.contains(identifier):
+        fidentifier = find_identifier("%s:%s:%s" % (self.__find_identifier(name.strip()), function, query), None)
+        if not self.__gcs.contains(fidentifier):
             return STATUS_NOT_FOUND, None
 
-        return self.__gcs.get(identifier)
+        return self.__gcs.get(fidentifier)
 
     # Internal Result Api
     def set_status_result(self, fidentifier, status, result):
