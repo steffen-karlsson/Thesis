@@ -35,15 +35,13 @@ $(document).ready(function() {
         adjustWidthBySelf("#new-dataset");
 
         onClickListener("#query", function () {
-            var url = "/submit/" + window.dataset + "/" + $.trim($("#query-dropdown-button").text()) + "/" + $("#query").val();
-            $.ajax({
-                url: url,
-                statusCode: {
-                    202: function () {
-                        waitingDialog.show("Querying");
-                    }
-                }
-            });
+            callData = { "dataset-name": window.dataset,
+                         "function-name": $.trim($("#query-dropdown-button").text()),
+                         "query": $("#query").val(),
+                         "is-polling": false };
+
+            waitingDialog.show("Querying");
+            pollForQueryResult(callData, 0);
         });
     });
 });
@@ -65,6 +63,44 @@ function onClickListener(label, callback) {
     $(label + "-submit").click(function () {
         callback();
     });
+}
+
+function pollForQueryResult(callData, delay){
+    setTimeout(function () {
+        $.ajax({
+            type: "POST",
+            url: '/operation/',
+            data: JSON.stringify(callData),
+            statusCode: {
+                // Success
+                200: function ( data ) {
+                    console.log("DATA >> " + data)
+                    waitingDialog.hide();
+
+                    resMessage = callData["function-name"] + "('" + callData["query"] + "') at " + callData["dataset-name"] + " is: " + data
+                    BootstrapDialog.show({
+                        label: BootstrapDialog.TYPE_SUCCESS,
+                        title: "Execution result for " + callData["function-name"],
+                        message: resMessage
+                    });
+                },
+                // Processing
+                202: function () {
+                    console.log("Still processing");
+                    callData['is-polling'] = true;
+                    pollForQueryResult(callData, 2000);
+                },
+                // Invalid data
+                400: function () {
+                    console.log("Invalid data");
+                },
+                // Not found
+                404: function () {
+                    console.log("Not Found");
+                },
+            }
+        });
+    }, delay);
 }
 
 function addDropDownListener(label, valueCallback) {

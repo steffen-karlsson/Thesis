@@ -29,6 +29,8 @@ setup(
             "static/custom.css",
             "static/bootstrap.min.css",
             "static/bootstrap.min.js",
+            "static/bootstrap-dialog.min.css",
+            "static/bootstrap-dialog.min.js",
             "static/bootstrap-waitingfor.min.js",
             "static/jumbotron-narrow.css",
             "static/glyphicons-halflings-regular.ttf"
