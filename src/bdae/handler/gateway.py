@@ -11,7 +11,7 @@ from bdae.cache import CacheSystem
 from bdae.utils import find_identifier, is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, \
     STATUS_PROCESSING
 from bdae.secure import secure_load, secure_load2, secure
-from bdae.handler.storage import StorageApi
+from bdae.handler.api import StorageApi
 from bdae.handler import get_class_from_source
 
 
@@ -32,8 +32,7 @@ class GatewayHandler(object):
     def __get_class_from_identifier(self, identifier, key):
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
         if is_error(res):
-            # TODO: decide whether to try again
-            pass
+            return res
 
         jdataset = uloads(res)
         source = secure_load2(jdataset['digest'], jdataset['source'])

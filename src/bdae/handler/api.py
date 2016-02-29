@@ -26,9 +26,6 @@ class StorageApi(object):
     def submit_job(self, didentifier, fidentifier, function_type, function, query, gateway):
         async(self.api).submit_job(didentifier, fidentifier, function_type, function, query, gateway)
 
-    def execute_function(self, itr, root, didentifier, function, query, prev_value=0):
-        async(self.api).execute_function(itr, root, didentifier, function, query, prev_value)
-
 
 class StorageToMonitorApi(object):
     def __init__(self, storage_uri):
@@ -36,6 +33,12 @@ class StorageToMonitorApi(object):
 
     def heartbeat(self):
         self.api.heartbeat()
+
+
+class InternalStorageApi(StorageApi):
+    def execute_function(self, itr, fidentifier, function_type, function_name, jdataset, query, prev_value=0):
+        async(self.api).execute_functionexecute_function(itr, root, fidentifier, function_type, function_name,
+                                                         jdataset, query, prev_value)
 
 
 class GatewayApi(object):
