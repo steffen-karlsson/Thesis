@@ -16,11 +16,11 @@ class TreeBarrier:
         self.has_send = False
 
     def should_send(self, itr):
-        if itr == self.__max_itr:
-            raise StopIteration
-
         if self.has_send:
             return False
+
+        if itr == self.__max_itr:
+            raise StopIteration
 
         tmp = float(self.__id / self.__start(itr))
         if not tmp.is_integer():
