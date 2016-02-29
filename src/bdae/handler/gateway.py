@@ -12,7 +12,7 @@ from bdae.utils import find_identifier, is_error, STATUS_INVALID_DATA, STATUS_NO
     STATUS_PROCESSING
 from bdae.secure import secure_load, secure_load2, secure
 from bdae.handler.storage import StorageApi
-from bdae.handler import get_class_from_path, get_class_from_source
+from bdae.handler import get_class_from_source
 
 
 class GatewayHandler(object):
@@ -46,9 +46,9 @@ class GatewayHandler(object):
         name, dataset_source, dataset_name = secure_load(bundle)
 
         dataset = get_class_from_source(dataset_source, dataset_name)
-        operation_name = get_class_from_path(dataset.get_operation_functions())
-        reduce_name = get_class_from_path(dataset.get_reduce_functions())
-        map_name = get_class_from_path(dataset.get_map_functions())
+        operation_name = dataset.get_operation_functions().__class__.__name__
+        reduce_name = dataset.get_reduce_functions().__class__.__name__
+        map_name = dataset.get_map_functions().__class__.__name__
         digest, pdata = secure(dataset_source)
 
         ddata = {'digest': digest,
