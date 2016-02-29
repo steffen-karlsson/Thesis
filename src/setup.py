@@ -40,6 +40,7 @@ setup(
             "configparser.rst",
             "absdatasetcontext.rst",
             "libbdaeadmin.rst",
+            "manager.rst",
             "index.rst"
         ]
     },

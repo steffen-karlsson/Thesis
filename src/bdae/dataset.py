@@ -20,14 +20,29 @@ class AbsDatasetContext:
 
     @abstractmethod
     def get_map_functions(self):
+        """
+        Defining the map operations
+
+        :return: instance type of :class:`.AbsMapManager`
+        """
         pass
 
     @abstractmethod
     def get_reduce_functions(self):
+        """
+        Defining the reduce operations
+
+        :return: instance type of :class:`.AbsReduceManager`
+        """
         pass
 
     @abstractmethod
     def get_operation_functions(self):
+        """
+        An operation is a function combining a map and a reduce function to be queried from ex. in the HTML interface.
+
+        :return: instance type of :class:`.AbsOperationManager`
+        """
         pass
 
     @abstractmethod

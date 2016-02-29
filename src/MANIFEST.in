@@ -12,4 +12,5 @@ include bdae/web/docs/index.rst
 include bdae/web/docs/configparser.rst
 include bdae/web/docs/absdatasetcontext.rst
 include bdae/web/docs/libbdaeadmin.rst
+include bdae/web/docs/manager.rst
 include bdae/web/docs/Makefile
