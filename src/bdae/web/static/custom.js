@@ -4,35 +4,44 @@
  */
 
 $(document).ready(function() {
-    addDropDownListener("#add-registry-name");
-
     var ndDropdown = $("#new-dataset-dropdown");
     var width = ndDropdown.outerWidth(true);
     ndDropdown.outerWidth(0);
-    adjustWidth("#remove-dataset", "#new-dataset");
 
-
+    addDropDownListener("#add-registry-name");
     adjustWidthBySelf("#add-registry-name");
+
+    adjustWidth("#remove-dataset", "#new-dataset");
     adjustWidth("#remove-registry-name", "#new-dataset");
+
+    adjustWidthBySelf("#update-dataset");
+    onClickListener("#update-dataset", function () {
+        console.log($("#update-dataset").val());
+    });
 
     $.getJSON( "/register_implemented_datasets", function( data ) {
         $.each( data, function( key, val ) {
             $("#dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"dataset-first\"><a href=\"#\">"
                 + key + " </a></li>");
 
-            $("#new-dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"new-dataset-first\"><a href=\"#\">"
-                + val.substring(val.lastIndexOf(".") + 1) + " </a></li>");
+            var element1 = "<li value=\"" + val + "\" id=\"";
+            var element2 = "-dataset-first\"><a href=\"#\">" + val.substring(val.lastIndexOf(".") + 1) + " </a></li>";
+            $("#new-dataset-dropdown-menu").append(element1 + "new" + element2);
         });
+
+
         addDropDownListener("#dataset", function( text ) {
             setDatasetFunctions(text, "operations");
         });
         setDatasetFunctions($("#dataset-first").text(), "operations");
+
 
         addDropDownListener("#new-dataset", function( text ) {
             console.log(">> " + text);
         });
         ndDropdown.outerWidth(width).css("display", "inline");
         adjustWidthBySelf("#new-dataset");
+
 
         onClickListener("#query", function () {
             callData = { "dataset-name": window.dataset,
