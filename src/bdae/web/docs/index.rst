@@ -13,7 +13,6 @@ Contents:
 
    configparser
    absdatasetcontext
-   manager
    libbdaeadmin
 
 

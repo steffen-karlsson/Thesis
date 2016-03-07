@@ -19,29 +19,13 @@ class AbsDatasetContext:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def get_map_functions(self):
+    def get_operations(self):
         """
-        Defining the map operations
+        Returns a list of :class:`.Function` with function display name and operations as a
+        :class:`.SequentialOperation`, which is a complex object with two or more functions, in sequential or
+        :class:`.ParallelOperation` order, with the last element being a reduce function.
 
-        :return: instance type of :class:`.AbsMapManager`
-        """
-        pass
-
-    @abstractmethod
-    def get_reduce_functions(self):
-        """
-        Defining the reduce operations
-
-        :return: instance type of :class:`.AbsReduceManager`
-        """
-        pass
-
-    @abstractmethod
-    def get_operation_functions(self):
-        """
-        An operation is a function combining a map and a reduce function to be queried from ex. in the HTML interface.
-
-        :return: instance type of :class:`.AbsOperationManager`
+        :return: list
         """
         pass
 
