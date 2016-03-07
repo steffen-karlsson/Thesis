@@ -9,6 +9,7 @@ install_requires = [
     'tornado',
     'ujson',
     'apscheduler',
+    'enum34'
 ]
 
 setup(
