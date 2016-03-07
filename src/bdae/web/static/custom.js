@@ -149,5 +149,5 @@ function adjustWidth(toLabel, fromLabel) {
         - $(fromLabel + "-submit").outerWidth(true)
         - $(fromLabel + "-dropdown").outerWidth(true)
         - ($(fromLabel).outerWidth(true) - $(fromLabel).innerWidth())
-        - 30);
+        - 35);
 }

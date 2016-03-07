@@ -129,8 +129,8 @@ class AbsPyAdminGateway(Application):
         :type dataset_type: str
         :raises DatasetAlreadyExistsException: If the name of the dataset already exists
         """
-        verify_error(self.__api.create(name, dataset_type),
-                     "Dataset with name: %s, already exists" % name)
+
+        verify_error(self.__api.create(name, dataset_type))
 
     def append_to_dataset(self, name, url):
         """
@@ -143,8 +143,7 @@ class AbsPyAdminGateway(Application):
         :raises DatasetNotExistsException: If the dataset isn't already created by :func:`create_dataset`
         """
 
-        verify_error(self.__api.append(name, url),
-                     "Dataset with name: %s, doesn't exists" % name)
+        verify_error(self.__api.append(name, url))
 
     @abstractmethod
     def get_implemented_datasets(self):

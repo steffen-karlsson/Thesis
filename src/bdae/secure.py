@@ -12,7 +12,7 @@ def __generate_digest(data):
 
 
 def secure_send(data, fun):
-    fun(secure(data))
+    return fun(secure(data))
 
 
 def secure_load(bundle):

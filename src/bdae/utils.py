@@ -16,7 +16,13 @@ STATUS_ALREADY_EXISTS = 409
 CODES = [STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_NOT_ALLOWED, STATUS_ALREADY_EXISTS]
 
 
-def verify_error(res, message=""):
+def verify_error(args):
+    if isinstance(args, tuple):
+        res, message = args
+    else:
+        res = args
+        message = ""
+
     if is_error(res):
         raise __get_exception_from_status(res, message)
 
@@ -31,6 +37,9 @@ def __get_exception_from_status(res, message):
 
     if res == STATUS_ALREADY_EXISTS:
         return DatasetAlreadyExistsException(message)
+
+    if res == STATUS_NOT_ALLOWED:
+        return NotImplementedError(message)
 
     return Exception(message)
 
