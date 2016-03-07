@@ -9,10 +9,11 @@ from ujson import dumps as udumps, loads as uloads
 
 from bdae.cache import CacheSystem
 from bdae.utils import find_identifier, is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, \
-    STATUS_PROCESSING
+    STATUS_PROCESSING, STATUS_NOT_ALLOWED
 from bdae.secure import secure_load, secure_load2, secure
 from bdae.handler.api import StorageApi
 from bdae.handler import get_class_from_source
+from bdae.operation import OperationContext
 
 
 class GatewayHandler(object):
@@ -29,12 +30,19 @@ class GatewayHandler(object):
     def __get_storage_node(self):
         return choice(self.__storage_nodes)
 
-    def __get_class_from_identifier(self, identifier, key):
+    def __get_meta_from_identifier(self, identifier):
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
         if is_error(res):
             return res
 
-        jdataset = uloads(res)
+        return uloads(res)
+
+    def __get_class_from_identifier(self, identifier, key):
+        res = self.__get_meta_from_identifier(identifier)
+        if is_error(res):
+            return res
+
+        jdataset = res
         source = secure_load2(jdataset['digest'], jdataset['source'])
         if is_error(source):
             return STATUS_INVALID_DATA
@@ -45,22 +53,18 @@ class GatewayHandler(object):
         name, dataset_source, dataset_name = secure_load(bundle)
 
         dataset = get_class_from_source(dataset_source, dataset_name)
-        operation_name = dataset.get_operation_functions().__class__.__name__
-        reduce_name = dataset.get_reduce_functions().__class__.__name__
-        map_name = dataset.get_map_functions().__class__.__name__
-        digest, pdata = secure(dataset_source)
+        operations = dataset.get_operations()
+        if not isinstance(operations, list) or not all(isinstance(k, OperationContext) for k in operations):
+            return STATUS_NOT_ALLOWED, "Keys of operations dict has to be of type Function"
 
-        ddata = {'digest': digest,
-                 'dataset-name': dataset_name,
-                 'source': pdata,
-                 'num-blocks': 0}
-        if operation_name is not None:
-            ddata['operation-name'] = operation_name
-        if reduce_name is not None:
-            ddata['reduce-name'] = reduce_name
-        if map_name is not None:
-            ddata['map-name'] = map_name
-        return self.__get_storage_node().create(self.__find_identifier(name.strip()), udumps(ddata))
+        digest, pdata = secure(dataset_source)
+        jdataset = {'digest': digest,
+                    'dataset-name': dataset_name,
+                    'source': pdata,
+                    'num-blocks': 0}
+        if operations is not None:
+            jdataset['operation'] = [operation.fun_name for operation in operations]
+        return self.__get_storage_node().create(self.__find_identifier(name.strip()), udumps(jdataset))
 
     def update(self, bundle):
         pass
@@ -98,12 +102,11 @@ class GatewayHandler(object):
 
     def get_dataset_operations(self, name):
         identifier = self.__find_identifier(name.strip())
-        res = self.__get_class_from_identifier(identifier, 'operation-name')
+        res = self.__get_meta_from_identifier(identifier)
         if is_error(res):
             return res
 
-        om = res
-        return om.define().keys()
+        return res['operation']
 
     def submit_job(self, name, function_type, function, query):
         didentifier = self.__find_identifier(name.strip())

@@ -6,6 +6,8 @@ from math import floor
 from sys import getsizeof
 from logging import info
 from ujson import loads as uloads, dumps as udumps
+from types import FunctionType
+from multiprocessing.pool import ThreadPool
 
 from bdae.handler import get_class_from_source
 from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, \
@@ -14,6 +16,7 @@ from bdae.secure import secure_load, secure_load2
 from bdae.tree_barrier import TreeBarrier
 from bdae.cache import CacheSystem
 from bdae.handler.api import InternalStorageApi, InternalGatewayApi
+from bdae.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
 
 
 class StorageHandler(object):
@@ -53,7 +56,7 @@ class StorageHandler(object):
         # Else do the job self.
         info("Creating dataset with identifier %s on %s." % (identifier, self.__config.node))
         if self.__dataset_exists(identifier):
-            return STATUS_ALREADY_EXISTS
+            return STATUS_ALREADY_EXISTS, "Dataset already exists"
 
         self.__FLAG[str(identifier)] = True
         self.__RAW[str(identifier)] = [jdataset]
@@ -68,16 +71,18 @@ class StorageHandler(object):
             return responsible.append(identifier, block)
 
         # Else do the job self.
+        res = self.get_meta_from_identifier(identifier)
+        if is_error(res):
+            return res, "Dataset doesn't exists"
+
         info("Writing block of size %d to datatset with identifier %s on %s." % (
             getsizeof(block), identifier, self.__config.node))
         self.__RAW[str(identifier)].append(block)
 
-        res = self.get_meta_from_identifier(identifier)
         jdataset = uloads(res)
         jdataset['num-blocks'] = + 1
 
         self.__RAW[str(identifier)][0] = udumps(jdataset)
-
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, identifier):
@@ -92,7 +97,7 @@ class StorageHandler(object):
 
         return self.__RAW[str(identifier)][0]
 
-    def __get_function(self, identifier, function_name, function_type, jdataset=None):
+    def __get_functions(self, identifier, function_name, function_type, jdataset=None):
         if not jdataset:
             res = self.get_meta_from_identifier(identifier)
             if is_error(res):
@@ -103,14 +108,15 @@ class StorageHandler(object):
             # No data found for data identifier
             return STATUS_NOT_FOUND
 
-        source = secure_load2(jdataset['digest'], jdataset['source'])
-
-        fm = get_class_from_source(source, jdataset["%s-name" % function_type])
-        if function_name not in fm.define():
-            # No function for name found
+        if function_name not in jdataset[function_type]:
             return STATUS_NOT_FOUND
 
-        return fm.define()[function_name], jdataset
+        source = secure_load2(jdataset['digest'], jdataset['source'])
+        dataset = get_class_from_source(source, jdataset['dataset-name'])
+
+        for operation_context in dataset.get_operations():
+            if operation_context.fun_name == function_name:
+                return operation_context, jdataset
 
     def submit_job(self, didentifier, fidentifier, function_type, function_name, query, gateway):
         # Check whether its self who is responsible
@@ -130,15 +136,13 @@ class StorageHandler(object):
                 self.__terminate_job(fidentifier, STATUS_SUCCESS)
                 return
 
-        function, jdataset = self.__get_function(didentifier, function_name, function_type)
-
-        def __root_execution():
-            block_itr = (block for block in self.__RAW[str(didentifier)][1:])
-            return function(block_itr, query)
+        operation_context, jdataset = self.__get_functions(didentifier, function_name, function_type)
+        operations = list(operation_context.operations)
+        initial_args = sum(self.__RAW[str(didentifier)][1:], []), query
 
         if len(self.__storage_nodes) == 0:
             # Im the only one
-            res = __root_execution()
+            res = _local_execute(operations, initial_args)
             self.__scs.put(fidentifier, (False, res, gateway))
             self.__terminate_job(fidentifier, STATUS_SUCCESS)
         else:
@@ -147,18 +151,27 @@ class StorageHandler(object):
                 node.execute_function(0, self.__config.node, fidentifier, function_type,
                                       function_name, jdataset, query, 0)
 
+            # If needed get ghosts from locals
+            if operation_context.needs_ghost():
+                # TODO Implement
+                pass
+
             # Calculate self
-            self.__scs.put(fidentifier, (True, __root_execution(), gateway))
+            self.__scs.put(fidentifier, (True, _local_execute(operations, initial_args), gateway))
 
     def __terminate_job(self, fidentifier, status):
         _, res, gateway = self.__scs.get(fidentifier)
         InternalGatewayApi(gateway).set_status_result(fidentifier, status, res)
 
+    # Internal Api
     def execute_function(self, itr, root, fidentifier, function_type, function_name, jdataset, query, prev_value):
         if itr == 0:
             self.__tb = TreeBarrier(self.__config.node, self.__storage_nodes, root)
 
-            # TODO: Calculate partial value
+            # TODO: Get operation_context, get ghosts if needed and calculate partial value
+
+            # If needed get ghosts from locals
+
             partial_value = 0
             self.__scs.put(fidentifier, partial_value)  # TODO: triple as value
 
@@ -175,3 +188,37 @@ class StorageHandler(object):
     # Internal Monitor Api
     def heartbeat(self):
         pass
+
+
+def _is_function_type(operation):
+    return isinstance(operation, FunctionType)
+
+
+def _wrapper_local_execute(args):
+    return _local_execute(*args)
+
+
+def _local_execute(operations, args):
+    try:
+        operation = operations.pop(0)
+        if isinstance(operation, SequentialOperation):
+            return _local_execute(operations, _local_execute(list(operation.operations), args))
+
+        if isinstance(operation, ParallelOperation):
+            suboperations = operation.operations
+            pool = ThreadPool(4)
+
+            subargs = []
+            for suboperation in suboperations:
+                subargs.append((list(suboperation if _is_function_type(suboperation)
+                                     else suboperation.operations), args))
+
+            res = pool.map(_wrapper_local_execute, subargs)
+            return _local_execute(operations, res)
+
+        if _is_function_type(operation):
+            res = operation(args)
+            return _local_execute(operations, res)
+
+    except IndexError:
+        return args
