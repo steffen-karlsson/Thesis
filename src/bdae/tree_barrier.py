@@ -6,11 +6,12 @@ from math import log
 
 class TreeBarrier:
     def __init__(self, current, nodes, root):
-        self.__nodes = nodes
-        self.__offset = 0 - nodes.index(root)
-        self.__id = nodes.index(current) + self.__offset
+        nodes.append(current)
+        self.__nodes = sorted(nodes)
+        self.__id = (self.__nodes.index(current) - self.__nodes.index(root)) % len(self.__nodes)
+        self.__offset = 0 - self.__nodes.index(root)
         self.__sending_itr = 0
-        self.__max_itr = int(log(len(nodes), 2))
+        self.__max_itr = int(log(len(self.__nodes), 2))
         self.__step = lambda itr: pow(2, itr + 1)
         self.__start = lambda itr: pow(2, itr)
         self.has_send = False
@@ -33,8 +34,9 @@ class TreeBarrier:
 
         return False
 
-    def get_receiver(self):
-        return self.__nodes[self.__id - self.__start(self.__sending_itr) - self.__offset]
+    def get_receiver_idx(self):
+        # Note normally root isn't part of others list, thats why the -1
+        return self.__id - self.__start(self.__sending_itr) - self.__offset - 1
 
 
 if __name__ == '__main__':
