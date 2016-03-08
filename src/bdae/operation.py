@@ -52,3 +52,6 @@ class OperationContext:
 
     def needs_ghost(self):
         return self.ghost_num > 0
+
+    def has_multiple_args(self):
+        return self.num_args > 1
