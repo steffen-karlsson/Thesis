@@ -43,7 +43,7 @@ class StorageHandler(object):
         if self.__config.node_idx == responsible:
             return None
 
-        return self.__storage_nodes[responsible]
+        return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
     def create(self, bundle):
         identifier, jdataset = secure_load(bundle)
@@ -65,24 +65,18 @@ class StorageHandler(object):
     def append(self, bundle):
         identifier, block = secure_load(bundle)
 
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(identifier)
-        if responsible:
-            return responsible.append(identifier, block)
-
-        # Else do the job self.
         res = self.get_meta_from_identifier(identifier)
         if is_error(res):
             return res, "Dataset doesn't exists"
 
         info("Writing block of size %d to datatset with identifier %s on %s." % (
             getsizeof(block), identifier, self.__config.node))
-        self.__RAW[str(identifier)].append(block)
 
-        jdataset = uloads(res)
-        jdataset['num-blocks'] = + 1
+        identifier = str(identifier)
+        if identifier not in self.__RAW:
+            self.__RAW[identifier] = []
+        self.__RAW[identifier].append(block)
 
-        self.__RAW[str(identifier)][0] = udumps(jdataset)
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, identifier):
@@ -97,7 +91,32 @@ class StorageHandler(object):
 
         return self.__RAW[str(identifier)][0]
 
-    def __get_functions(self, identifier, function_name, function_type, jdataset=None):
+    def update_meta_key(self, bundle):
+        identifier, update_type, key, value = secure_load(bundle)
+
+        # Check whether its self who is responsible
+        responsible = self.__find_responsibility(identifier)
+        if responsible:
+            return responsible.update_meta_key(identifier, update_type, key, value)
+
+        # Else do the job self.
+        res = self.get_meta_from_identifier(identifier)
+        if is_error(res):
+            return res, "Dataset doesn't exists"
+
+        jdataset = uloads(res)
+        if update_type == 'append':
+            jdataset[key] += value
+
+        if update_type == 'override':
+            jdataset[key] = value
+
+        info("%s is %s with %d" % (key, update_type, value))
+
+        self.__RAW[str(identifier)][0] = udumps(jdataset)
+        return STATUS_SUCCESS
+
+    def __get_operation_context(self, identifier, function_name, jdataset=None):
         if not jdataset:
             res = self.get_meta_from_identifier(identifier)
             if is_error(res):
@@ -108,9 +127,6 @@ class StorageHandler(object):
             # No data found for data identifier
             return STATUS_NOT_FOUND
 
-        if function_name not in jdataset[function_type]:
-            return STATUS_NOT_FOUND
-
         source = secure_load2(jdataset['digest'], jdataset['source'])
         dataset = get_class_from_source(source, jdataset['dataset-name'])
 
@@ -118,7 +134,9 @@ class StorageHandler(object):
             if operation_context.fun_name == function_name:
                 return operation_context, jdataset
 
-    def submit_job(self, didentifier, fidentifier, function_type, function_name, query, gateway):
+        return STATUS_NOT_FOUND
+
+    def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
         # Check whether its self who is responsible
         responsible = self.__find_responsibility(didentifier)
         if responsible:
@@ -136,52 +154,73 @@ class StorageHandler(object):
                 self.__terminate_job(fidentifier, STATUS_SUCCESS)
                 return
 
-        operation_context, jdataset = self.__get_functions(didentifier, function_name, function_type)
+        operation_context, jdataset = self.__get_operation_context(didentifier, function_name)
         operations = list(operation_context.operations)
-        initial_args = sum(self.__RAW[str(didentifier)][1:], []), query
+        blocks = sum(self.__RAW[str(didentifier)][1:], [])
+
+        if operation_context.has_multiple_args():
+            query = str(query).split(operation_context.delimiter)
+        else:
+            query = [query]
+
+        args = [blocks] + query
 
         if len(self.__storage_nodes) == 0:
             # Im the only one
-            res = _local_execute(operations, initial_args)
+            res = _local_execute(operations, args)
             self.__scs.put(fidentifier, (False, res, gateway))
             self.__terminate_job(fidentifier, STATUS_SUCCESS)
         else:
             # Broadcast storm to all other nodes
             for node in self.__storage_nodes:
-                node.execute_function(0, self.__config.node, fidentifier, function_type,
-                                      function_name, jdataset, query, 0)
+                node.execute_function(0, didentifier, fidentifier, function_name,
+                                      jdataset, self.__config.node, query, 0)
 
             # If needed get ghosts from locals
             if operation_context.needs_ghost():
-                # TODO Implement
+                # TODO Implement and extend args with ghost
                 pass
 
             # Calculate self
-            self.__scs.put(fidentifier, (True, _local_execute(operations, initial_args), gateway))
+            self.__tb = TreeBarrier(self.__config.node, self.__config.others['storage'], self.__config.node)
+            self.__scs.put(fidentifier, (True, _local_execute(operations, args), gateway))
 
     def __terminate_job(self, fidentifier, status):
         _, res, gateway = self.__scs.get(fidentifier)
         InternalGatewayApi(gateway).set_status_result(fidentifier, status, res)
 
     # Internal Api
-    def execute_function(self, itr, root, fidentifier, function_type, function_name, jdataset, query, prev_value):
-        if itr == 0:
-            self.__tb = TreeBarrier(self.__config.node, self.__storage_nodes, root)
+    def execute_function(self, itr, didentifier, fidentifier, function_name, jdataset, root, query, recv_value):
+        operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
+        operations = list(operation_context.operations)
+        reduce = operations[-1]
 
-            # TODO: Get operation_context, get ghosts if needed and calculate partial value
+        if itr == 0:
+            self.__tb = TreeBarrier(self.__config.node, list(self.__config.others['storage']), root)
+            blocks = sum(self.__RAW[str(didentifier)], [])
 
             # If needed get ghosts from locals
+            if operation_context.needs_ghost():
+                # TODO Implement and extend args with ghost
+                pass
 
-            partial_value = 0
-            self.__scs.put(fidentifier, partial_value)  # TODO: triple as value
+            args = [blocks] + query
+            self.__scs.put(fidentifier, _local_execute(operations, args))  # TODO: triple as value
 
         try:
+            value = self.__scs.get(fidentifier)
             if self.__tb.should_send(itr):
-                self.__tb.get_receiver().execute_function(itr + 1, root, fidentifier, function_type, function_name,
-                                                          jdataset, query)
-                self.__scs.delete(fidentifier)
+                self.__storage_nodes[self.__tb.get_receiver_idx()].execute_function(itr + 1, didentifier, fidentifier,
+                                                                                    function_name, jdataset,
+                                                                                    None, None, value)
+
+                # TODO: Maybe cache results for futher calculations, when dataset is appended
+                # self.__scs.delete(fidentifier)
+            else:
+                self.__scs.put(fidentifier, reduce((recv_value, value)))
         except StopIteration:
-            # TODO: Update __scs
+            _, res, gateway = self.__scs.get(fidentifier)
+            self.__scs.put(fidentifier, (False, reduce((recv_value, res)), gateway))
             self.__terminate_job(fidentifier, STATUS_SUCCESS)
             pass
 
@@ -202,16 +241,16 @@ def _local_execute(operations, args):
     try:
         operation = operations.pop(0)
         if isinstance(operation, SequentialOperation):
-            return _local_execute(operations, _local_execute(list(operation.operations), args))
+            return _local_execute(operations, _local_execute(list(operation.functions), args))
 
         if isinstance(operation, ParallelOperation):
-            suboperations = operation.operations
+            suboperations = operation.functions
             pool = ThreadPool(4)
 
             subargs = []
             for suboperation in suboperations:
                 subargs.append((list(suboperation if _is_function_type(suboperation)
-                                     else suboperation.operations), args))
+                                     else suboperation.functions), args))
 
             res = pool.map(_wrapper_local_execute, subargs)
             return _local_execute(operations, res)
