@@ -77,11 +77,15 @@ class GatewayHandler(object):
 
         dataset = res
         with closing(urlopen(url)) as f:
+            block_count = 0
             start = randint(0, self.__num_storage_nodes - 1)
             for block in self.__next_block(dataset, f.read()):
                 self.__storage_nodes[start].append(identifier, block)
+                block_count += 1
                 # TODO: Save response and check if correct is saved and received
-                start = (start + 1) ^ self.__num_storage_nodes
+                start = (start + 1) % self.__num_storage_nodes
+
+            self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
 
     def __next_block(self, dataset, data):
         block = []
@@ -108,7 +112,7 @@ class GatewayHandler(object):
 
         return res['operation']
 
-    def submit_job(self, name, function_type, function, query):
+    def submit_job(self, name, function, query):
         didentifier = self.__find_identifier(name.strip())
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
         if self.__gcs.contains(fidentifier):
@@ -116,8 +120,7 @@ class GatewayHandler(object):
             return
 
         self.__gcs.put(fidentifier, (STATUS_PROCESSING, None))
-        self.__get_storage_node().submit_job(didentifier, fidentifier, function_type,
-                                             function, query, self.__config.node)
+        self.__get_storage_node().submit_job(didentifier, fidentifier, function, query, self.__config.node)
 
     def poll_for_result(self, name, function, query):
         fidentifier = find_identifier("%s:%s:%s" % (self.__find_identifier(name.strip()), function, query), None)

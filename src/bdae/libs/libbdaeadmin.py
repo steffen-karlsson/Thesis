@@ -87,7 +87,7 @@ class JobHandler(RequestHandler):
             self.set_status(status)
             self.finish(str(res))
         else:
-            API.submit_job(body['dataset-name'], "operation", body['function-name'], body['query'])
+            API.submit_job(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(202)
             self.finish()
 
