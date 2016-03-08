@@ -195,3 +195,4 @@ target/
 
 .idea/
 _build/
+src/test/*
