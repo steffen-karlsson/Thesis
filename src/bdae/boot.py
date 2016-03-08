@@ -24,11 +24,10 @@ def _handle_kill_signal(signal, frame):
 
 
 if __name__ == "__main__":
-    index = int(argv[1])
     node_types = argv[3:]
 
-    config = validate_configuration(index, node_types)
-    node_type = node_types[index]
+    config = validate_configuration(int(argv[1]), node_types)
+    node_type = node_types[0]
 
     if config is None:
         error("Unable to start %s without configuration" % node_type)

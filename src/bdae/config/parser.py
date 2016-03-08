@@ -85,7 +85,7 @@ def parse_project_cfg(path, index, node_types):
         global_config.use_logging = True
 
     if config.has_option("general", "block-size"):
-        global_config.block_size = config.getint("general", "block-size")
+        global_config.block_size = config.getfloat("general", "block-size")
 
     if config.has_option("general", "heartbeat-scheduler-delay"):
         global_config.heartbeat_scheduler_delay = config.getint("general", "heartbeat-scheduler-delay")
@@ -111,8 +111,9 @@ def parse_project_cfg(path, index, node_types):
                 global_config.port = int(addresses[index].split(":")[1])
 
                 if len(addresses) > 1:
-                    global_config.others[node] = ["%s-%d" % (ns_registry_name, i + 1)
-                                                  for i in range(num_nodes)]
+                    others = ["%s-%d" % (ns_registry_name, i) for i in range(num_nodes)]
+                    others.__delitem__(index)
+                    global_config.others[node] = others
             else:
                 global_config.others[node] = ["%s-%d" % (ns_registry_name, i)
                                               for i in range(num_nodes)]
