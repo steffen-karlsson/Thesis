@@ -170,20 +170,21 @@ class StorageHandler(object):
             res = _local_execute(operations, args)
             self.__scs.put(fidentifier, (False, res, gateway))
             self.__terminate_job(fidentifier, STATUS_SUCCESS)
-        else:
-            # Broadcast storm to all other nodes
-            for node in self.__storage_nodes:
-                node.execute_function(0, didentifier, fidentifier, function_name,
-                                      jdataset, self.__config.node, query, 0)
+            return
 
-            # If needed get ghosts from locals
-            if operation_context.needs_ghost():
-                # TODO Implement and extend args with ghost
-                pass
+        # Broadcast storm to all other nodes
+        for node in self.__storage_nodes:
+            node.execute_function(0, didentifier, fidentifier, function_name,
+                                  jdataset, self.__config.node, query, 0)
 
-            # Calculate self
-            self.__tb = TreeBarrier(self.__config.node, self.__config.others['storage'], self.__config.node)
-            self.__scs.put(fidentifier, (True, _local_execute(operations, args), gateway))
+        # If needed get ghosts from locals
+        if operation_context.needs_ghost():
+            # TODO Implement and extend args with ghost
+            pass
+
+        # Calculate self
+        self.__tb = TreeBarrier(self.__config.node, self.__config.others['storage'], self.__config.node)
+        self.__scs.put(fidentifier, (True, _local_execute(operations, args), gateway))
 
     def __terminate_job(self, fidentifier, status):
         _, res, gateway = self.__scs.get(fidentifier)
@@ -195,8 +196,12 @@ class StorageHandler(object):
         operations = list(operation_context.operations)
         reduce = operations[-1]
 
-        if itr == 0:
+        if not self.__tb:
             self.__tb = TreeBarrier(self.__config.node, list(self.__config.others['storage']), root)
+
+        # See if its first iteration or the cache has the value
+        # TODO: Clear self.__scs for fidentifier and didentifier if dataset is appended
+        if itr == 0 or not self.__scs.contains(fidentifier):
             blocks = sum(self.__RAW[str(didentifier)], [])
 
             # If needed get ghosts from locals
@@ -205,17 +210,14 @@ class StorageHandler(object):
                 pass
 
             args = [blocks] + query
-            self.__scs.put(fidentifier, _local_execute(operations, args))  # TODO: triple as value
+            self.__scs.put(fidentifier, _local_execute(operations, args))
 
         try:
             value = self.__scs.get(fidentifier)
             if self.__tb.should_send(itr):
-                self.__storage_nodes[self.__tb.get_receiver_idx()].execute_function(itr + 1, didentifier, fidentifier,
-                                                                                    function_name, jdataset,
-                                                                                    None, None, value)
-
-                # TODO: Maybe cache results for futher calculations, when dataset is appended
-                # self.__scs.delete(fidentifier)
+                receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
+                receiver.execute_function(itr + 1, didentifier, fidentifier,
+                                          function_name, jdataset, None, None, value)
             else:
                 self.__scs.put(fidentifier, reduce((recv_value, value)))
         except StopIteration:
