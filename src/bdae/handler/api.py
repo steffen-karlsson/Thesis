@@ -49,10 +49,18 @@ class StorageToMonitorApi(object):
 
 
 class InternalStorageApi(StorageApi):
+    def initialize_execution(self, root, didentifier, fidentifier, function_name, jdataset, query):
+        self._validate_api()
+        async(self._api).initialize_execution(root, didentifier, fidentifier, function_name, jdataset, query)
+
     def execute_function(self, itr, root, didentifier, fidentifier, function_name, jdataset, query, prev_value=0):
         self._validate_api()
         async(self._api).execute_function(itr, root, didentifier, fidentifier, function_name, jdataset, query,
                                           prev_value)
+
+    def send_ghost(self, data, from_left):
+        self._validate_api()
+        secure_send((data, from_left), async(self._api).send_ghost)
 
 
 class GatewayApi(object):
