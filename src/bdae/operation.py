@@ -16,10 +16,7 @@ class Sequential:
 
 class OperationContext:
     class GhostType(Enum):
-        ELEMENT = 0
-        BLOCK = 1
-        ROW = 2
-        COLUMN = 3
+        ENTRY = 1
 
     class TypeNotSupportedException(Exception):
         pass
@@ -31,18 +28,22 @@ class OperationContext:
         self.fun_name = fun_name
         self.operations = sequential_operations.functions
         self.ghost_type = None
-        self.ghost_num = 0
+        self.ghost_count = 0
         self.num_args = 1
         self.delimiter = ','
+        self.send_left = False
+        self.send_right = False
 
-    def with_ghost(self, ghost_num, ghost_type):
+    def with_ghost(self, ghost_count, ghost_type, send_left, send_right):
         # Halo Lines
 
         if not isinstance(ghost_type, OperationContext.GhostType):
             raise OperationContext.TypeNotSupportedException()
 
         self.ghost_type = ghost_type
-        self.ghost_num = ghost_num
+        self.ghost_count = ghost_count
+        self.send_left = send_left
+        self.send_right = send_right
         return self
 
     def with_multiple_arguments(self, num_args, delimiter=','):
@@ -51,7 +52,7 @@ class OperationContext:
         return self
 
     def needs_ghost(self):
-        return self.ghost_num > 0
+        return self.ghost_count > 0 and (self.send_left or self.send_right)
 
     def has_multiple_args(self):
         return self.num_args > 1
