@@ -55,7 +55,7 @@ class GatewayHandler(object):
         dataset = get_class_from_source(dataset_source, dataset_name)
         operations = dataset.get_operations()
         if not isinstance(operations, list) or not all(isinstance(k, OperationContext) for k in operations):
-            return STATUS_NOT_ALLOWED, "Keys of operations dict has to be of type Function"
+            return STATUS_NOT_ALLOWED, "Keys of operations dict has to be of type OperationContext"
 
         digest, pdata = secure(dataset_source)
         jdataset = {'digest': digest,
@@ -94,7 +94,7 @@ class GatewayHandler(object):
             entry_size = getsizeof(entry)
             if block_size + entry_size > self.__block_size:
                 yield block
-                block = []
+                block = [entry]
                 block_size = 0
             else:
                 block_size += entry_size
