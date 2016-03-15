@@ -196,3 +196,5 @@ target/
 .idea/
 _build/
 src/test/*
+src/bdae_flag*
+src/bdae_raw*
