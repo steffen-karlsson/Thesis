@@ -31,10 +31,10 @@ class OperationContext:
         self.ghost_count = 0
         self.num_args = 1
         self.delimiter = ','
-        self.send_left = False
-        self.send_right = False
+        self.ghost_left = False
+        self.ghost_right = False
 
-    def with_ghost(self, ghost_count, ghost_type, send_left, send_right):
+    def with_ghost(self, ghost_count, ghost_type, ghost_left, ghost_right):
         # Halo Lines
 
         if not isinstance(ghost_type, OperationContext.GhostType):
@@ -42,8 +42,8 @@ class OperationContext:
 
         self.ghost_type = ghost_type
         self.ghost_count = ghost_count
-        self.send_left = send_left
-        self.send_right = send_right
+        self.ghost_left = ghost_left
+        self.ghost_right = ghost_right
         return self
 
     def with_multiple_arguments(self, num_args, delimiter=','):
@@ -52,7 +52,7 @@ class OperationContext:
         return self
 
     def needs_ghost(self):
-        return self.ghost_count > 0 and (self.send_left or self.send_right)
+        return self.ghost_count > 0 and (self.ghost_left or self.ghost_right)
 
     def has_multiple_args(self):
         return self.num_args > 1
