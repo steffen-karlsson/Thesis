@@ -68,7 +68,7 @@ class StorageHandler(object):
             return False
 
         is_root = self.__config.node == root
-        ghost, l_neighbor, r_neighbor = (None,) * 3
+        left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
         if not local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
 
@@ -78,36 +78,36 @@ class StorageHandler(object):
         self_data = self.__get_raw_data_block(didentifier, is_root)
         if send_left:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                ghost = [block[:operation_context.ghost_count] for block in self_data]
+                left_ghost = [block[:operation_context.ghost_count] for block in self_data]
 
                 if is_root:
-                    # No wrapping supported
-                    ghost[0] = None
+                    # TODO: No wrapping supported
+
+                    # Previous node doesn't need first when sending left
+                    left_ghost[0] = None
 
                 if local_transfer:
                     # Only storage node in the system
-                    ghost[0] = None
+                    left_ghost[0] = None
 
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                ghost = [block[-operation_context.ghost_count:] for block in self_data]
+                right_ghost = [block[-operation_context.ghost_count:] for block in self_data]
 
-        assert ghost is not None
+        assert left_ghost is not None or right_ghost is not None
 
         needs_both = operation_context.ghost_right and operation_context.ghost_left
-
+        fun_args = (left_ghost, right_ghost, didentifier, fidentifier, root, needs_both)
         if local_transfer:
-            # TODO: Send both right and left if needed
-            self.__local_send_ghost(ghost, didentifier, fidentifier, root,
-                                    is_ghost_right=operation_context.ghost_right,
-                                    needs_both=needs_both)
-            return True
+            self.__local_send_ghost(*fun_args)
+        else:
+            if send_left:
+                l_neighbor.send_ghost(*fun_args)
 
-        if send_left:
-            l_neighbor.send_ghost(ghost, didentifier, fidentifier, root, True, needs_both)
+            if send_right:
+                r_neighbor.send_ghost(*fun_args)
 
-        if send_right:
-            r_neighbor.send_ghost(ghost, didentifier, fidentifier, root, False, needs_both)
+        return True
 
     def create(self, bundle):
         identifier, jdataset = secure_load(bundle)
@@ -342,17 +342,26 @@ class StorageHandler(object):
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
-    def __local_send_ghost(self, data, didentifier, fidentifier, root, is_ghost_right, needs_both):
-        is_root = self.__config.node == root
-        if is_root:
-            # No wrapping supported
-            data = [None] + data[:-1]
-        elif len(data) < len(self.__RAW[str(didentifier)]):
-            # Received too much data
-            data = data[:-1]
+    def __local_send_ghost(self, left_data, right_data, didentifier, fidentifier, root, needs_both):
+        assert left_data is not None or right_data is not None
 
-        self.__dgcs.get(fidentifier)['ghost_right' if is_ghost_right else 'ghost_left'] = data
-        info("DATA: " + str(data) + " Is ghost right: " + str(is_ghost_right) + " Needs both: " + str(needs_both))
+        if right_data:
+            is_ghost_right = True
+            is_root = self.__config.node == root
+            if is_root:
+                # First node doesn't need last item from previous when sending right
+                right_data = [None] + right_data[:-1]
+            elif len(right_data) < len(self.__RAW[str(didentifier)]):
+                # Received too much data sending right
+                right_data = right_data[:-1]
+
+            info("Setting right ghost data: " + str(right_data) + ", needs both: " + str(needs_both))
+            self.__dgcs.get(fidentifier)['ghost_right'] = right_data
+
+        if left_data:
+            is_ghost_right = False
+            info("Setting left ghost data: " + str(left_data) + ", needs both: " + str(needs_both))
+            self.__dgcs.get(fidentifier)['ghost_left'] = left_data
 
         has_other_part = 'ghost_left' if is_ghost_right else 'ghost_right' in self.__dgcs.get(fidentifier)
         if has_other_part or not needs_both:
