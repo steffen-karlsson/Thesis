@@ -7,7 +7,7 @@ from sys import getsizeof
 from logging import info
 from ujson import loads as uloads, dumps as udumps
 from types import FunctionType
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import ThreadPool, Process
 from collections import defaultdict
 from itertools import izip_longest
 
@@ -81,7 +81,7 @@ class StorageHandler(object):
                 left_ghost = [block[:operation_context.ghost_count] for block in self_data]
 
                 if is_root:
-                    # TODO: No wrapping supported
+                    # TODO: No wrapping supported, implement on first node for this dataset
 
                     # Previous node doesn't need first when sending left
                     left_ghost[0] = None
@@ -93,6 +93,8 @@ class StorageHandler(object):
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
                 right_ghost = [block[-operation_context.ghost_count:] for block in self_data]
+
+                # TODO: No wrapping supported, implement on last node for this dataset
 
         assert left_ghost is not None or right_ghost is not None
 
@@ -262,15 +264,13 @@ class StorageHandler(object):
             return res
         jdataset = uloads(res)
 
-        # Calculate self
-        self.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
-        # TODO: Fork this execution into seperate process async to continue executing on other nodes
-        # TODO: Fix potential deadlock if self hasn't executed yet before slaves has finished
-
         if len(self.__storage_nodes) > 0:
             # Broadcast storm to all other nodes
             for node in self.__storage_nodes:
                 node.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
+
+        # Calculate self
+        self.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
 
     def __terminate_job(self, didentifier, fidentifier, status):
         data = self.__srcs.get(didentifier)[fidentifier]
@@ -373,6 +373,12 @@ class StorageHandler(object):
     # Internal Monitor Api
     def heartbeat(self):
         pass
+
+
+def _start_as_process(target, args):
+    p = Process(target=target, args=args)
+    p.daemon = True
+    p.start()
 
 
 def _is_function_type(operation):
