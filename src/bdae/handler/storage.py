@@ -21,7 +21,6 @@ from bdae.handler.api import InternalStorageApi, InternalGatewayApi
 from bdae.operation import Sequential as SequentialOperation, Parallel as ParallelOperation, OperationContext
 
 RESULT = 0
-FUNCTION_ARGUMENTS = 1
 IS_WORKING = 2
 GATEWAY = 3
 
@@ -62,7 +61,10 @@ class StorageHandler(object):
 
         return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
-    def __handle_ghosts(self, didentifier, fidentifier, operation_context, root, local_transfer=False):
+    def __handle_ghosts(self, didentifier, fidentifier, root, function_name, jdataset, query, local_transfer=False):
+        info("Handle ghosts at " + str(self.__config.node))
+        operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
+
         if not operation_context.needs_ghost():
             # We don't need to handle ghosts
             return False
@@ -78,36 +80,37 @@ class StorageHandler(object):
         self_data = self.__get_raw_data_block(didentifier, is_root)
         if send_left:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                left_ghost = [block[:operation_context.ghost_count] for block in self_data]
+                right_ghost = [block[:operation_context.ghost_count] for block in self_data]
 
+                # TODO: What about only one entry?
                 if is_root:
                     # TODO: No wrapping supported, implement on first node for this dataset
 
                     # Previous node doesn't need first when sending left
-                    left_ghost[0] = None
+                    right_ghost[0] = None
 
                 if local_transfer:
                     # Only storage node in the system
-                    left_ghost[0] = None
+                    right_ghost[0] = None
 
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                right_ghost = [block[-operation_context.ghost_count:] for block in self_data]
+                left_ghost = [block[-operation_context.ghost_count:] for block in self_data]
 
                 # TODO: No wrapping supported, implement on last node for this dataset
 
         assert left_ghost is not None or right_ghost is not None
 
         needs_both = operation_context.ghost_right and operation_context.ghost_left
-        fun_args = (left_ghost, right_ghost, didentifier, fidentifier, root, needs_both)
+        fun_args = (didentifier, fidentifier, needs_both, (function_name, jdataset, root, query))
         if local_transfer:
-            self.__local_send_ghost(*fun_args)
+            self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
         else:
             if send_left:
-                l_neighbor.send_ghost(*fun_args)
+                l_neighbor.send_ghost(None, right_ghost, *fun_args)
 
             if send_right:
-                r_neighbor.send_ghost(*fun_args)
+                r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
         return True
 
@@ -260,7 +263,7 @@ class StorageHandler(object):
                 return
 
         # Update is working state before anything else
-        self.__srcs.get(didentifier)[fidentifier] = [0, None, True, gateway]
+        self.__srcs.get(didentifier)[fidentifier] = [None, None, True, gateway]
 
         res = self.get_meta_from_identifier(didentifier)
         if is_error(res):
@@ -269,8 +272,11 @@ class StorageHandler(object):
 
         if len(self.__storage_nodes) > 0:
             # Broadcast storm to all other nodes
-            for node in self.__storage_nodes:
-                node.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
+            ThreadPool(len(self.__storage_nodes)).map_async(
+                _wrapper_initialize_execution,
+                [(node, didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
+                 for node in self.__storage_nodes]
+            )
 
         # Calculate self
         self.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
@@ -281,29 +287,23 @@ class StorageHandler(object):
 
     # Internal Api
     def initialize_execution(self, didentifier, fidentifier, function_name, jdataset, root, query):
+        info("Initialize execution at " + str(self.__config.node))
+
+        # If im the only node in the system
+        use_local_transfer = len(self.__storage_nodes) == 0
+
+        # Find ghosts from local neighbors if needed else execute
+        if not self.__handle_ghosts(didentifier, fidentifier, root, function_name, jdataset, query,
+                                    local_transfer=use_local_transfer):
+            # Execute normally without ghosts
+            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
+
+    def execute_function(self, itr, didentifier, fidentifier, function_name, jdataset, root, query, recv_value):
+        info("Execute function " + function_name + " at " + str(self.__config.node))
+
         self.__tb = TreeBarrier(self.__config.node,
                                 list(self.__config.others['storage']) if 'storage' in self.__config.others else [],
                                 root)
-
-        use_local_transfer = len(self.__storage_nodes) == 0  # Im the only node in the system
-        is_root = self.__config.node == root
-        if not is_root:
-            # Initialize function meta on rest except root, which is initialized in submit_job
-            self.__srcs.get(didentifier)[fidentifier] = [0, None]
-
-        operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
-        fun_arguments = [0, didentifier, fidentifier, function_name, jdataset, root, query, 0]
-        self.__srcs.get(didentifier)[fidentifier][FUNCTION_ARGUMENTS] = fun_arguments
-
-        # Find ghosts from local neighbors if needed else execute
-        if not self.__handle_ghosts(didentifier, fidentifier, operation_context, root,
-                                    local_transfer=use_local_transfer):
-            # Execute normally without ghosts
-            self.execute_function(*fun_arguments)
-
-    def execute_function(self, itr, didentifier, fidentifier, function_name, jdataset, root, query, recv_value):
-        # Reset arguments to save space
-        self.__srcs.get(didentifier)[fidentifier][FUNCTION_ARGUMENTS] = None
 
         is_root = self.__config.node == root
         first_iteration = itr == 0
@@ -314,9 +314,13 @@ class StorageHandler(object):
         reduce_operation = operations[-1]
 
         # See if its first iteration or the cache has the value
-        has_result = self.__srcs.contains(didentifier) and fidentifier in self.__srcs.get(didentifier)
-        if first_iteration or not has_result:
+        has_result = self.__srcs.contains(didentifier) \
+                     and fidentifier in self.__srcs.get(didentifier) \
+                     and self.__srcs.get(didentifier)[fidentifier][RESULT]
+
+        if not has_result:
             res = _local_execute(operations, args)
+            info("Result for " + self.__config.node + " is: " + str(res))
             if is_root:
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
                 self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
@@ -326,7 +330,9 @@ class StorageHandler(object):
         try:
             res = self.__srcs.get(didentifier)[fidentifier][RESULT]
             if self.__tb.should_send(itr):
+                # TODO: Synchronization error, make sure ghost is received before calling execute
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
+                info("Sending from " + self.__config.node + " to the next")
                 receiver.execute_function(itr + 1, didentifier, fidentifier,
                                           function_name, jdataset, root, None, res)
                 return
@@ -341,34 +347,35 @@ class StorageHandler(object):
             else:
                 res = reduce_operation((recv_value, data[RESULT]))
 
+            info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
-    def __local_send_ghost(self, left_data, right_data, didentifier, fidentifier, root, needs_both):
-        assert left_data is not None or right_data is not None
+    def __local_send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
+        info("Receiving ghost at " + self.__config.node)
 
-        if right_data:
-            is_ghost_right = True
-            is_root = self.__config.node == root
-            if is_root:
-                # First node doesn't need last item from previous when sending right
-                right_data = [None] + right_data[:-1]
-            elif len(right_data) < len(self.__RAW[str(didentifier)]):
-                # Received too much data sending right
-                right_data = right_data[:-1]
+        assert left_ghost is not None or right_ghost is not None
 
-            info("Setting right ghost data: " + str(right_data) + ", needs both: " + str(needs_both))
-            self.__dgcs.get(fidentifier)['ghost_right'] = right_data
-
-        if left_data:
+        if left_ghost:
             is_ghost_right = False
-            info("Setting left ghost data: " + str(left_data) + ", needs both: " + str(needs_both))
-            self.__dgcs.get(fidentifier)['ghost_left'] = left_data
+            if len(left_ghost) < len(self.__RAW[str(didentifier)]):
+                # Received too much data from previous sending right
+                left_ghost = [None] + left_ghost[:-1]
+
+            info("Setting left ghost data: " + str(left_ghost) + ", needs both: " + str(needs_both))
+            self.__dgcs.get(fidentifier)['ghost_left'] = left_ghost
+
+        if right_ghost:
+            is_ghost_right = True
+            info("Setting right ghost data: " + str(right_ghost) + ", needs both: " + str(needs_both))
+            self.__dgcs.get(fidentifier)['ghost_right'] = right_ghost
 
         has_other_part = 'ghost_left' if is_ghost_right else 'ghost_right' in self.__dgcs.get(fidentifier)
         if has_other_part or not needs_both:
-            self.execute_function(*self.__srcs.get(didentifier)[fidentifier][FUNCTION_ARGUMENTS])
+            info("Starting execution at " + self.__config.node)
+            function_name, jdataset, root, query = fun_args
+            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
 
     def send_ghost(self, bundle):
         self.__local_send_ghost(*secure_load(bundle))
@@ -386,6 +393,10 @@ def _start_as_process(target, args):
 
 def _is_function_type(operation):
     return isinstance(operation, FunctionType)
+
+
+def _wrapper_initialize_execution(args):
+    args[0].initialize_execution(*args[1:])
 
 
 def _wrapper_local_execute(args):
