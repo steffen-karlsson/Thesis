@@ -62,6 +62,11 @@ class InternalStorageApi(StorageApi):
         self._validate_api()
         secure_send((left_ghost, right_ghost, didentifier, fidentifier, root, needs_both), async(self._api).send_ghost)
 
+    def ready(self, didentifier, fidentifier, function_name, jdataset, query):
+        self._validate_api()
+        secure_send((didentifier, fidentifier, function_name, jdataset, query), async(self._api).ready)
+
+
 
 class GatewayApi(object):
     def __init__(self, gateway_uri):

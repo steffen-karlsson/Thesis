@@ -21,6 +21,7 @@ from bdae.handler.api import InternalStorageApi, InternalGatewayApi
 from bdae.operation import Sequential as SequentialOperation, Parallel as ParallelOperation, OperationContext
 
 RESULT = 0
+REQUEST_COUNT = 1
 IS_WORKING = 2
 GATEWAY = 3
 
@@ -67,7 +68,9 @@ class StorageHandler(object):
 
         if not operation_context.needs_ghost():
             # We don't need to handle ghosts
-            return False
+            info("No need for ghosts at " + str(self.__config.node))
+            self.__report_ready(didentifier, fidentifier, function_name, jdataset, query)
+            return
 
         is_root = self.__config.node == root
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
@@ -107,12 +110,12 @@ class StorageHandler(object):
             self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
         else:
             if send_left:
+                info("Sending ghost left from: " + self.__config.node)
                 l_neighbor.send_ghost(None, right_ghost, *fun_args)
 
             if send_right:
+                info("Sending ghost right from: " + self.__config.node)
                 r_neighbor.send_ghost(left_ghost, None, *fun_args)
-
-        return True
 
     def create(self, bundle):
         identifier, jdataset = secure_load(bundle)
@@ -263,23 +266,27 @@ class StorageHandler(object):
                 return
 
         # Update is working state before anything else
-        self.__srcs.get(didentifier)[fidentifier] = [None, None, True, gateway]
+        all_nodes = self.__num_storage_nodes + 1
+        self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway]
 
         res = self.get_meta_from_identifier(didentifier)
         if is_error(res):
             return res
         jdataset = uloads(res)
 
-        if len(self.__storage_nodes) > 0:
-            # Broadcast storm to all other nodes
-            ThreadPool(len(self.__storage_nodes)).map_async(
-                _wrapper_initialize_execution,
-                [(node, didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
-                 for node in self.__storage_nodes]
-            )
+        root = self.__config.node
+        common = (didentifier, fidentifier, function_name, jdataset, root, query)
+        if self.__num_storage_nodes > 0:
+            # Broadcast storm to all nodes
+            info("Pool _wrapper_initialize_execution")
+            args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
+            ThreadPool(all_nodes).map_async(_wrapper_initialize_execution, args)
+        else:
+            # Calculate self
+            self.initialize_execution(*common)
 
-        # Calculate self
-        self.initialize_execution(didentifier, fidentifier, function_name, jdataset, self.__config.node, query)
+            # Execute normally without ghosts
+            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
 
     def __terminate_job(self, didentifier, fidentifier, status):
         data = self.__srcs.get(didentifier)[fidentifier]
@@ -289,21 +296,19 @@ class StorageHandler(object):
     def initialize_execution(self, didentifier, fidentifier, function_name, jdataset, root, query):
         info("Initialize execution at " + str(self.__config.node))
 
+        self.__tb = TreeBarrier(self.__config.node,
+                                list(self.__config.others['storage']) if 'storage' in self.__config.others else [],
+                                root)
+
         # If im the only node in the system
         use_local_transfer = len(self.__storage_nodes) == 0
 
         # Find ghosts from local neighbors if needed else execute
-        if not self.__handle_ghosts(didentifier, fidentifier, root, function_name, jdataset, query,
-                                    local_transfer=use_local_transfer):
-            # Execute normally without ghosts
-            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
+        self.__handle_ghosts(didentifier, fidentifier, root, function_name, jdataset, query,
+                             local_transfer=use_local_transfer)
 
     def execute_function(self, itr, didentifier, fidentifier, function_name, jdataset, root, query, recv_value):
         info("Execute function " + function_name + " at " + str(self.__config.node))
-
-        self.__tb = TreeBarrier(self.__config.node,
-                                list(self.__config.others['storage']) if 'storage' in self.__config.others else [],
-                                root)
 
         is_root = self.__config.node == root
         first_iteration = itr == 0
@@ -325,12 +330,11 @@ class StorageHandler(object):
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
                 self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
             else:
-                self.__srcs.get(didentifier)[fidentifier] = [res, None]
+                self.__srcs.get(didentifier)[fidentifier] = [res]
 
         try:
             res = self.__srcs.get(didentifier)[fidentifier][RESULT]
             if self.__tb.should_send(itr):
-                # TODO: Synchronization error, make sure ghost is received before calling execute
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + self.__config.node + " to the next")
                 receiver.execute_function(itr + 1, didentifier, fidentifier,
@@ -352,14 +356,43 @@ class StorageHandler(object):
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
+    def __report_ready(self, didentifier, fidentifier, function_name, jdataset, query):
+        responsible = self.__find_responsibility(didentifier)
+        args = didentifier, fidentifier, function_name, jdataset, query
+        if responsible:
+            info("Reporting ready for other at: " + self.__config.node)
+            responsible.ready(*args)
+        else:
+            info("Reporting ready for self")
+            self.__local_ready(*args)
+
+    def ready(self, bundle):
+        self.__local_ready(*secure_load(bundle))
+
+    def __local_ready(self, didentifier, fidentifier, function_name, jdataset, query):
+        self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] -= 1
+        info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
+
+        if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
+            info("Pool _wrapper_execute_function")
+            common = (0, didentifier, fidentifier, function_name, jdataset, self.__config.node, query, 0)
+            args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
+
+            all_nodes = self.__num_storage_nodes + 1
+            ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
+
     def __local_send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
         info("Receiving ghost at " + self.__config.node)
 
         assert left_ghost is not None or right_ghost is not None
+        function_name, jdataset, root, query = fun_args
 
         if left_ghost:
             is_ghost_right = False
-            if len(left_ghost) < len(self.__RAW[str(didentifier)]):
+            is_root = self.__config.node == root
+            num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
+
+            if len(left_ghost) < num_blocks:
                 # Received too much data from previous sending right
                 left_ghost = [None] + left_ghost[:-1]
 
@@ -371,11 +404,10 @@ class StorageHandler(object):
             info("Setting right ghost data: " + str(right_ghost) + ", needs both: " + str(needs_both))
             self.__dgcs.get(fidentifier)['ghost_right'] = right_ghost
 
-        has_other_part = 'ghost_left' if is_ghost_right else 'ghost_right' in self.__dgcs.get(fidentifier)
+        has_other_part = ('ghost_left' if is_ghost_right else 'ghost_right') in self.__dgcs.get(fidentifier)
+        info(self.__config.node + " has_other_part: " + str(has_other_part) + ", needs_both: " + str(needs_both))
         if has_other_part or not needs_both:
-            info("Starting execution at " + self.__config.node)
-            function_name, jdataset, root, query = fun_args
-            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
+            self.__report_ready(didentifier, fidentifier, function_name, jdataset, query)
 
     def send_ghost(self, bundle):
         self.__local_send_ghost(*secure_load(bundle))
@@ -396,7 +428,11 @@ def _is_function_type(operation):
 
 
 def _wrapper_initialize_execution(args):
-    args[0].initialize_execution(*args[1:])
+    return args[0].initialize_execution(*args[1])
+
+
+def _wrapper_execute_function(args):
+    args[0].execute_function(*args[1])
 
 
 def _wrapper_local_execute(args):
