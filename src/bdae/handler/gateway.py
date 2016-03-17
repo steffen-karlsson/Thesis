@@ -47,7 +47,7 @@ class GatewayHandler(object):
         if is_error(source):
             return STATUS_INVALID_DATA
 
-        return get_class_from_source(source, jdataset[key])
+        return get_class_from_source(source, jdataset[key]), jdataset
 
     def create(self, bundle):
         name, dataset_source, dataset_name = secure_load(bundle)
@@ -75,10 +75,11 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        dataset = res
+        # TODO: Block dataset from calling submit_job while appending
+        dataset, jdataset = res
         with closing(urlopen(url)) as f:
             block_count = 0
-            start = randint(0, self.__num_storage_nodes - 1)
+            start = jdataset['root-idx']
             for block in self.__next_block(dataset, f.read()):
                 self.__storage_nodes[start].append(identifier, block)
                 block_count += 1

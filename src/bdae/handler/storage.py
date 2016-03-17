@@ -119,6 +119,9 @@ class StorageHandler(object):
         if responsible:
             return responsible.create(identifier, jdataset)
 
+        jdataset = uloads(jdataset)
+        jdataset['root-idx'] = self.__config.node_idx
+
         # Else do the job self.
         if self.__dataset_exists(identifier):
             return STATUS_ALREADY_EXISTS, "Dataset already exists"
@@ -126,7 +129,7 @@ class StorageHandler(object):
         info("Creating dataset with identifier %s on %s." % (identifier, self.__config.node))
 
         self.__FLAG[str(identifier)] = True
-        self.__RAW[str(identifier)] = [jdataset]
+        self.__RAW[str(identifier)] = [udumps(jdataset)]
         return STATUS_SUCCESS
 
     def append(self, bundle):
