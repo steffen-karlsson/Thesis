@@ -86,15 +86,16 @@ class StorageHandler(object):
                 right_ghost = [block[:operation_context.ghost_count] for block in self_data]
 
                 # TODO: What about only one entry?
-                if is_root:
-                    # TODO: No wrapping supported, implement on first node for this dataset
-
-                    # Previous node doesn't need first when sending left
-                    right_ghost[0] = None
-
                 if local_transfer:
-                    # Only storage node in the system
-                    right_ghost[0] = None
+                    # Only storage node in the system and
+                    # Previous node doesn't need first when sending left
+                    right_ghost = right_ghost[1:]
+                else:
+                    if is_root:
+                        # TODO: No wrapping supported, implement on first node for this dataset
+
+                        # Previous node doesn't need first when sending left
+                        right_ghost = right_ghost[1:]
 
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
@@ -110,11 +111,11 @@ class StorageHandler(object):
             self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
         else:
             if send_left:
-                info("Sending ghost left from: " + self.__config.node)
+                info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
                 l_neighbor.send_ghost(None, right_ghost, *fun_args)
 
             if send_right:
-                info("Sending ghost right from: " + self.__config.node)
+                info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
                 r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     def create(self, bundle):
@@ -285,9 +286,6 @@ class StorageHandler(object):
             # Calculate self
             self.initialize_execution(*common)
 
-            # Execute normally without ghosts
-            self.execute_function(0, didentifier, fidentifier, function_name, jdataset, root, query, 0)
-
     def __terminate_job(self, didentifier, fidentifier, status):
         data = self.__srcs.get(didentifier)[fidentifier]
         InternalGatewayApi(data[GATEWAY]).set_status_result(fidentifier, status, data[RESULT])
@@ -301,7 +299,7 @@ class StorageHandler(object):
                                 root)
 
         # If im the only node in the system
-        use_local_transfer = len(self.__storage_nodes) == 0
+        use_local_transfer = self.__num_storage_nodes == 0
 
         # Find ghosts from local neighbors if needed else execute
         self.__handle_ghosts(didentifier, fidentifier, root, function_name, jdataset, query,
@@ -374,12 +372,16 @@ class StorageHandler(object):
         info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
-            info("Pool _wrapper_execute_function")
             common = (0, didentifier, fidentifier, function_name, jdataset, self.__config.node, query, 0)
-            args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
 
-            all_nodes = self.__num_storage_nodes + 1
-            ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
+            if self.__num_storage_nodes > 0:
+                info("Pool _wrapper_execute_function")
+                args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
+
+                all_nodes = self.__num_storage_nodes + 1
+                ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
+            else:
+                self.execute_function(*common)
 
     def __local_send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
         info("Receiving ghost at " + self.__config.node)
@@ -392,9 +394,12 @@ class StorageHandler(object):
             is_root = self.__config.node == root
             num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
 
-            if len(left_ghost) < num_blocks:
-                # Received too much data from previous sending right
+            if root or len(left_ghost) < num_blocks:
+                # Received too much and shifted data
                 left_ghost = [None] + left_ghost[:-1]
+            elif len(left_ghost) > num_blocks:
+                # Received too much data
+                left_ghost = left_ghost[:-1]
 
             info("Setting left ghost data: " + str(left_ghost) + ", needs both: " + str(needs_both))
             self.__dgcs.get(fidentifier)['ghost_left'] = left_ghost
