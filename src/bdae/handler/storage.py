@@ -85,38 +85,40 @@ class StorageHandler(object):
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
                 right_ghost = [block[:operation_context.ghost_count] for block in self_data]
 
-                # TODO: What about only one entry?
-                if local_transfer:
-                    # Only storage node in the system and
-                    # Previous node doesn't need first when sending left
-                    right_ghost = right_ghost[1:]
-                else:
-                    if is_root:
-                        # TODO: No wrapping supported, implement on first node for this dataset
+                if local_transfer or is_root:
+                    if operation_context.use_overflow:
+                        overflow = right_ghost[0]
+                        # TODO: No wrapping supported, implement on last node for this dataset
+                        pass
 
-                        # Previous node doesn't need first when sending left
-                        right_ghost = right_ghost[1:]
+                    # Only storage node in the system or previous node doesn't need first when sending left
+                    right_ghost = right_ghost[1:]
 
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
                 left_ghost = [block[-operation_context.ghost_count:] for block in self_data]
 
-                # TODO: No wrapping supported, implement on last node for this dataset
+                if operation_context.use_overflow:
+                    overflow = left_ghost[-1]
+                    # TODO: No wrapping supported, implement on last node for this dataset
+                    pass
 
         assert left_ghost is not None or right_ghost is not None
 
         needs_both = operation_context.ghost_right and operation_context.ghost_left
         fun_args = (didentifier, fidentifier, needs_both, (function_name, jdataset, root, query))
+
         if local_transfer:
             self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
-        else:
-            if send_left:
-                info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
-                l_neighbor.send_ghost(None, right_ghost, *fun_args)
+            return
 
-            if send_right:
-                info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
-                r_neighbor.send_ghost(left_ghost, None, *fun_args)
+        if send_left:
+            info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
+            l_neighbor.send_ghost(None, right_ghost, *fun_args)
+
+        if send_right:
+            info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
+            r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     def create(self, bundle):
         identifier, jdataset = secure_load(bundle)
@@ -377,7 +379,6 @@ class StorageHandler(object):
             if self.__num_storage_nodes > 0:
                 info("Pool _wrapper_execute_function")
                 args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
-
                 all_nodes = self.__num_storage_nodes + 1
                 ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
             else:
@@ -389,7 +390,7 @@ class StorageHandler(object):
         assert left_ghost is not None or right_ghost is not None
         function_name, jdataset, root, query = fun_args
 
-        if left_ghost:
+        if left_ghost is not None:
             is_ghost_right = False
             is_root = self.__config.node == root
             num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
@@ -404,7 +405,7 @@ class StorageHandler(object):
             info("Setting left ghost data: " + str(left_ghost) + ", needs both: " + str(needs_both))
             self.__dgcs.get(fidentifier)['ghost_left'] = left_ghost
 
-        if right_ghost:
+        if right_ghost is not None:
             is_ghost_right = True
             info("Setting right ghost data: " + str(right_ghost) + ", needs both: " + str(needs_both))
             self.__dgcs.get(fidentifier)['ghost_right'] = right_ghost

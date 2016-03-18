@@ -33,8 +33,9 @@ class OperationContext:
         self.delimiter = ','
         self.ghost_left = False
         self.ghost_right = False
+        self.use_overflow = False
 
-    def with_ghost(self, ghost_count, ghost_type, ghost_left, ghost_right):
+    def with_ghost(self, ghost_count, ghost_type, use_ghost_left, use_ghost_right, use_overflow=False):
         # Halo Lines
 
         if not isinstance(ghost_type, OperationContext.GhostType):
@@ -42,8 +43,9 @@ class OperationContext:
 
         self.ghost_type = ghost_type
         self.ghost_count = ghost_count
-        self.ghost_left = ghost_left
-        self.ghost_right = ghost_right
+        self.ghost_left = use_ghost_left
+        self.ghost_right = use_ghost_right
+        self.use_overflow = use_overflow
         return self
 
     def with_multiple_arguments(self, num_args, delimiter=','):
