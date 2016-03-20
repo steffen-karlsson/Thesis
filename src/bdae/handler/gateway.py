@@ -4,7 +4,7 @@
 from sys import getsizeof
 from contextlib import closing
 from urllib2 import urlopen
-from random import choice, randint
+from random import choice
 from ujson import dumps as udumps, loads as uloads
 
 from bdae.cache import CacheSystem
@@ -77,14 +77,29 @@ class GatewayHandler(object):
 
         # TODO: Block dataset from calling submit_job while appending
         dataset, jdataset = res
+        start = jdataset['root-idx']
+
+        block_count = 0
+        local_block_count = 0
+        max_stride = dataset.get_block_stride()
+        num_storage_nodes = self.__num_storage_nodes
+        create_new_stride = True
+
         with closing(urlopen(url)) as f:
-            block_count = 0
-            start = jdataset['root-idx']
             for block in self.__next_block(dataset, f.read()):
-                self.__storage_nodes[start].append(identifier, block)
-                block_count += 1
                 # TODO: Save response and check if correct is saved and received
-                start = (start + 1) % self.__num_storage_nodes
+                self.__storage_nodes[start].append(identifier, block, create_new_stride)
+
+                block_count += 1
+                local_block_count += 1
+
+                # Create new stride if only one storage node, is first iteration or max local block count reached
+                create_new_stride = num_storage_nodes == 1 \
+                                    or local_block_count == max_stride
+
+                if create_new_stride:
+                    local_block_count = 0
+                    start = (start + 1) % num_storage_nodes
 
             self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
 

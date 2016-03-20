@@ -18,9 +18,9 @@ class StorageApi(object):
         self._validate_api()
         return secure_send((identifier, jdataset), self._api.create)
 
-    def append(self, identifier, block):
+    def append(self, identifier, block, create_new_stride):
         self._validate_api()
-        return secure_send((identifier, block), self._api.append)
+        return secure_send((identifier, block, create_new_stride), self._api.append)
 
     def update_meta_key(self, identifier, update_type, key, value):
         self._validate_api()

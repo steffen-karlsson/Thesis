@@ -40,3 +40,12 @@ class AbsDatasetContext:
         :param data: The full dataset
         """
         pass
+
+    def get_block_stride(self):
+        """
+        Method to override in order to define a stride for the block distribution different from default e.g. 1.
+        NB! If number of storage nodes in the system is one, then this is ignored.
+
+        :return: int
+        """
+        return 1

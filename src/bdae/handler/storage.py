@@ -83,10 +83,11 @@ class StorageHandler(object):
         self_data = self.__get_raw_data_block(didentifier, is_root)
         if send_left:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                right_ghost = [block[:operation_context.ghost_count] for block in self_data]
+                # Only the blocks and the edge between nodes, that's why 0
+                right_ghost = [block[0][:operation_context.ghost_count] for block in self_data]
 
                 if local_transfer or is_root:
-                    if operation_context.use_overflow:
+                    if operation_context.use_cyclic:
                         overflow = right_ghost[0]
                         # TODO: No wrapping supported, implement on last node for this dataset
                         pass
@@ -96,9 +97,10 @@ class StorageHandler(object):
 
         if send_right:
             if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                left_ghost = [block[-operation_context.ghost_count:] for block in self_data]
+                # Only the blocks and the edge between nodes, that's why -1
+                left_ghost = [block[-1][-operation_context.ghost_count:] for block in self_data]
 
-                if operation_context.use_overflow:
+                if operation_context.use_cyclic:
                     overflow = left_ghost[-1]
                     # TODO: No wrapping supported, implement on last node for this dataset
                     pass
@@ -142,7 +144,7 @@ class StorageHandler(object):
         return STATUS_SUCCESS
 
     def append(self, bundle):
-        identifier, block = secure_load(bundle)
+        identifier, block, create_new_stride = secure_load(bundle)
 
         res = self.get_meta_from_identifier(identifier)
         if is_error(res):
@@ -154,7 +156,11 @@ class StorageHandler(object):
         identifier = str(identifier)
         if identifier not in self.__RAW:
             self.__RAW[identifier] = []
-        self.__RAW[identifier].append(block)
+
+        if create_new_stride:
+            self.__RAW[identifier].append([block])
+        else:
+            self.__RAW[identifier][-1].append(block)
 
         # Delete local cache, since dataset is appended
         self.__srcs.delete(identifier)
@@ -198,8 +204,9 @@ class StorageHandler(object):
         self.__RAW[str(identifier)][0] = udumps(jdataset)
         return STATUS_SUCCESS
 
-    def __get_raw_data_block(self, didentifier, is_root):
-        return self.__RAW[str(didentifier)][1 if is_root else 0:]
+    def __get_raw_data_block(self, didentifier, is_root, flatten=False):
+        blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
+        return sum(blocks, []) if flatten else blocks
 
     def __get_operation_context(self, didentifier, function_name, jdataset=None):
         if not jdataset:
@@ -223,7 +230,7 @@ class StorageHandler(object):
 
     def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query, is_root):
         # Get operations and blocks to work on
-        operations = list(operation_context.operations)
+        operations = operation_context.get_operations()
         blocks = self.__get_raw_data_block(didentifier, is_root)
 
         if self.__dgcs.contains(fidentifier):
@@ -239,7 +246,9 @@ class StorageHandler(object):
                 if not r:
                     r = []
 
-                blocks[idx] = l + m + r
+                blocks[idx] = l + _flatten(m) + r
+        else:
+            blocks = _flatten(blocks)
 
         if operation_context.has_multiple_args():
             query = str(query).split(operation_context.delimiter)
@@ -279,7 +288,7 @@ class StorageHandler(object):
 
         root = self.__config.node
         common = (didentifier, fidentifier, function_name, jdataset, root, query)
-        if self.__num_storage_nodes > 0:
+        if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool _wrapper_initialize_execution")
             args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
@@ -314,8 +323,7 @@ class StorageHandler(object):
         first_iteration = itr == 0
 
         operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
-        operations, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
-                                                               query, is_root)
+        operations = operation_context.get_operations()
         reduce_operation = operations[-1]
 
         # See if its first iteration or the cache has the value
@@ -324,6 +332,8 @@ class StorageHandler(object):
                      and self.__srcs.get(didentifier)[fidentifier][RESULT]
 
         if not has_result:
+            _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
+                                                          query, is_root)
             res = _local_execute(operations, args)
             info("Result for " + self.__config.node + " is: " + str(res))
             if is_root:
@@ -337,8 +347,7 @@ class StorageHandler(object):
             if self.__tb.should_send(itr):
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + self.__config.node + " to the next")
-                receiver.execute_function(itr + 1, didentifier, fidentifier,
-                                          function_name, jdataset, root, None, res)
+                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, jdataset, root, None, res)
                 return
 
             if not first_iteration:
@@ -411,7 +420,6 @@ class StorageHandler(object):
             self.__dgcs.get(fidentifier)['ghost_right'] = right_ghost
 
         has_other_part = ('ghost_left' if is_ghost_right else 'ghost_right') in self.__dgcs.get(fidentifier)
-        info(self.__config.node + " has_other_part: " + str(has_other_part) + ", needs_both: " + str(needs_both))
         if has_other_part or not needs_both:
             self.__report_ready(didentifier, fidentifier, function_name, jdataset, query)
 
@@ -427,6 +435,10 @@ def _start_as_process(target, args):
     p = Process(target=target, args=args)
     p.daemon = True
     p.start()
+
+
+def _flatten(array):
+    return sum(array, [])
 
 
 def _is_function_type(operation):
