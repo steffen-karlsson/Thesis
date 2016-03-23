@@ -2,6 +2,60 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from enum import Enum
+from re import finditer
+
+
+def _is_alpha(s):
+    return str(s).strip().replace('_', '').isalpha()
+
+
+def _strip(s):
+    return s.strip()[1:-1]
+
+
+def _balanced_split(syntax, seq_start, seq_end, par_start, par_end):
+    indices = [x.start() for x in finditer(',', syntax)]
+    idx = -1
+    tail = ""
+    head = ""
+
+    def _equal_count(s):
+        return s.count(seq_start) == s.count(seq_end) and s.count(par_start) == s.count(par_end)
+
+    while not tail or not (_equal_count(head) or _equal_count(tail)):
+        split = indices[idx]
+        tail = syntax[split + 1:]
+        head = syntax[:split]
+        idx -= 1
+
+    return head, tail
+
+
+def _crawl_syntax(syntax, functions, seq_start, seq_end, par_start, par_end):
+    while syntax:
+        try:
+            syntax, tail = _balanced_split(syntax, seq_start, seq_end, par_start, par_end)
+        except IndexError:
+            tail = syntax
+            syntax = ""
+
+        if tail.startswith(seq_start) or tail.endswith(seq_end):
+            functions = [Sequential(*_crawl_syntax(_strip(tail), [], seq_start,
+                                                   seq_end, par_start, par_end))] + functions
+            continue
+
+        if tail.startswith(par_start) or tail.endswith(par_end):
+            functions = [Parallel(*_crawl_syntax(_strip(tail), [], seq_start,
+                                                 seq_end, par_start, par_end))] + functions
+            continue
+
+        if _is_alpha(tail):
+            functions = [tail] + functions
+            continue
+
+        raise Exception("Unknown syntax: " + syntax)
+
+    return functions
 
 
 class Parallel:
@@ -21,9 +75,39 @@ class OperationContext:
     class TypeNotSupportedException(Exception):
         pass
 
+    @staticmethod
+    def by(fun_name, syntax, sequential_operator=('[', ']'), parallel_operator=('{', '}')):
+        if not isinstance(syntax, str):
+            raise Exception("Synatx has to be of type string")
+
+        if not all(sequential_operator) or len(sequential_operator) != 2:
+            raise Exception("Must have two and only two sequential operators, begin and end")
+
+        if not all(parallel_operator) or len(parallel_operator) != 2:
+            raise Exception("Must have two and only two parallel operators, begin and end")
+
+        if len(set(list(sequential_operator) + list(parallel_operator))) != 4:
+            raise Exception("Operators has to be unique")
+
+        syntax = syntax.strip()
+        seq_start = sequential_operator[0]
+        seq_end = sequential_operator[1]
+        par_start = parallel_operator[0]
+        par_end = parallel_operator[1]
+
+        if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
+            raise Exception("Synatx has start with %s and end with %s." % (seq_start, seq_end))
+
+        syntax, rfun = _strip(syntax).rsplit(",", 1)
+        if not _is_alpha(rfun):
+            raise Exception("Element in the %s ... %s has to be a reduce function" % (seq_start, seq_end))
+
+        functions = _crawl_syntax(syntax, [rfun.strip()], seq_start, seq_end, par_start, par_end)
+        return OperationContext(fun_name, Sequential(*functions))
+
     def __init__(self, fun_name, sequential_operations):
         if not isinstance(sequential_operations, Sequential):
-            raise NotImplemented("Outer operations has to be sequential and a reduce function as last operation/")
+            raise Exception("Outer operations has to be sequential and a reduce function as last operation")
 
         self.fun_name = fun_name
         self.operations = sequential_operations.functions
@@ -33,9 +117,9 @@ class OperationContext:
         self.delimiter = ','
         self.ghost_left = False
         self.ghost_right = False
-        self.use_overflow = False
+        self.use_cyclic = False
 
-    def with_ghost(self, ghost_count, ghost_type, use_ghost_left, use_ghost_right, use_overflow=False):
+    def with_ghost(self, ghost_count, ghost_type, use_ghost_left, use_ghost_right, use_cyclic=False):
         # Halo Lines
 
         if not isinstance(ghost_type, OperationContext.GhostType):
@@ -45,7 +129,7 @@ class OperationContext:
         self.ghost_count = ghost_count
         self.ghost_left = use_ghost_left
         self.ghost_right = use_ghost_right
-        self.use_overflow = use_overflow
+        self.use_cyclic = use_cyclic
         return self
 
     def with_multiple_arguments(self, num_args, delimiter=','):
@@ -58,3 +142,6 @@ class OperationContext:
 
     def has_multiple_args(self):
         return self.num_args > 1
+
+    def get_operations(self):
+        return list(self.operations)
