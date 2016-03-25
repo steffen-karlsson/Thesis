@@ -31,7 +31,7 @@ def _balanced_split(syntax, seq_start, seq_end, par_start, par_end):
     return head, tail
 
 
-def _crawl_syntax(syntax, functions, seq_start, seq_end, par_start, par_end):
+def _crawl_syntax(function_map, syntax, functions, seq_start, seq_end, par_start, par_end):
     while syntax:
         try:
             syntax, tail = _balanced_split(syntax, seq_start, seq_end, par_start, par_end)
@@ -40,20 +40,23 @@ def _crawl_syntax(syntax, functions, seq_start, seq_end, par_start, par_end):
             syntax = ""
 
         if tail.startswith(seq_start) or tail.endswith(seq_end):
-            functions = [Sequential(*_crawl_syntax(_strip(tail), [], seq_start,
+            functions = [Sequential(*_crawl_syntax(function_map, _strip(tail), [], seq_start,
                                                    seq_end, par_start, par_end))] + functions
             continue
 
         if tail.startswith(par_start) or tail.endswith(par_end):
-            functions = [Parallel(*_crawl_syntax(_strip(tail), [], seq_start,
+            functions = [Parallel(*_crawl_syntax(function_map, _strip(tail), [], seq_start,
                                                  seq_end, par_start, par_end))] + functions
             continue
 
-        if _is_alpha(tail):
-            functions = [tail] + functions
-            continue
+        tail = tail.strip()
+        if not _is_alpha(tail):
+            raise Exception("Unknown syntax: " + syntax)
 
-        raise Exception("Unknown syntax: " + syntax)
+        if tail not in function_map:
+            raise Exception("Function %s not defined in get_map_functions nor get_reduce_functions." % tail)
+
+        functions = [function_map[tail]] + functions
 
     return functions
 
@@ -76,7 +79,7 @@ class OperationContext:
         pass
 
     @staticmethod
-    def by(fun_name, syntax, sequential_operator=('[', ']'), parallel_operator=('{', '}')):
+    def by(dataset_context, fun_name, syntax, sequential_operator=('[', ']'), parallel_operator=('{', '}')):
         if not isinstance(syntax, str):
             raise Exception("Synatx has to be of type string")
 
@@ -98,11 +101,15 @@ class OperationContext:
         if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
             raise Exception("Synatx has start with %s and end with %s." % (seq_start, seq_end))
 
+        function_map = {func.func_name: func for func
+                        in dataset_context.get_map_functions() + dataset_context.get_reduce_functions()}
+
         syntax, rfun = _strip(syntax).rsplit(",", 1)
-        if not _is_alpha(rfun):
+        rfun = rfun.strip()
+        if rfun not in function_map:
             raise Exception("Element in the %s ... %s has to be a reduce function" % (seq_start, seq_end))
 
-        functions = _crawl_syntax(syntax, [rfun.strip()], seq_start, seq_end, par_start, par_end)
+        functions = _crawl_syntax(function_map, syntax, [function_map[rfun]], seq_start, seq_end, par_start, par_end)
         return OperationContext(fun_name, Sequential(*functions))
 
     def __init__(self, fun_name, sequential_operations):
