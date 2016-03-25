@@ -30,6 +30,24 @@ class AbsDatasetContext:
         pass
 
     @abstractmethod
+    def get_map_functions(self):
+        """
+        Returns a list of appropriate map functions for this dataset
+
+        :return: list
+        """
+        pass
+
+    @abstractmethod
+    def get_reduce_functions(self):
+        """
+        Returns a list of appropriate reduce functions for this dataset
+
+        :return: list
+        """
+        pass
+
+    @abstractmethod
     def next_entry(self, data):
         """
         Abstract method to override when implementing a new AbsDatasetContext implementation.
