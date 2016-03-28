@@ -67,27 +67,9 @@ class InternalStorageApi(StorageApi):
         secure_send((didentifier, fidentifier, function_name, jdataset, query), async(self._api).ready)
 
 
-
-class GatewayApi(object):
+class GatewayScientistApi(object):
     def __init__(self, gateway_uri):
-        super(GatewayApi, self).__init__()
         self._api = Proxy(locateNS().lookup(gateway_uri))
-
-    def __set_dataset_by_function(self, name, dataset_type, funcion):
-        with open(getsourcefile(import_class(dataset_type)), "r") as f:
-            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
-
-    def create(self, name, dataset_type):
-        return self.__set_dataset_by_function(name, dataset_type, self._api.create)
-
-    def update(self, name, dataset_type):
-        return self.__set_dataset_by_function(name, dataset_type, self._api.update)
-
-    def append(self, name, url):
-        return self._api.append(name, str(url))
-
-    def get_dataset_operations(self, name):
-        return self._api.get_dataset_operations(name)
 
     def submit_job(self, name, function, query):
         async(self._api).submit_job(name, function, query)
@@ -96,6 +78,28 @@ class GatewayApi(object):
         return self._api.poll_for_result(name, function, query)
 
 
-class InternalGatewayApi(GatewayApi):
+class GatewayAdminApi(GatewayScientistApi):
+    def __init__(self, gateway_uri):
+        super(GatewayAdminApi, self).__init__(gateway_uri)
+
+    @staticmethod
+    def _set_dataset_by_function(name, dataset_type, funcion):
+        with open(getsourcefile(import_class(dataset_type)), "r") as f:
+            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
+
+    def create(self, name, dataset_type):
+        return GatewayAdminApi._set_dataset_by_function(name, dataset_type, self._api.create)
+
+    def update(self, name, dataset_type):
+        return GatewayAdminApi._set_dataset_by_function(name, dataset_type, self._api.update)
+
+    def append(self, name, url):
+        return self._api.append(name, str(url))
+
+    def get_dataset_operations(self, name):
+        return self._api.get_dataset_operations(name)
+
+
+class InternalGatewayApi(GatewayAdminApi):
     def set_status_result(self, fidentifer, status, result):
         return self._api.set_status_result(fidentifer, status, result)
