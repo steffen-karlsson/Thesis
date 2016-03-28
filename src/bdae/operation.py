@@ -51,9 +51,6 @@ def _crawl_syntax(function_map, syntax, functions, seq_start, seq_end, par_start
             continue
 
         tail = tail.strip()
-        if not _is_alpha(tail):
-            raise Exception("Unknown syntax: " + syntax)
-
         if tail not in function_map:
             raise Exception("Function %s not defined in get_map_functions nor get_reduce_functions." % tail)
 
@@ -102,15 +99,17 @@ class OperationContext:
         if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
             raise Exception("Synatx has start with %s and end with %s" % (seq_start, seq_end))
 
-        function_map = {func.func_name: func for func
-                        in dataset_context.get_map_functions() + dataset_context.get_reduce_functions()}
+        reduce_map = {func.func_name: func for func in dataset_context.get_reduce_functions()}
 
         syntax, rfun = _strip(syntax).rsplit(",", 1)
         rfun = rfun.strip()
-        if rfun not in function_map:
-            raise Exception("Element in the %s ... %s has to be a reduce function" % (seq_start, seq_end))
+        if rfun not in reduce_map:
+            raise Exception("Last element in the operation has to be a reduce function")
 
-        functions = _crawl_syntax(function_map, syntax, [function_map[rfun]], seq_start, seq_end, par_start, par_end)
+        function_map = {func.func_name: func for func in dataset_context.get_map_functions()}
+        function_map.update(reduce_map)
+        functions = _crawl_syntax(function_map, syntax, [reduce_map[rfun]],
+                                  seq_start, seq_end, par_start, par_end)
         return OperationContext(dataset_context, fun_name, Sequential(*functions))
 
     def __init__(self, dataset_context, fun_name, sequential_operations):

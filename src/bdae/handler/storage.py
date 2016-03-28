@@ -6,10 +6,10 @@ from math import floor
 from sys import getsizeof
 from logging import info
 from ujson import loads as uloads, dumps as udumps
-from types import FunctionType
-from multiprocessing.pool import ThreadPool, Process
+from multiprocessing.pool import ThreadPool
 from collections import defaultdict
 from itertools import izip_longest, chain
+from inspect import isfunction
 
 from bdae.handler import get_class_from_source
 from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, \
@@ -433,16 +433,6 @@ class StorageHandler(object):
         pass
 
 
-def _start_as_process(target, args):
-    p = Process(target=target, args=args)
-    p.daemon = True
-    p.start()
-
-
-def _is_function_type(operation):
-    return isinstance(operation, FunctionType)
-
-
 def _wrapper_initialize_execution(args):
     return args[0].initialize_execution(*args[1])
 
@@ -467,13 +457,13 @@ def _local_execute(operations, args):
 
             subargs = []
             for suboperation in suboperations:
-                subargs.append((list(suboperation if _is_function_type(suboperation)
+                subargs.append((list(suboperation if isfunction(suboperation)
                                      else suboperation.functions), args))
 
             res = pool.map(_wrapper_local_execute, subargs)
             return _local_execute(operations, res)
 
-        if _is_function_type(operation):
+        if isfunction(operation):
             res = operation(args)
             return _local_execute(operations, res)
 
