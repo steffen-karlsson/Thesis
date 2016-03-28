@@ -9,14 +9,11 @@ Welcome to Big Data Analysis Engine documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+  :maxdepth: 2
 
-   configparser
-   absdatasetcontext
-   libbdaeadmin
-   libbdaemanager
-   libbdaescientist
-
+  configparser
+  absdatasetcontext
+  libs
 
 
 Indices and tables

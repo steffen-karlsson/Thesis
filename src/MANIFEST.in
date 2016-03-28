@@ -11,6 +11,7 @@ include bdae/web/static/glyphicons-halflings-regular.ttf
 include bdae/web/docs/index.rst
 include bdae/web/docs/configparser.rst
 include bdae/web/docs/absdatasetcontext.rst
+include bdae/web/docs/libs.rst
 include bdae/web/docs/libbdaemanager.rst
 include bdae/web/docs/libbdaeadmin.rst
 include bdae/web/docs/libbdaescientist.rst

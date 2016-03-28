@@ -39,6 +39,7 @@ setup(
             "Makefile",
             "configparser.rst",
             "absdatasetcontext.rst",
+            "libs.rst",
             "libbdaeadmin.rst",
             "libbdaemanager.rst",
             "libbdaescientist.rst",

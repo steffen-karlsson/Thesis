@@ -1,6 +1,10 @@
 # Created by Steffen Karlsson on 03-28-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+"""
+.. module:: libs
+"""
+
 from ujson import dumps as udumps, loads as uloads
 
 from os import path
@@ -108,6 +112,10 @@ class _DocumentationHandler(RequestHandler):
 
 
 class GatewayWebWrapper(Application):
+    """
+    Web wrapper to enable web access to the Gateway Python API.
+    """
+
     def __init__(self, gateway):
         global API, GW
         GW = gateway
