@@ -1,6 +1,10 @@
 # Created by Steffen Karlsson on 03-28-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+"""
+.. module:: libbdaescientist
+"""
+
 from time import sleep
 from abc import abstractmethod, ABCMeta
 
@@ -33,6 +37,9 @@ class AbsPyScientistGateway:
         :rtype: dict
         """
         pass
+
+    def get_api_proxy(self):
+        return self._api
 
     def submit_job(self, name, function, query, callback=None, poll_delay=0.2):
         """

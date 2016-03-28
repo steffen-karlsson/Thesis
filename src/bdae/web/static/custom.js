@@ -16,7 +16,7 @@ $(document).ready(function() {
         console.log($("#update-dataset").val());
     });
 
-    $.getJSON( "/register_implemented_datasets", function( data ) {
+    $.getJSON( "/get_implemented_datasets", function( data ) {
         $.each( data, function( key, val ) {
             $("#dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"dataset-first\"><a href=\"#\">"
                 + key + " </a></li>");
@@ -27,9 +27,9 @@ $(document).ready(function() {
         });
 
         // Adding current dataset supported operations to query
-        setDatasetFunctions($("#dataset-first").text(), "operations");
+        setDatasetFunctions($("#dataset-first").text());
         addDropDownListener("#dataset", function( text ) {
-            setDatasetFunctions(text, "operations");
+            setDatasetFunctions(text);
         });
 
         onClickListener("#new-dataset", function () {
@@ -70,9 +70,9 @@ function showWaitingDialog (title) {
     });
 }
 
-function setDatasetFunctions(dataset_name, functions_type) {
+function setDatasetFunctions(dataset_name) {
     window.dataset = dataset_name
-    $.getJSON("/get_functions/" + dataset_name + "/" + functions_type, function( data ) {
+    $.getJSON("/get_operations/" + dataset_name, function( data ) {
         $.each( data, function( idx, entry ) {
             //TODO: Remove old dataset functions
             $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">"
@@ -93,7 +93,7 @@ function pollForQueryResult(callData, delay, itr){
     setTimeout(function () {
         $.ajax({
             type: "POST",
-            url: '/operation/',
+            url: '/job',
             data: JSON.stringify(callData),
             statusCode: {
                 // Success

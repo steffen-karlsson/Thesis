@@ -1,6 +1,10 @@
 # Created by Steffen Karlsson on 03-28-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+"""
+.. module:: libbdaemanager
+"""
+
 from abc import ABCMeta
 
 from libbdaescientist import AbsPyScientistGateway
