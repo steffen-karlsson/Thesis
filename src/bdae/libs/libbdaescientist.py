@@ -16,7 +16,8 @@ class AbsPyScientistGateway:
     __metaclass__ = ABCMeta
 
     def __init__(self, gateway_uri):
-        self.__api = GatewayScientistApi(gateway_uri)
+        if gateway_uri:
+            self._api = GatewayScientistApi(gateway_uri)
 
     @abstractmethod
     def get_implemented_datasets(self):
@@ -49,13 +50,13 @@ class AbsPyScientistGateway:
         :raises DatasetNotExistsException: If the name of the dataset doesn't exists
         """
 
-        self.__api.submit_job(name, function, query)
+        self._api.submit_job(name, function, query)
 
         while True:
             # Sleep and try to poll again
             sleep(poll_delay)
 
-            res = self.__api.poll_for_result(name, function, query)
+            res = self._api.poll_for_result(name, function, query)
             if not is_error(res):
                 if callback:
                     # Return result in callback

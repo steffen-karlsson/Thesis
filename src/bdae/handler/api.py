@@ -77,10 +77,13 @@ class GatewayScientistApi(object):
     def poll_for_result(self, name, function, query):
         return self._api.poll_for_result(name, function, query)
 
+    def get_dataset_operations(self, name):
+        return self._api.get_dataset_operations(name)
 
-class GatewayAdminApi(GatewayScientistApi):
+
+class GatewayManagerApi(GatewayScientistApi):
     def __init__(self, gateway_uri):
-        super(GatewayAdminApi, self).__init__(gateway_uri)
+        super(GatewayManagerApi, self).__init__(gateway_uri)
 
     @staticmethod
     def _set_dataset_by_function(name, dataset_type, funcion):
@@ -88,16 +91,18 @@ class GatewayAdminApi(GatewayScientistApi):
             return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
 
     def create(self, name, dataset_type):
-        return GatewayAdminApi._set_dataset_by_function(name, dataset_type, self._api.create)
+        return GatewayManagerApi._set_dataset_by_function(name, dataset_type, self._api.create)
 
     def update(self, name, dataset_type):
-        return GatewayAdminApi._set_dataset_by_function(name, dataset_type, self._api.update)
+        return GatewayManagerApi._set_dataset_by_function(name, dataset_type, self._api.update)
 
     def append(self, name, url):
         return self._api.append(name, str(url))
 
-    def get_dataset_operations(self, name):
-        return self._api.get_dataset_operations(name)
+
+class GatewayAdminApi(GatewayManagerApi):
+    def __init__(self, gateway_uri):
+        super(GatewayAdminApi, self).__init__(gateway_uri)
 
 
 class InternalGatewayApi(GatewayAdminApi):

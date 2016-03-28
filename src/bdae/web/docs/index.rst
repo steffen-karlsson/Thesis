@@ -14,6 +14,7 @@ Contents:
    configparser
    absdatasetcontext
    libbdaeadmin
+   libbdaemanager
    libbdaescientist
 
 
