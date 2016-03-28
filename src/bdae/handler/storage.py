@@ -18,7 +18,7 @@ from bdae.secure import secure_load, secure_load2
 from bdae.tree_barrier import TreeBarrier
 from bdae.cache import CacheSystem
 from bdae.handler.api import InternalStorageApi, InternalGatewayApi
-from bdae.operation import Sequential as SequentialOperation, Parallel as ParallelOperation, OperationContext
+from bdae.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
 
 RESULT = 0
 REQUEST_COUNT = 1
@@ -82,28 +82,26 @@ class StorageHandler(object):
 
         self_data = self.__get_raw_data_block(didentifier, is_root)
         if send_left:
-            if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                # Only the blocks and the edge between nodes, that's why 0
-                right_ghost = [block[0][:operation_context.ghost_count] for block in self_data]
+            # Only the blocks and the edge between nodes, that's why 0
+            right_ghost = [block[0][:operation_context.ghost_count] for block in self_data]
 
-                if local_transfer or is_root:
-                    if operation_context.use_cyclic:
-                        overflow = right_ghost[0]
-                        # TODO: No wrapping supported, implement on last node for this dataset
-                        pass
-
-                    # Only storage node in the system or previous node doesn't need first when sending left
-                    right_ghost = right_ghost[1:]
-
-        if send_right:
-            if operation_context.ghost_type == OperationContext.GhostType.ENTRY:
-                # Only the blocks and the edge between nodes, that's why -1
-                left_ghost = [block[-1][-operation_context.ghost_count:] for block in self_data]
-
+            if local_transfer or is_root:
                 if operation_context.use_cyclic:
-                    overflow = left_ghost[-1]
+                    overflow = right_ghost[0]
                     # TODO: No wrapping supported, implement on last node for this dataset
                     pass
+
+                # Only storage node in the system or previous node doesn't need first when sending left
+                right_ghost = right_ghost[1:]
+
+        if send_right:
+            # Only the blocks and the edge between nodes, that's why -1
+            left_ghost = [block[-1][-operation_context.ghost_count:] for block in self_data]
+
+            if operation_context.use_cyclic:
+                overflow = left_ghost[-1]
+                # TODO: No wrapping supported, implement on last node for this dataset
+                pass
 
         assert left_ghost is not None or right_ghost is not None
 

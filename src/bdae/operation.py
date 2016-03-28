@@ -1,13 +1,8 @@
 # Created by Steffen Karlsson on 03-01-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from enum import Enum
 from re import finditer
 from inspect import isgeneratorfunction
-
-
-def _is_alpha(s):
-    return str(s).strip().replace('_', '').isalpha()
 
 
 def _strip(s):
@@ -70,9 +65,6 @@ class Sequential:
 
 
 class OperationContext:
-    class GhostType(Enum):
-        ENTRY = 1
-
     class TypeNotSupportedException(Exception):
         pass
 
@@ -125,7 +117,6 @@ class OperationContext:
 
         self.fun_name = fun_name
         self.operations = sequential_operations.functions
-        self.ghost_type = None
         self.ghost_count = 0
         self.num_args = 1
         self.delimiter = ','
@@ -133,13 +124,8 @@ class OperationContext:
         self.ghost_right = False
         self.use_cyclic = False
 
-    def with_ghost(self, ghost_count, ghost_type, use_ghost_left, use_ghost_right, use_cyclic=False):
+    def with_ghost(self, ghost_count, use_ghost_left, use_ghost_right, use_cyclic=False):
         # Halo Lines
-
-        if not isinstance(ghost_type, OperationContext.GhostType):
-            raise OperationContext.TypeNotSupportedException()
-
-        self.ghost_type = ghost_type
         self.ghost_count = ghost_count
         self.ghost_left = use_ghost_left
         self.ghost_right = use_ghost_right

@@ -8,8 +8,7 @@ install_requires = [
     'Pyro4',
     'tornado',
     'ujson',
-    'apscheduler',
-    'enum34'
+    'apscheduler'
 ]
 
 setup(
