@@ -3,6 +3,7 @@
 
 from enum import Enum
 from re import finditer
+from inspect import isgeneratorfunction
 
 
 def _is_alpha(s):
@@ -99,7 +100,7 @@ class OperationContext:
         par_end = parallel_operator[1]
 
         if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
-            raise Exception("Synatx has start with %s and end with %s." % (seq_start, seq_end))
+            raise Exception("Synatx has start with %s and end with %s" % (seq_start, seq_end))
 
         function_map = {func.func_name: func for func
                         in dataset_context.get_map_functions() + dataset_context.get_reduce_functions()}
@@ -110,11 +111,18 @@ class OperationContext:
             raise Exception("Element in the %s ... %s has to be a reduce function" % (seq_start, seq_end))
 
         functions = _crawl_syntax(function_map, syntax, [function_map[rfun]], seq_start, seq_end, par_start, par_end)
-        return OperationContext(fun_name, Sequential(*functions))
+        return OperationContext(dataset_context, fun_name, Sequential(*functions))
 
-    def __init__(self, fun_name, sequential_operations):
+    def __init__(self, dataset_context, fun_name, sequential_operations):
         if not isinstance(sequential_operations, Sequential):
             raise Exception("Outer operations has to be sequential and a reduce function as last operation")
+
+        if sequential_operations.functions[-1] not in dataset_context.get_reduce_functions():
+            raise Exception("Last operation has to be a reduction")
+
+        for map_fun in dataset_context.get_map_functions():
+            if not isgeneratorfunction(map_fun):
+                raise Exception("%s is not an generator i.e. yields" % map_fun.func_name)
 
         self.fun_name = fun_name
         self.operations = sequential_operations.functions

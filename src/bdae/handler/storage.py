@@ -9,7 +9,7 @@ from ujson import loads as uloads, dumps as udumps
 from types import FunctionType
 from multiprocessing.pool import ThreadPool, Process
 from collections import defaultdict
-from itertools import izip_longest
+from itertools import izip_longest, chain
 
 from bdae.handler import get_class_from_source
 from bdae.utils import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, \
@@ -204,9 +204,9 @@ class StorageHandler(object):
         self.__RAW[str(identifier)][0] = udumps(jdataset)
         return STATUS_SUCCESS
 
-    def __get_raw_data_block(self, didentifier, is_root, flatten=False):
+    def __get_raw_data_block(self, didentifier, is_root, iflatten=False):
         blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
-        return sum(blocks, []) if flatten else blocks
+        return chain(*blocks) if iflatten else blocks
 
     def __get_operation_context(self, didentifier, function_name, jdataset=None):
         if not jdataset:
@@ -231,31 +231,33 @@ class StorageHandler(object):
     def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query, is_root):
         # Get operations and blocks to work on
         operations = operation_context.get_operations()
-        blocks = self.__get_raw_data_block(didentifier, is_root)
 
-        if self.__dgcs.contains(fidentifier):
+        def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
-            # Merge ghosts into blocks
 
-            for idx, (l, m, r) in enumerate(izip_longest(ghosts['ghost_left'] if 'ghost_left' in ghosts else [None],
-                                                         blocks,
-                                                         ghosts['ghost_right'] if 'ghost_right' in ghosts else [None])):
+            # Merge ghosts into blocks
+            for l, m, r in izip_longest(ghosts['ghost_left'] if 'ghost_left' in ghosts else [None],
+                                        self.__get_raw_data_block(didentifier, is_root),
+                                        ghosts['ghost_right'] if 'ghost_right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if not l:
                     l = []
                 if not r:
                     r = []
 
-                blocks[idx] = l + _flatten(m) + r
+                yield l + sum(m, []) + r
+
+        if self.__dgcs.contains(fidentifier):
+            blocks = _get_blocks_with_ghost()
         else:
-            blocks = _flatten(blocks)
+            # Use chain generator method (iflatten) to reduce memory consumption
+            blocks = self.__get_raw_data_block(didentifier, is_root, iflatten=True)
 
         if operation_context.has_multiple_args():
-            query = str(query).split(operation_context.delimiter)
+            args = [blocks] + str(query).split(operation_context.delimiter)
         else:
-            query = [query]
+            args = [blocks, query]
 
-        args = [blocks] + query
         return operations, args
 
     def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
@@ -435,10 +437,6 @@ def _start_as_process(target, args):
     p = Process(target=target, args=args)
     p.daemon = True
     p.start()
-
-
-def _flatten(array):
-    return sum(array, [])
 
 
 def _is_function_type(operation):
