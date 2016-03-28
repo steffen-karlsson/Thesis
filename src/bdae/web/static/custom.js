@@ -8,13 +8,10 @@ $(document).ready(function() {
     var width = ndDropdown.outerWidth(true);
     ndDropdown.outerWidth(0);
 
-    addDropDownListener("#add-registry-name");
-    adjustWidthBySelf("#add-registry-name");
+    addDropDownListener("#add-registry-name", function ( text ) {
+        console.log(">> " + text);
+    });
 
-    adjustWidth("#remove-dataset", "#new-dataset");
-    adjustWidth("#remove-registry-name", "#new-dataset");
-
-    adjustWidthBySelf("#update-dataset");
     onClickListener("#update-dataset", function () {
         console.log($("#update-dataset").val());
     });
@@ -29,19 +26,26 @@ $(document).ready(function() {
             $("#new-dataset-dropdown-menu").append(element1 + "new" + element2);
         });
 
-
+        // Adding current dataset supported operations to query
+        setDatasetFunctions($("#dataset-first").text(), "operations");
         addDropDownListener("#dataset", function( text ) {
             setDatasetFunctions(text, "operations");
         });
-        setDatasetFunctions($("#dataset-first").text(), "operations");
 
+        onClickListener("#new-dataset", function () {
+            console.log()
+        });
 
+        adjustWidth("#remove-dataset", "#new-dataset");
+        adjustWidth("#remove-registry-name", "#new-dataset");
+        adjustWidth("#update-dataset", "#new-dataset");
+        ndDropdown.outerWidth(width).css("display", "inline");
+
+        // Dropdown listener also sets initial value in the menu field
         addDropDownListener("#new-dataset", function( text ) {
             console.log(">> " + text);
         });
-        ndDropdown.outerWidth(width).css("display", "inline");
-        adjustWidthBySelf("#new-dataset");
-
+        adjustWidthBySelf("#new-dataset", offset=40)
 
         onClickListener("#query", function () {
             callData = { "dataset-name": window.dataset,
@@ -49,30 +53,33 @@ $(document).ready(function() {
                          "query": $("#query").val(),
                          "is-polling": false };
 
-            window.dialog = BootstrapDialog.show( {
-                closable: false,
-                message: function (dialog) {
-                    var $content = $('<div><button class="btn btn-success">Revert button status right now.</button></div>');
-                    var $progress = $('<div class="progress"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div></div>');
-                    return $progress;
-                },
-                title: "Querying"
-            });
+            showWaitingDialog("Querying");
             pollForQueryResult(callData, 200, 0);
         });
     });
 });
 
+function showWaitingDialog (title) {
+    window.dialog = BootstrapDialog.show( {
+        closable: false,
+        message: function (dialog) {
+            var $progress = $('<div class="progress"><div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div></div>');
+            return $progress;
+        },
+        title: title
+    });
+}
+
 function setDatasetFunctions(dataset_name, functions_type) {
     window.dataset = dataset_name
     $.getJSON("/get_functions/" + dataset_name + "/" + functions_type, function( data ) {
         $.each( data, function( idx, entry ) {
+            //TODO: Remove old dataset functions
             $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">"
                 + entry + " </a></li>");
         });
 
         addDropDownListener("#query");
-        adjustWidthBySelf("#query");
     });
 }
 
@@ -128,26 +135,27 @@ function pollForQueryResult(callData, delay, itr){
 
 function addDropDownListener(label, valueCallback) {
     $(label + "-dropdown-selection").text($(label + "-first").text())
-
     $(label + "-dropdown-menu li a").click(function(){
         var selText = $(this).text();
+        console.log($(this));
         $(label + "-dropdown-selection").text(selText + " ");
-        $(label + "-dropdown-selection").val(selText + " ");
         adjustWidthBySelf(label);
 
         if (valueCallback !== null)
             valueCallback(selText);
     });
+
+    adjustWidthBySelf(label);
 }
 
-function adjustWidthBySelf(label) {
-    adjustWidth(label, label)
+function adjustWidthBySelf(label, offset = 35) {
+    adjustWidth(label, label, offset)
 }
 
-function adjustWidth(toLabel, fromLabel) {
+function adjustWidth(toLabel, fromLabel, offset = 35) {
     $(toLabel).width($(".page-header").width()
         - $(fromLabel + "-submit").outerWidth(true)
         - $(fromLabel + "-dropdown").outerWidth(true)
         - ($(fromLabel).outerWidth(true) - $(fromLabel).innerWidth())
-        - 35);
+        - offset);
 }
