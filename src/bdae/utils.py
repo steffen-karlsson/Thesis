@@ -13,7 +13,7 @@ STATUS_NOT_FOUND = 404
 STATUS_NOT_ALLOWED = 405
 STATUS_ALREADY_EXISTS = 409
 
-CODES = [STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_NOT_ALLOWED, STATUS_ALREADY_EXISTS]
+CODES = [STATUS_PROCESSING, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_NOT_ALLOWED, STATUS_ALREADY_EXISTS]
 
 
 def verify_error(args):
@@ -28,6 +28,9 @@ def verify_error(args):
 
 
 def is_error(res):
+    if isinstance(res, tuple):
+        # First argument is always status code
+        res = res[0]
     return res in CODES
 
 
