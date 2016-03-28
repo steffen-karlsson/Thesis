@@ -10,7 +10,7 @@ from bdae.handler.api import GatewayManagerApi
 
 class AbsPyManagerGateway(AbsPyScientistGateway):
     """
-    Abstract class to override in order to implement a administrator gateway to the framework
+    Abstract class to override in order to implement a manager gateway to the framework
     """
 
     __metaclass__ = ABCMeta
