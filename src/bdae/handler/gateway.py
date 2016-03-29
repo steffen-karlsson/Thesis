@@ -50,7 +50,8 @@ class GatewayHandler(object):
         return get_class_from_source(source, jdataset[key]), jdataset
 
     def create(self, bundle):
-        name, dataset_source, dataset_name = secure_load(bundle)
+        name, dataset_source, dataset_type = secure_load(bundle)
+        dataset_name = dataset_type.rsplit(".", 1)[1]
 
         dataset = get_class_from_source(dataset_source, dataset_name)
         operations = dataset.get_operations()
@@ -60,6 +61,7 @@ class GatewayHandler(object):
         digest, pdata = secure(dataset_source)
         jdataset = {'digest': digest,
                     'dataset-name': dataset_name,
+                    'dataset-type': dataset_type,
                     'source': pdata,
                     'num-blocks': 0}
         if operations is not None:
@@ -69,7 +71,19 @@ class GatewayHandler(object):
     def update(self, bundle):
         pass
 
-    def append(self, name, url):
+    def delete(self, bundle):
+        pass
+
+    def get_type(self, name):
+        identifier = self.__find_identifier(name.strip())
+        res = self.__get_meta_from_identifier(identifier)
+        if is_error(res):
+            return res
+
+        return res['dataset-type']
+
+    def append(self, bundle):
+        name, url = secure_load(bundle)
         identifier = self.__find_identifier(name.strip())
         res = self.__get_class_from_identifier(identifier, 'dataset-name')
         if is_error(res):

@@ -88,7 +88,7 @@ class GatewayManagerApi(GatewayScientistApi):
     @staticmethod
     def _set_dataset_by_function(name, dataset_type, funcion):
         with open(getsourcefile(import_class(dataset_type)), "r") as f:
-            return secure_send((name, f.read(), dataset_type.rsplit(".", 1)[1]), funcion)
+            return secure_send((name, f.read(), dataset_type), funcion)
 
     def create(self, name, dataset_type):
         return GatewayManagerApi._set_dataset_by_function(name, dataset_type, self._api.create)
@@ -97,7 +97,13 @@ class GatewayManagerApi(GatewayScientistApi):
         return GatewayManagerApi._set_dataset_by_function(name, dataset_type, self._api.update)
 
     def append(self, name, url):
-        return self._api.append(name, str(url))
+        return secure_send((name, str(url)), self._api.append)
+
+    def delete(self, name):
+        return secure_send(name, self._api.delete)
+
+    def get_type(self, name):
+        return self._api.get_type(name)
 
 
 class GatewayAdminApi(GatewayManagerApi):

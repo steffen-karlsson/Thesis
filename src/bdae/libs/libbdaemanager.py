@@ -29,7 +29,7 @@ class AbsPyManagerGateway(AbsPyScientistGateway):
 
         :param name: Name of the dataset
         :type name: str
-        :param dataset_type: Reference name of the dataset to be created
+        :param dataset_type: Reference class name of the dataset to be created
         :type dataset_type: str
         :raises DatasetAlreadyExistsException: If the name of the dataset already exists
         """
@@ -49,4 +49,26 @@ class AbsPyManagerGateway(AbsPyScientistGateway):
 
         verify_error(self._api.append(name, url))
 
-        # TODO: Implement update and remove dataset
+    def delete_dataset(self, name):
+        """
+        Deletes the dataset by name
+
+        :param name: Name of the dataset
+        :type name: str
+        """
+
+        verify_error(self._api.delete(name))
+
+    def update_dataset(self, name):
+        """
+        Updates the dataset by name based on the file it was originally created from
+
+        :param name: Name of the dataset
+        :type name: str
+        :raises: DatasetNotExistsException: If the name of the dataset doesn't exists
+        """
+        res = self._api.get_type(name)
+        verify_error(res)
+
+        dataset_type = res
+        verify_error(self._api.update(name, dataset_type))
