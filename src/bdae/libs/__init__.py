@@ -24,6 +24,7 @@ import bdae
 GW = None
 API = None
 
+
 def get_static_path():
     return path.dirname(path.abspath(bdae.__file__))
 
@@ -81,6 +82,18 @@ class _CreateDatasetHandler(RequestHandler):
 
         self.set_status(res)
         self.finish(message)
+
+
+class _DeleteDatasetHandler(RequestHandler):
+    @asynchronous
+    def delete(self, *args, **kwargs):
+        pass
+
+
+class _UpdateDatasetHandler(RequestHandler):
+    @asynchronous
+    def post(self, *args, **kwargs):
+        pass
 
 
 class _JobHandler(RequestHandler):
@@ -143,7 +156,8 @@ class GatewayWebWrapper(Application):
         if isinstance(gateway, AbsPyManagerGateway):
             routes += [
                 (r'/create', _CreateDatasetHandler),
-                # TODO: add delete and update
+                (r'/delete', _DeleteDatasetHandler),
+                (r'/update', _UpdateDatasetHandler)
             ]
 
         if isinstance(gateway, AbsPyAdminGateway):

@@ -121,18 +121,22 @@ class StorageHandler(object):
             r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     def create(self, bundle):
-        identifier, jdataset = secure_load(bundle)
+        identifier, jdataset, is_update = secure_load(bundle)
 
         # Check whether its self who is responsible
         responsible = self.__find_responsibility(identifier)
         if responsible:
-            return responsible.create(identifier, jdataset)
+            return responsible.create(identifier, jdataset, is_update)
+
+        if is_update:
+            # TODO: Block from calling any other operation on that dataset, while update is finishing
+            pass
 
         jdataset = uloads(jdataset)
         jdataset['root-idx'] = self.__config.node_idx
 
         # Else do the job self.
-        if self.__dataset_exists(identifier):
+        if self.__dataset_exists(identifier) and not is_update:
             return STATUS_ALREADY_EXISTS, "Dataset already exists"
 
         info("Creating dataset with identifier %s on %s." % (identifier, self.__config.node))
@@ -142,6 +146,7 @@ class StorageHandler(object):
         return STATUS_SUCCESS
 
     def append(self, bundle):
+        # TODO: Block from calling any other operation on that dataset, while append is finishing
         identifier, block, create_new_stride = secure_load(bundle)
 
         res = self.get_meta_from_identifier(identifier)
@@ -163,6 +168,21 @@ class StorageHandler(object):
         # Delete local cache, since dataset is appended
         self.__srcs.delete(identifier)
 
+        return STATUS_SUCCESS
+
+    def delete(self, identifier):
+        # Check whether its self who is responsible
+        responsible = self.__find_responsibility(identifier)
+        if responsible:
+            return responsible.delete(identifier)
+
+        # Else do the job self.
+        # TODO: Block from calling any other operation on that dataset
+        # TODO: Delete all blocks
+
+        # Delete local cache, since dataset is removed
+        self.__srcs.delete(identifier)
+        # TODO: delete identifier from self.__dgcs
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, didentifier):
