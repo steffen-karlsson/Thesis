@@ -19,5 +19,5 @@ class AbsPyAdminGateway(AbsPyManagerGateway):
     __metaclass__ = ABCMeta
 
     def __init__(self, gateway_uri):
-        super(AbsPyManagerGateway, self).__init__(None)
+        super(AbsPyAdminGateway, self).__init__(None)
         self.__api = GatewayAdminApi(gateway_uri)
