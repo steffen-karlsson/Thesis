@@ -16,7 +16,7 @@ class StorageApi(object):
 
     def create(self, identifier, jdataset):
         self._validate_api()
-        return secure_send((identifier, jdataset), self._api.create)
+        return secure_send((identifier, jdataset, False), self._api.create)
 
     def append(self, identifier, block, create_new_stride):
         self._validate_api()
@@ -34,6 +34,14 @@ class StorageApi(object):
     def submit_job(self, didentifier, fidentifier, function, query, gateway):
         self._validate_api()
         async(self._api).submit_job(didentifier, fidentifier, function, query, gateway)
+
+    def delete(self, identifier):
+        self._validate_api()
+        return self._api.delete(identifier)
+
+    def update(self, identifier, jdataset):
+        self._validate_api()
+        return secure_send((identifier, jdataset, True), self._api.create)
 
     def _validate_api(self):
         if not self._api:
@@ -100,7 +108,7 @@ class GatewayManagerApi(GatewayScientistApi):
         return secure_send((name, str(url)), self._api.append)
 
     def delete(self, name):
-        return secure_send(name, self._api.delete)
+        return self._api.delete(name)
 
     def get_type(self, name):
         return self._api.get_type(name)

@@ -6,6 +6,7 @@ from contextlib import closing
 from urllib2 import urlopen
 from random import choice
 from ujson import dumps as udumps, loads as uloads
+from collections import defaultdict
 
 from bdae.cache import CacheSystem
 from bdae.utils import find_identifier, is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, \
@@ -20,7 +21,7 @@ class GatewayHandler(object):
     def __init__(self, config, others):
         self.__config = config
         self.__block_size = config.block_size * 1000000  # To bytes from MB
-        self.__gcs = CacheSystem(dict)
+        self.__gcs = CacheSystem(defaultdict, args=dict)
         self.__num_storage_nodes = len(others['storage'])
         self.__storage_nodes = [StorageApi(storage_uri) for storage_uri in others['storage']]
 
@@ -68,12 +69,6 @@ class GatewayHandler(object):
             jdataset['operation'] = [operation.fun_name for operation in operations]
         return self.__get_storage_node().create(self.__find_identifier(name.strip()), udumps(jdataset))
 
-    def update(self, bundle):
-        pass
-
-    def delete(self, bundle):
-        pass
-
     def get_type(self, name):
         identifier = self.__find_identifier(name.strip())
         res = self.__get_meta_from_identifier(identifier)
@@ -82,6 +77,16 @@ class GatewayHandler(object):
 
         return res['dataset-type']
 
+    def update(self, bundle):
+        pass
+
+    def delete(self, name):
+        identifier = self.__find_identifier(name.strip())
+
+        # Remove global cached results by this dataset
+        self.__gcs.delete(identifier)
+        return self.__get_storage_node().delete(identifier)
+
     def append(self, bundle):
         name, url = secure_load(bundle)
         identifier = self.__find_identifier(name.strip())
@@ -89,7 +94,6 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        # TODO: Block dataset from calling submit_job while appending
         dataset, jdataset = res
         start = jdataset['root-idx']
 
@@ -145,19 +149,24 @@ class GatewayHandler(object):
     def submit_job(self, name, function, query):
         didentifier = self.__find_identifier(name.strip())
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
-        if self.__gcs.contains(fidentifier):
+
+        dataset_result_cache = self.__gcs.get(didentifier)
+        if fidentifier in dataset_result_cache:
             # We already have the value
             return
 
-        self.__gcs.put(fidentifier, (STATUS_PROCESSING, None))
+        dataset_result_cache[fidentifier] = (STATUS_PROCESSING, None)
         self.__get_storage_node().submit_job(didentifier, fidentifier, function, query, self.__config.node)
 
     def poll_for_result(self, name, function, query):
-        fidentifier = find_identifier("%s:%s:%s" % (self.__find_identifier(name.strip()), function, query), None)
-        if not self.__gcs.contains(fidentifier):
+        didentifier = self.__find_identifier(name.strip())
+        fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
+
+        dataset_result_cache = self.__gcs.get(didentifier)
+        if fidentifier not in dataset_result_cache:
             return STATUS_NOT_FOUND, None
 
-        return self.__gcs.get(fidentifier)
+        return dataset_result_cache[fidentifier]
 
     # Internal Result Api
     def set_status_result(self, fidentifier, status, result):
