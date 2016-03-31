@@ -193,8 +193,12 @@ target/
 !Report/pdf/*.pdf
 !Report/img/*.pdf
 
-.idea/
+code/.idea/
+*.pyc
+*.egg-info
+code/sofa-project/sofa_raw.db
+code/sofa-project/sofa_flag.db
+code/sofa-project/dist
+code/bdae-project/dist
+code/test/*
 _build/
-src/test/*
-src/bdae_flag*
-src/bdae_raw*
