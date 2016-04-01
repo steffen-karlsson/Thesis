@@ -3,7 +3,6 @@
 
 from sys import getsizeof
 from contextlib import closing
-from urllib2 import urlopen
 from random import choice
 from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
@@ -92,7 +91,7 @@ class GatewayHandler(object):
         return self.__get_storage_node().delete(identifier)
 
     def append(self, bundle):
-        name, url = secure_load(bundle)
+        name, path_or_url = secure_load(bundle)
         identifier = self.__find_identifier(name.strip())
         res = self.__get_class_from_identifier(identifier, 'dataset-name')
         if is_error(res):
@@ -107,7 +106,7 @@ class GatewayHandler(object):
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
 
-        with closing(urlopen(url)) as f:
+        with closing(dataset.load_data(path_or_url)) as f:
             for block in self.__next_block(dataset, f.read()):
                 # TODO: Save response and check if correct is saved and received
                 self.__storage_nodes[start].append(identifier, block, create_new_stride)

@@ -12,11 +12,10 @@ class AbsDatasetContext:
     """
     Abstract and not initializable class to define the context of a dataset by overriding it.
     """
+    __metaclass__ = ABCMeta
 
     def __init__(self):
         pass
-
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def get_operations(self):
@@ -59,6 +58,17 @@ class AbsDatasetContext:
         """
         pass
 
+    @abstractmethod
+    def load_data(self, path_or_url):
+        """
+        Define how to load the data from the specified local path or url in the Gateway append method.
+
+        :param path_or_url: Local path or url to the data
+        :type path_or_url: str
+        :return:
+        """
+        pass
+
     def get_block_stride(self):
         """
         Method to override in order to define a stride for the block distribution different from default e.g. 1.
@@ -67,3 +77,13 @@ class AbsDatasetContext:
         :return: int
         """
         return 1
+
+
+def load_data_by_url(url):
+    from urllib2 import urlopen
+
+    return urlopen(url)
+
+
+def load_data_by_path(path):
+    return open(path)

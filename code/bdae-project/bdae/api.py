@@ -28,8 +28,8 @@ class GatewayManagerApi(GatewayScientistApi):
     def update(self, name, dataset_type):
         return self._api.update(name, dataset_type)
 
-    def append(self, name, url):
-        return self._api.append(name, str(url))
+    def append(self, name, path_or_url):
+        return self._api.append(name, str(path_or_url))
 
     def delete(self, name):
         return self._api.delete(name)
