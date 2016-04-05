@@ -29,7 +29,17 @@ class AbsDatasetCollection:
         """
         pass
 
-    @abstractmethod
+    def rename_identifier(self, identifier):
+        """
+        Override the method if the dataset has to be renamed (only used in the case where a collection
+        is initialized from path or url)
+
+        :param identifier: Current name from the collection data
+        :type identifier: str
+        :return: New name
+        """
+        return identifier
+
     def get_identifiers(self):
         """
         :return: List of identifiers (to be stored) and available, default: None = all
