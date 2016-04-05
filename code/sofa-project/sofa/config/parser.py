@@ -120,7 +120,7 @@ def parse_project_cfg(path, index, node_types):
                     others.__delitem__(index)
                     global_config.others[node] = others
             else:
-                global_config.others[node] = ["sofa:%s:%s%d" % (instance_name, node, i) for i in range(num_nodes)]
+                global_config.others[node] = ["sofa:%s:%s:%d" % (instance_name, node, i) for i in range(num_nodes)]
         else:
             if global_config.use_logging:
                 debug("Starting system without %s" % node)

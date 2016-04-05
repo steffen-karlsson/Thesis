@@ -31,7 +31,7 @@ class GatewayHandler(object):
         return find_identifier(name, self.__config.keyspace_size)
 
     def __virtualize_name(self, name):
-        return "%s:%s".format(self.__config.instance_name, name.strip())
+        return "%s:%s" % (self.__config.instance_name, name.strip())
 
     def __get_storage_node(self):
         return choice(self.__storage_nodes)
@@ -59,9 +59,9 @@ class GatewayHandler(object):
         return get_class_from_source(source, jdataset[key]), jdataset
 
     def create(self, bundle):
-        name, dataset_source, dataset_type, create_type = secure_load(bundle)
-        class_name = dataset_type.rsplit(".", 1)[1]
-        dataset = get_class_from_source(dataset_source, class_name)
+        name, dataset_source, dataset_type = secure_load(bundle)
+        dataset_name = dataset_type.rsplit(".", 1)[1]
+        dataset = get_class_from_source(dataset_source, dataset_name)
 
         operations = dataset.get_operations()
         if operations and (not isinstance(operations, list) or
@@ -70,7 +70,7 @@ class GatewayHandler(object):
 
         digest, pdata = secure(dataset_source)
         jdataset = {'digest': digest,
-                    'dataset-name': name,
+                    'dataset-name': dataset_name,
                     'dataset-type': dataset_type,
                     'source': pdata,
                     'num-blocks': 0}
@@ -97,7 +97,8 @@ class GatewayHandler(object):
         self.__gcs.delete(identifier)
         return self.__get_storage_node().delete(identifier)
 
-    def _append_to_dataset(self, name, path_or_url):
+    def append(self, bundle):
+        name, path_or_url = secure_load(bundle)
         identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'dataset-name')
         if is_error(res):
