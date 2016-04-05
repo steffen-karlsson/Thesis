@@ -2,5 +2,6 @@ global-exclude *.pyc
 recursive-include *.py
 include sofa/docs/index.rst
 include sofa/docs/configparser.rst
+include sofa/docs/absdatasetcontext.rst
 include sofa/docs/Makefile
 include sofa/docs/conf.py

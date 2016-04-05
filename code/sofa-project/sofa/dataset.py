@@ -65,7 +65,6 @@ class AbsDatasetContext:
 
         :param path_or_url: Local path or url to the data
         :type path_or_url: str
-        :return:
         """
         pass
 
@@ -81,9 +80,14 @@ class AbsDatasetContext:
 
 def load_data_by_url(url):
     from urllib2 import urlopen
+    from contextlib import closing
 
-    return urlopen(url)
+    with closing(urlopen(url)) as f:
+        return f.read()
 
 
 def load_data_by_path(path):
-    return open(path)
+    from contextlib import closing
+
+    with closing(open(path)) as f:
+        return f.read()

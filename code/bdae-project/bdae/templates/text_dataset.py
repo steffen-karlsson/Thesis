@@ -8,8 +8,7 @@ import __builtin__
 from nltk import word_tokenize, sent_tokenize
 
 from bdae.templates.import_utils import map_function_binder, module_binder, reduce_function_binder
-
-from bdae.dataset import AbsDatasetContext
+from sofa.dataset import AbsDatasetContext
 
 
 class _TextData(AbsDatasetContext):
