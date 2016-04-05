@@ -2,7 +2,6 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from sys import getsizeof
-from contextlib import closing
 from random import choice
 from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
@@ -31,8 +30,14 @@ class GatewayHandler(object):
     def __find_identifier(self, name):
         return find_identifier(name, self.__config.keyspace_size)
 
+    def __virtualize_name(self, name):
+        return "%s:%s".format(self.__config.instance_name, name.strip())
+
     def __get_storage_node(self):
         return choice(self.__storage_nodes)
+
+    def __get_meta_from_name(self, name):
+        return self.__get_meta_from_identifier(self.__find_identifier(self.__virtualize_name(name)))
 
     def __get_meta_from_identifier(self, identifier):
         res = self.__get_storage_node().get_meta_from_identifier(identifier)
@@ -54,27 +59,29 @@ class GatewayHandler(object):
         return get_class_from_source(source, jdataset[key]), jdataset
 
     def create(self, bundle):
-        name, dataset_source, dataset_type = secure_load(bundle)
-        dataset_name = dataset_type.rsplit(".", 1)[1]
+        name, dataset_source, dataset_type, create_type = secure_load(bundle)
+        class_name = dataset_type.rsplit(".", 1)[1]
+        dataset = get_class_from_source(dataset_source, class_name)
 
-        dataset = get_class_from_source(dataset_source, dataset_name)
         operations = dataset.get_operations()
-        if not isinstance(operations, list) or not all(isinstance(k, OperationContext) for k in operations):
+        if operations and (not isinstance(operations, list) or
+                               not all(isinstance(k, OperationContext) for k in operations)):
             return STATUS_NOT_ALLOWED, "Keys of operations dict has to be of type OperationContext"
 
         digest, pdata = secure(dataset_source)
         jdataset = {'digest': digest,
-                    'dataset-name': dataset_name,
+                    'dataset-name': name,
                     'dataset-type': dataset_type,
                     'source': pdata,
                     'num-blocks': 0}
         if operations is not None:
             jdataset['operation'] = [operation.fun_name for operation in operations]
-        return self.__get_storage_node().create(self.__find_identifier(name.strip()), udumps(jdataset))
+
+        virtualized_identifier = self.__find_identifier(self.__virtualize_name(name))
+        return self.__get_storage_node().create(virtualized_identifier, udumps(jdataset))
 
     def get_type(self, name):
-        identifier = self.__find_identifier(name.strip())
-        res = self.__get_meta_from_identifier(identifier)
+        res = self.__get_meta_from_name(name)
         if is_error(res):
             return res
 
@@ -84,15 +91,14 @@ class GatewayHandler(object):
         pass
 
     def delete(self, name):
-        identifier = self.__find_identifier(name.strip())
+        identifier = self.__find_identifier(self.__virtualize_name(name))
 
         # Remove global cached results by this dataset
         self.__gcs.delete(identifier)
         return self.__get_storage_node().delete(identifier)
 
-    def append(self, bundle):
-        name, path_or_url = secure_load(bundle)
-        identifier = self.__find_identifier(name.strip())
+    def _append_to_dataset(self, name, path_or_url):
+        identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'dataset-name')
         if is_error(res):
             return res
@@ -106,23 +112,22 @@ class GatewayHandler(object):
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
 
-        with closing(dataset.load_data(path_or_url)) as f:
-            for block in self.__next_block(dataset, f.read()):
-                # TODO: Save response and check if correct is saved and received
-                self.__storage_nodes[start].append(identifier, block, create_new_stride)
+        data = dataset.load_data(path_or_url)
+        for block in self.__next_block(dataset, data):
+            # TODO: Save response and check if correct is saved and received
+            self.__storage_nodes[start].append(identifier, block, create_new_stride)
 
-                block_count += 1
-                local_block_count += 1
+            block_count += 1
+            local_block_count += 1
 
-                # Create new stride if only one storage node, is first iteration or max local block count reached
-                create_new_stride = num_storage_nodes == 1 \
-                                    or local_block_count == max_stride
+            # Create new stride if only one storage node, is first iteration or max local block count reached
+            create_new_stride = num_storage_nodes == 1 or local_block_count == max_stride
 
-                if create_new_stride:
-                    local_block_count = 0
-                    start = (start + 1) % num_storage_nodes
+            if create_new_stride:
+                local_block_count = 0
+                start = (start + 1) % num_storage_nodes
 
-            self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
+        self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
 
     def __next_block(self, dataset, data):
         block = []
@@ -142,15 +147,14 @@ class GatewayHandler(object):
             yield block
 
     def get_dataset_operations(self, name):
-        identifier = self.__find_identifier(name.strip())
-        res = self.__get_meta_from_identifier(identifier)
+        res = self.__get_meta_from_name(name)
         if is_error(res):
             return res
 
         return res['operation']
 
     def submit_job(self, name, function, query):
-        didentifier = self.__find_identifier(name.strip())
+        didentifier = self.__find_identifier(self.__virtualize_name(name))
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
 
         dataset_result_cache = self.__gcs.get(didentifier)
@@ -162,7 +166,7 @@ class GatewayHandler(object):
         self.__get_storage_node().submit_job(didentifier, fidentifier, function, query, self.__config.node)
 
     def poll_for_result(self, name, function, query):
-        didentifier = self.__find_identifier(name.strip())
+        didentifier = self.__find_identifier(self.__virtualize_name(name))
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
 
         dataset_result_cache = self.__gcs.get(didentifier)

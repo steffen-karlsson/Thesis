@@ -40,6 +40,7 @@ def parse_project_cfg(path, index, node_types):
         log-file =
         keyspace-size =
         mount-point =
+        instance-name =
 
         # Defined in seconds
         heartbeat_scheduler_delay =
@@ -59,15 +60,12 @@ def parse_project_cfg(path, index, node_types):
 
         [gateway]
         addresses =
-        ns-registry-name =
 
         [storage]
         addresses =
-        ns-registry-name =
 
         [monitor]
         addresses =
-        ns-registry-name =
 
 
     :param path: full path to the .cfg project configuration file
@@ -82,8 +80,11 @@ def parse_project_cfg(path, index, node_types):
     global_config = Configuration()
     if not config.has_option("general", "project-path"):
         raise ParameterRequiredException("project-path in general is required")
-
     global_config.project_path = config.get("general", "project-path")
+
+    if not config.has_option("general", "instance-name"):
+        raise ParameterRequiredException("instance-name in general is required")
+    instance_name = global_config.instance_name = config.get("general", "instance-name")
 
     if config.has_option("general", "mount-point"):
         global_config.fuse_mount_point = config.get("general", "mount-point")
@@ -109,22 +110,17 @@ def parse_project_cfg(path, index, node_types):
             addresses = config.get(node, "addresses").split(",")
             num_nodes = len(addresses)
 
-            ns_registry_name = node
-            if config.has_option(node, "ns-registry-name"):
-                ns_registry_name = config.get(node, "ns-registry-name")
-
             if idx == 0:
-                global_config.node = "%s-%d" % (ns_registry_name, index)
+                global_config.node = "sofa:%s:%s:%d" % (instance_name, node, index)
                 global_config.node_idx = index
                 global_config.port = int(addresses[index].split(":")[1])
 
                 if len(addresses) > 1:
-                    others = ["%s-%d" % (ns_registry_name, i) for i in range(num_nodes)]
+                    others = ["sofa:%s:%s:%d" % (instance_name, node, i) for i in range(num_nodes)]
                     others.__delitem__(index)
                     global_config.others[node] = others
             else:
-                global_config.others[node] = ["%s-%d" % (ns_registry_name, i)
-                                              for i in range(num_nodes)]
+                global_config.others[node] = ["sofa:%s:%s%d" % (instance_name, node, i) for i in range(num_nodes)]
         else:
             if global_config.use_logging:
                 debug("Starting system without %s" % node)
@@ -139,6 +135,7 @@ class Configuration:
 
     def __init__(self):
         self.project_path = None
+        self.instance_name = None
         self.use_logging = False
         self.block_size = DEFAULT_BLOCK_SIZE
         self.node = None
