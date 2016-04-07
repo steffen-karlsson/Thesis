@@ -7,7 +7,7 @@ from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
 
 from sofa.cache import CacheSystem
-from sofa.error import is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, STATUS_NOT_ALLOWED
+from sofa.error import is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING
 from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
@@ -51,41 +51,49 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        jdataset = res
-        source = secure_load2(jdataset['digest'], jdataset['source'])
+        meta_data = res
+        source = secure_load2(meta_data['digest'], meta_data['source'])
         if is_error(source):
             return STATUS_INVALID_DATA
 
-        return get_class_from_source(source, jdataset[key]), jdataset
+        return get_class_from_source(source, meta_data[key]), meta_data
 
     def create(self, bundle):
-        name, dataset_source, dataset_type = secure_load(bundle)
-        dataset_name = dataset_type.rsplit(".", 1)[1]
-        dataset = get_class_from_source(dataset_source, dataset_name)
+        name, dataset_source, package, extra_meta_data = secure_load(bundle)
+        class_name = package.rsplit(".", 1)[1]
 
+        dataset = get_class_from_source(dataset_source, class_name)
         operations = dataset.get_operations()
         if operations and (not isinstance(operations, list) or
-                               not all(isinstance(k, OperationContext) for k in operations)):
-            return STATUS_NOT_ALLOWED, "Keys of operations dict has to be of type OperationContext"
+                           not all(isinstance(k, OperationContext) for k in operations)):
+            raise NotImplementedError("Operations has to be of type OperationContext")
 
+        if not extra_meta_data:
+            extra_meta_data = {}
+
+        # Update with the actual metadata
         digest, pdata = secure(dataset_source)
-        jdataset = {'digest': digest,
-                    'dataset-name': dataset_name,
-                    'dataset-type': dataset_type,
-                    'source': pdata,
-                    'num-blocks': 0}
+        extra_meta_data.update({'digest': digest,
+                                'class-name': class_name,
+                                'package': package,
+                                'source': pdata,
+                                'num-blocks': 0})
+
         if operations is not None:
-            jdataset['operation'] = [operation.fun_name for operation in operations]
+            extra_meta_data['operations'] = [operation.fun_name for operation in operations]
 
         virtualized_identifier = self.__find_identifier(self.__virtualize_name(name))
-        return self.__get_storage_node().create(virtualized_identifier, udumps(jdataset))
+        return self.__get_storage_node().create(virtualized_identifier, udumps(extra_meta_data))
+
+    def exists(self, name):
+        return self.__get_meta_from_name(name)
 
     def get_type(self, name):
         res = self.__get_meta_from_name(name)
         if is_error(res):
             return res
 
-        return res['dataset-type']
+        return res['package']
 
     def update(self, bundle):
         pass
@@ -100,12 +108,12 @@ class GatewayHandler(object):
     def append(self, bundle):
         name, path_or_url = secure_load(bundle)
         identifier = self.__find_identifier(self.__virtualize_name(name))
-        res = self.__get_class_from_identifier(identifier, 'dataset-name')
+        res = self.__get_class_from_identifier(identifier, 'class-name')
         if is_error(res):
             return res
 
-        dataset, jdataset = res
-        start = jdataset['root-idx']
+        dataset, meta_data = res
+        start = meta_data['root-idx']
 
         block_count = 0
         local_block_count = 0
@@ -115,6 +123,8 @@ class GatewayHandler(object):
 
         # Clean function cache
         self.__gcs.delete(identifier)
+
+        # TODO: Check if dataset already have blocks and append to there
 
         data = dataset.load_data(path_or_url)
         for block in self.__next_block(dataset, data):

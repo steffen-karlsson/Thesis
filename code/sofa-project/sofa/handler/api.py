@@ -89,21 +89,24 @@ class GatewayApi(object):
         return self._api.get_dataset_operations(name)
 
     @staticmethod
-    def _set_dataset_by_function(name, dataset_type, funcion):
-        with open(getsourcefile(import_class(dataset_type)), "r") as f:
-            return secure_send((name, f.read(), dataset_type), funcion)
+    def _set_dataset_by_function(name, package, extra_meta_data, funcion):
+        with open(getsourcefile(import_class(package)), "r") as f:
+            return secure_send((name, f.read(), package, extra_meta_data), funcion)
 
-    def create(self, name, dataset_type):
-        return GatewayApi._set_dataset_by_function(name, dataset_type, self._api.create)
+    def create(self, name, package, extra_meta_data=None):
+        return GatewayApi._set_dataset_by_function(name, package, extra_meta_data, self._api.create)
 
-    def update(self, name, dataset_type):
-        return GatewayApi._set_dataset_by_function(name, dataset_type, self._api.update)
+    def update(self, name, package):
+        return GatewayApi._set_dataset_by_function(name, package, None, self._api.update)
 
     def append(self, name, url):
         return secure_send((name, str(url)), self._api.append)
 
     def delete(self, name):
         return self._api.delete(name)
+
+    def exists(self, name):
+        return self._api.exists(name)
 
     def get_type(self, name):
         return self._api.get_type(name)

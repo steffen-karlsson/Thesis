@@ -22,8 +22,8 @@ class GatewayManagerApi(GatewayScientistApi):
     def __init__(self, gateway_uri):
         super(GatewayManagerApi, self).__init__(gateway_uri)
 
-    def create(self, name, dataset_type):
-        return self._api.create(name, dataset_type)
+    def create(self, name, dataset_type, extra_meta_data=None):
+        return self._api.create(name, dataset_type, extra_meta_data)
 
     def update(self, name, dataset_type):
         return self._api.update(name, dataset_type)
@@ -33,6 +33,9 @@ class GatewayManagerApi(GatewayScientistApi):
 
     def delete(self, name):
         return self._api.delete(name)
+
+    def exists(self, name):
+        return self._api.exists(name)
 
     def get_type(self, name):
         return self._api.get_type(name)
