@@ -6,10 +6,21 @@
 """
 
 from abc import ABCMeta
+from inspect import isgeneratorfunction
 
 from bdae.libpy.libbdaescientist import AbsPyScientistGateway
 from sofa.error import verify_error
 from bdae.api import GatewayManagerApi
+from bdae.dataset import AbsMapReduceDataset
+
+
+class CollectionAlreadyExistsException(Exception):
+    def __init__(self, message):
+        super(CollectionAlreadyExistsException, self).__init__(message)
+
+
+def _get_full_identifier(obj):
+    return "%s.%s" % (obj.__module__, obj.__class__.__name__)
 
 
 class AbsPyManagerGateway(AbsPyScientistGateway):
@@ -23,18 +34,37 @@ class AbsPyManagerGateway(AbsPyScientistGateway):
         super(AbsPyManagerGateway, self).__init__(None)
         self._api = GatewayManagerApi(gateway_uri)
 
-    def create_dataset(self, name, dataset_type):
+    def create_dataset(self, dataset):
         """
         Method to create a new dataset based on a name and a class reference, e.g. mypackage.myfile.MyDatasetClass
 
-        :param name: Name of the dataset
-        :type name: str
-        :param dataset_type: Reference class name of the dataset to be created
-        :type dataset_type: str
-        :raises DatasetAlreadyExistsException: If the name of the dataset already exists
+        :param dataset: Dataset of class type implementing :class:`.AbsDatasetContext`
+        :type dataset: :class:`.AbsDatasetContext`
+        :raises :class:`.DatasetAlreadyExistsException` if the name of the dataset already exists
+        :raises :class:`.NotImplementedError` if any of the operations in the dataset isn't of type :class:`.OperationContext`
         """
 
-        verify_error(self._api.create(name, dataset_type))
+        if not isinstance(dataset, AbsMapReduceDataset):
+            raise Exception("Dataset has to be of type AbsDatasetContext")
+
+        if not dataset.get_name():
+            raise Exception("Use the dataset constructor and specify name in order to "
+                            "retrieve and work on the dataset later")
+
+        reduce_functions = [fun.__name__ for fun in dataset.get_reduce_functions()]
+        for operation_context in dataset.get_operations():
+            if operation_context.get_functions()[-1].__name__ not in reduce_functions:
+                raise Exception("Last operation of %s has to be a reduction" % operation_context.fun_name)
+
+        for map_fun in dataset.get_map_functions():
+            if not isgeneratorfunction(map_fun):
+                raise Exception("%s is not an generator i.e. yields" % map_fun.func_name)
+
+        description = dataset.get_description()
+        meta_data = {'description': description if description else ""}
+
+        package = _get_full_identifier(dataset)
+        verify_error(self._api.create(dataset.get_name(), package, extra_meta_data=meta_data))
 
     def append_to_dataset(self, name, url):
         """
