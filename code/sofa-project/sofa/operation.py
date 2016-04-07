@@ -2,7 +2,6 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from re import finditer
-from inspect import isgeneratorfunction
 
 
 def _strip(s):
@@ -27,7 +26,7 @@ def _balanced_split(syntax, seq_start, seq_end, par_start, par_end):
     return head, tail
 
 
-def _crawl_syntax(function_map, syntax, functions, seq_start, seq_end, par_start, par_end):
+def _crawl_syntax(context, syntax, functions, seq_start, seq_end, par_start, par_end):
     while syntax:
         try:
             syntax, tail = _balanced_split(syntax, seq_start, seq_end, par_start, par_end)
@@ -36,20 +35,21 @@ def _crawl_syntax(function_map, syntax, functions, seq_start, seq_end, par_start
             syntax = ""
 
         if tail.startswith(seq_start) or tail.endswith(seq_end):
-            functions = [Sequential(*_crawl_syntax(function_map, _strip(tail), [], seq_start,
+            functions = [Sequential(*_crawl_syntax(context, _strip(tail), [], seq_start,
                                                    seq_end, par_start, par_end))] + functions
             continue
 
         if tail.startswith(par_start) or tail.endswith(par_end):
-            functions = [Parallel(*_crawl_syntax(function_map, _strip(tail), [], seq_start,
+            functions = [Parallel(*_crawl_syntax(context, _strip(tail), [], seq_start,
                                                  seq_end, par_start, par_end))] + functions
             continue
 
         tail = tail.strip()
-        if tail not in function_map:
-            raise Exception("Function %s not defined in get_map_functions nor get_reduce_functions." % tail)
+        function = context.verify_function(tail)
+        if not function:
+            raise Exception("Function %s is not valid compared to rules in verify_function" % tail)
 
-        functions = [function_map[tail]] + functions
+        functions = [function] + functions
 
     return functions
 
@@ -69,7 +69,7 @@ class OperationContext:
         pass
 
     @staticmethod
-    def by(dataset_context, fun_name, syntax, sequential_operator=('[', ']'), parallel_operator=('{', '}')):
+    def by(context, fun_name, syntax, sequential_operator=('[', ']'), parallel_operator=('{', '}')):
         if not isinstance(syntax, str):
             raise Exception("Synatx has to be of type string")
 
@@ -89,35 +89,19 @@ class OperationContext:
         par_end = parallel_operator[1]
 
         if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
-            raise Exception("Synatx has start with %s and end with %s" % (seq_start, seq_end))
+            raise Exception("Synatx has start with %s and end with %s, i.e. be sequential" % (seq_start, seq_end))
 
-        reduce_map = {func.func_name: func for func in dataset_context.get_reduce_functions()}
-
-        syntax, rfun = _strip(syntax).rsplit(",", 1)
-        rfun = rfun.strip()
-        if rfun not in reduce_map:
-            raise Exception("Last element in the operation has to be a reduce function")
-
-        function_map = {func.func_name: func for func in dataset_context.get_map_functions()}
-        function_map.update(reduce_map)
-        functions = _crawl_syntax(function_map, syntax, [reduce_map[rfun]],
+        syntax, last_fun = _strip(syntax).rsplit(",", 1)
+        functions = _crawl_syntax(context, syntax, [context.verify_function(last_fun.strip())],
                                   seq_start, seq_end, par_start, par_end)
-        return OperationContext(dataset_context, fun_name, Sequential(*functions))
+        return OperationContext(fun_name, Sequential(*functions))
 
-    def __init__(self, dataset_context, fun_name, sequential_operations):
+    def __init__(self, fun_name, sequential_operations):
         if not isinstance(sequential_operations, Sequential):
-            raise Exception("Outer operations has to be sequential and a reduce function as last operation")
-
-        reduce_functions = [fun.__name__ for fun in dataset_context.get_reduce_functions()]
-        if sequential_operations.functions[-1].__name__ not in reduce_functions:
-            raise Exception("Last operation has to be a reduction")
-
-        for map_fun in dataset_context.get_map_functions():
-            if not isgeneratorfunction(map_fun):
-                raise Exception("%s is not an generator i.e. yields" % map_fun.func_name)
+            raise Exception("Outer operations has to be sequential")
 
         self.fun_name = fun_name
-        self.operations = sequential_operations.functions
+        self.functions = sequential_operations.functions
         self.ghost_count = 0
         self.num_args = 1
         self.delimiter = ','
@@ -144,5 +128,5 @@ class OperationContext:
     def has_multiple_args(self):
         return self.num_args > 1
 
-    def get_operations(self):
-        return list(self.operations)
+    def get_functions(self):
+        return list(self.functions)
