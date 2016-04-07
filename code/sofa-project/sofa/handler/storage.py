@@ -12,7 +12,8 @@ from itertools import izip_longest, chain
 from inspect import isfunction, isbuiltin
 
 from sofa.handler import get_class_from_source
-from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, STATUS_PROCESSING, is_error
+from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
+    STATUS_PROCESSING, STATUS_NO_DATA, is_error
 from sofa.secure import secure_load, secure_load2
 from sofa.tree_barrier import TreeBarrier
 from sofa.cache import CacheSystem
@@ -61,14 +62,17 @@ class StorageHandler(object):
 
         return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
-    def __handle_ghosts(self, didentifier, fidentifier, root, function_name, jdataset, query, local_transfer=False):
+    def __handle_ghosts(self, didentifier, fidentifier, root, function_name, meta_data, query, local_transfer=False):
         info("Handle ghosts at " + str(self.__config.node))
-        operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
+        res = self.__get_operation_context(None, function_name, meta_data=meta_data)
+        if is_error(res):
+            self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
 
+        operation_context, _ = res
         if not operation_context.needs_ghost():
             # We don't need to handle ghosts
             info("No need for ghosts at " + str(self.__config.node))
-            self.__report_ready(didentifier, fidentifier, function_name, jdataset, query)
+            self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
             return
 
         is_root = self.__config.node == root
@@ -105,7 +109,7 @@ class StorageHandler(object):
         assert left_ghost is not None or right_ghost is not None
 
         needs_both = operation_context.ghost_right and operation_context.ghost_left
-        fun_args = (didentifier, fidentifier, needs_both, (function_name, jdataset, root, query))
+        fun_args = (didentifier, fidentifier, needs_both, (function_name, meta_data, root, query))
 
         if local_transfer:
             self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
@@ -120,19 +124,19 @@ class StorageHandler(object):
             r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     def create(self, bundle):
-        identifier, jdataset, is_update = secure_load(bundle)
+        identifier, meta_data, is_update = secure_load(bundle)
 
         # Check whether its self who is responsible
         responsible = self.__find_responsibility(identifier)
         if responsible:
-            return responsible.create(identifier, jdataset, is_update)
+            return responsible.create(identifier, meta_data, is_update)
 
         if is_update:
             # TODO: Block from calling any other operation on that dataset, while update is finishing
             pass
 
-        jdataset = uloads(jdataset)
-        jdataset['root-idx'] = self.__config.node_idx
+        meta_data = uloads(meta_data)
+        meta_data['root-idx'] = self.__config.node_idx
 
         # Else do the job self.
         if self.__dataset_exists(identifier) and not is_update:
@@ -141,7 +145,7 @@ class StorageHandler(object):
         info("Creating dataset with identifier %s on %s." % (identifier, self.__config.node))
 
         self.__FLAG[str(identifier)] = True
-        self.__RAW[str(identifier)] = [udumps(jdataset)]
+        self.__RAW[str(identifier)] = [udumps(meta_data)]
         return STATUS_SUCCESS
 
     def append(self, bundle):
@@ -209,53 +213,55 @@ class StorageHandler(object):
         if is_error(res):
             return res, "Dataset doesn't exists"
 
-        jdataset = uloads(res)
+        meta_data = uloads(res)
         if update_type == 'append':
-            jdataset[key] += value
+            meta_data[key] += value
 
         if update_type == 'override':
-            jdataset[key] = value
+            meta_data[key] = value
 
         info("%s is %s with %d" % (key, update_type, value))
 
-        self.__RAW[str(identifier)][0] = udumps(jdataset)
+        self.__RAW[str(identifier)][0] = udumps(meta_data)
         return STATUS_SUCCESS
 
     def __get_raw_data_block(self, didentifier, is_root, iflatten=False):
         blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
         return chain(*blocks) if iflatten else blocks
 
-    def __get_operation_context(self, didentifier, function_name, jdataset=None):
-        if not jdataset:
+    def __get_operation_context(self, didentifier, function_name, meta_data=None):
+        if not meta_data:
             res = self.get_meta_from_identifier(didentifier)
             if is_error(res):
                 return res
-            jdataset = uloads(res)
+            meta_data = uloads(res)
 
-        if jdataset['num-blocks'] == 0:
+        if meta_data['num-blocks'] == 0:
             # No data found for data identifier
             return STATUS_NOT_FOUND
 
-        source = secure_load2(jdataset['digest'], jdataset['source'])
-        dataset = get_class_from_source(source, jdataset['dataset-name'])
+        source = secure_load2(meta_data['digest'], meta_data['source'])
+        dataset = get_class_from_source(source, meta_data['class-name'])
 
+        # TODO: check for get_operations
         for operation_context in dataset.get_operations():
             if operation_context.fun_name == function_name:
-                return operation_context, jdataset
+                return operation_context, meta_data
 
         return STATUS_NOT_FOUND
 
     def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query, is_root):
         # Get operations and blocks to work on
+        # TODO: check for get_operations
         operations = operation_context.get_operations()
 
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
 
             # Merge ghosts into blocks
-            for l, m, r in izip_longest(ghosts['ghost_left'] if 'ghost_left' in ghosts else [None],
+            for l, m, r in izip_longest(ghosts['ghost-left'] if 'ghost-left' in ghosts else [None],
                                         self.__get_raw_data_block(didentifier, is_root),
-                                        ghosts['ghost_right'] if 'ghost_right' in ghosts else [None]):
+                                        ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if not l:
                     l = []
@@ -303,10 +309,10 @@ class StorageHandler(object):
         res = self.get_meta_from_identifier(didentifier)
         if is_error(res):
             return res
-        jdataset = uloads(res)
+        meta_data = uloads(res)
 
         root = self.__config.node
-        common = (didentifier, fidentifier, function_name, jdataset, root, query)
+        common = (didentifier, fidentifier, function_name, meta_data, root, query)
         if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool _wrapper_initialize_execution")
@@ -326,7 +332,7 @@ class StorageHandler(object):
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
-    def initialize_execution(self, didentifier, fidentifier, function_name, jdataset, root, query):
+    def initialize_execution(self, didentifier, fidentifier, function_name, meta_data, root, query):
         info("Initialize execution at " + str(self.__config.node))
 
         self.__tb = TreeBarrier(self.__config.node,
@@ -337,16 +343,16 @@ class StorageHandler(object):
         use_local_transfer = self.__num_storage_nodes == 0
 
         # Find ghosts from local neighbors if needed else execute
-        self.__handle_ghosts(didentifier, fidentifier, root, function_name, jdataset, query,
+        self.__handle_ghosts(didentifier, fidentifier, root, function_name, meta_data, query,
                              local_transfer=use_local_transfer)
 
-    def execute_function(self, itr, didentifier, fidentifier, function_name, jdataset, root, query, recv_value):
+    def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, root, query, recv_value):
         info("Execute function " + function_name + " at " + str(self.__config.node))
 
         is_root = self.__config.node == root
         first_iteration = itr == 0
 
-        operation_context, _ = self.__get_operation_context(None, function_name, jdataset=jdataset)
+        operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
         operations = operation_context.get_operations()
         reduce_operation = operations[-1]
 
@@ -371,7 +377,7 @@ class StorageHandler(object):
             if self.__tb.should_send(itr):
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + self.__config.node + " to the next")
-                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, jdataset, root, None, res)
+                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, meta_data, root, None, res)
                 return
 
             if not first_iteration:
@@ -389,9 +395,9 @@ class StorageHandler(object):
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
-    def __report_ready(self, didentifier, fidentifier, function_name, jdataset, query):
+    def __report_ready(self, didentifier, fidentifier, function_name, meta_data, query):
         responsible = self.__find_responsibility(didentifier)
-        args = didentifier, fidentifier, function_name, jdataset, query
+        args = didentifier, fidentifier, function_name, meta_data, query
         if responsible:
             info("Reporting ready for other at: " + self.__config.node)
             responsible.ready(*args)
@@ -402,12 +408,12 @@ class StorageHandler(object):
     def ready(self, bundle):
         self.__local_ready(*secure_load(bundle))
 
-    def __local_ready(self, didentifier, fidentifier, function_name, jdataset, query):
+    def __local_ready(self, didentifier, fidentifier, function_name, meta_data, query):
         self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] -= 1
         info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
-            common = (0, didentifier, fidentifier, function_name, jdataset, self.__config.node, query, 0)
+            common = (0, didentifier, fidentifier, function_name, meta_data, self.__config.node, query, 0)
 
             if self.__num_storage_nodes > 0:
                 info("Pool _wrapper_execute_function")
@@ -421,7 +427,7 @@ class StorageHandler(object):
         info("Receiving ghost at " + self.__config.node)
 
         assert left_ghost is not None or right_ghost is not None
-        function_name, jdataset, root, query = fun_args
+        function_name, meta_data, root, query = fun_args
 
         if left_ghost is not None:
             is_ghost_right = False
@@ -436,16 +442,16 @@ class StorageHandler(object):
                 left_ghost = left_ghost[:-1]
 
             info("Setting left ghost data: " + str(left_ghost) + ", needs both: " + str(needs_both))
-            self.__dgcs.get(fidentifier)['ghost_left'] = left_ghost
+            self.__dgcs.get(fidentifier)['ghost-left'] = left_ghost
 
         if right_ghost is not None:
             is_ghost_right = True
             info("Setting right ghost data: " + str(right_ghost) + ", needs both: " + str(needs_both))
-            self.__dgcs.get(fidentifier)['ghost_right'] = right_ghost
+            self.__dgcs.get(fidentifier)['ghost-right'] = right_ghost
 
-        has_other_part = ('ghost_left' if is_ghost_right else 'ghost_right') in self.__dgcs.get(fidentifier)
+        has_other_part = ('ghost-left' if is_ghost_right else 'ghost-right') in self.__dgcs.get(fidentifier)
         if has_other_part or not needs_both:
-            self.__report_ready(didentifier, fidentifier, function_name, jdataset, query)
+            self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
 
     def send_ghost(self, bundle):
         self.__local_send_ghost(*secure_load(bundle))
