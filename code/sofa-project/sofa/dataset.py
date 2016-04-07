@@ -14,8 +14,15 @@ class AbsDatasetContext:
     """
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, name=None, description=None):
+        self.__name = name
+        self.__description = description
+
+    def get_name(self):
+        return self.__name
+
+    def get_description(self):
+        return self.__description
 
     @abstractmethod
     def get_operations(self):
