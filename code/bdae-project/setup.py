@@ -40,6 +40,7 @@ setup(
         "bdae.web.docs": [
             "conf.py",
             "Makefile",
+            "absdatasetcontext.rst",
             "absdatasetcollection.rst",
             "libs.rst",
             "libbdaeadmin.rst",
