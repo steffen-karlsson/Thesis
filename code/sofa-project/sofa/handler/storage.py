@@ -318,6 +318,11 @@ class StorageHandler(object):
 
     def __terminate_job(self, didentifier, fidentifier, status):
         data = self.__srcs.get(didentifier)[fidentifier]
+
+        if is_error(status):
+            # Remove existing result if an error occurs
+            del self.__srcs.get(didentifier)[fidentifier]
+
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
