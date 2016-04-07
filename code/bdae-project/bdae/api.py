@@ -14,8 +14,8 @@ class GatewayScientistApi(object):
     def poll_for_result(self, name, function, query):
         return self._api.poll_for_result(name, function, query)
 
-    def get_dataset_operations(self, name):
-        return self._api.get_dataset_operations(name)
+    def get_operations(self, name):
+        return self._api.get_operations(name)
 
 
 class GatewayManagerApi(GatewayScientistApi):

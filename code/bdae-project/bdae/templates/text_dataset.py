@@ -8,10 +8,10 @@ import __builtin__
 from nltk import word_tokenize, sent_tokenize
 
 from bdae.templates.import_utils import map_function_binder, module_binder, reduce_function_binder
-from sofa.dataset import AbsDatasetContext
+from bdae.dataset import AbsMapReduceDataset
 
 
-class _TextData(AbsDatasetContext):
+class _TextData(AbsMapReduceDataset):
     __metaclass__ = ABCMeta
 
     def get_map_functions(self):

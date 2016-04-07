@@ -52,7 +52,7 @@ class StorageHandler(object):
         nxt = self.__storage_nodes[self.__config.node_idx % self.__num_storage_nodes]
         return prev, nxt
 
-    def __dataset_exists(self, didentifier):
+    def __context_exists(self, didentifier):
         return str(didentifier) in self.__FLAG
 
     def __find_responsibility(self, didentifier):
@@ -83,7 +83,7 @@ class StorageHandler(object):
         send_left = operation_context.ghost_right and (l_neighbor or local_transfer)
         send_right = operation_context.ghost_left and (r_neighbor or local_transfer)
 
-        self_data = self.__get_raw_data_block(didentifier, is_root)
+        self_data = self.__get_raw_blocks(didentifier, is_root)
         if send_left:
             # Only the blocks and the edge between nodes, that's why 0
             right_ghost = [block[0][:operation_context.ghost_count] for block in self_data]
@@ -91,7 +91,7 @@ class StorageHandler(object):
             if local_transfer or is_root:
                 if operation_context.use_cyclic:
                     overflow = right_ghost[0]
-                    # TODO: No wrapping supported, implement on last node for this dataset
+                    # TODO: No wrapping supported, implement on last node
                     pass
 
                 # Only storage node in the system or previous node doesn't need first when sending left
@@ -103,7 +103,7 @@ class StorageHandler(object):
 
             if operation_context.use_cyclic:
                 overflow = left_ghost[-1]
-                # TODO: No wrapping supported, implement on last node for this dataset
+                # TODO: No wrapping supported, implement on last node
                 pass
 
         assert left_ghost is not None or right_ghost is not None
@@ -132,24 +132,24 @@ class StorageHandler(object):
             return responsible.create(identifier, meta_data, is_update)
 
         if is_update:
-            # TODO: Block from calling any other operation on that dataset, while update is finishing
+            # TODO: Block from calling any other operation on this context, while update is finishing
             pass
 
         meta_data = uloads(meta_data)
         meta_data['root-idx'] = self.__config.node_idx
 
         # Else do the job self.
-        if self.__dataset_exists(identifier) and not is_update:
+        if self.__context_exists(identifier) and not is_update:
             return STATUS_ALREADY_EXISTS, "Dataset already exists"
 
-        info("Creating dataset with identifier %s on %s." % (identifier, self.__config.node))
+        info("Creating context with identifier %s on %s." % (identifier, self.__config.node))
 
         self.__FLAG[str(identifier)] = True
         self.__RAW[str(identifier)] = [udumps(meta_data)]
         return STATUS_SUCCESS
 
     def append(self, bundle):
-        # TODO: Block from calling any other operation on that dataset, while append is finishing
+        # TODO: Block from calling any other operation on this context, while append is finishing
         identifier, block, create_new_stride = secure_load(bundle)
 
         res = self.get_meta_from_identifier(identifier)
@@ -168,7 +168,7 @@ class StorageHandler(object):
         else:
             self.__RAW[identifier][-1].append(block)
 
-        # Delete local cache, since dataset is appended
+        # Delete local cache, since context is appended
         self.__srcs.delete(identifier)
 
         return STATUS_SUCCESS
@@ -180,10 +180,10 @@ class StorageHandler(object):
             return responsible.delete(identifier)
 
         # Else do the job self.
-        # TODO: Block from calling any other operation on that dataset
+        # TODO: Block from calling any other operation on this context
         # TODO: Delete all blocks
 
-        # Delete local cache, since dataset is removed
+        # Delete local cache, since context is removed
         self.__srcs.delete(identifier)
         # TODO: delete identifier from self.__dgcs
         return STATUS_SUCCESS
@@ -195,7 +195,7 @@ class StorageHandler(object):
             return responsible.get_meta_from_identifier(didentifier)
 
         # Else do the job self.
-        if not self.__dataset_exists(didentifier):
+        if not self.__context_exists(didentifier):
             return STATUS_NOT_FOUND
 
         return self.__RAW[str(didentifier)][0]
@@ -225,7 +225,7 @@ class StorageHandler(object):
         self.__RAW[str(identifier)][0] = udumps(meta_data)
         return STATUS_SUCCESS
 
-    def __get_raw_data_block(self, didentifier, is_root, iflatten=False):
+    def __get_raw_blocks(self, didentifier, is_root, iflatten=False):
         blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
         return chain(*blocks) if iflatten else blocks
 
@@ -241,26 +241,23 @@ class StorageHandler(object):
             return STATUS_NOT_FOUND
 
         source = secure_load2(meta_data['digest'], meta_data['source'])
-        dataset = get_class_from_source(source, meta_data['class-name'])
+        context = get_class_from_source(source, meta_data['class-name'])
 
-        # TODO: check for get_operations
-        for operation_context in dataset.get_operations():
+        for operation_context in context.get_operations():
             if operation_context.fun_name == function_name:
                 return operation_context, meta_data
 
         return STATUS_NOT_FOUND
 
     def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query, is_root):
-        # Get operations and blocks to work on
-        # TODO: check for get_operations
-        operations = operation_context.get_operations()
+        # Get blocks to work on
 
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
 
             # Merge ghosts into blocks
             for l, m, r in izip_longest(ghosts['ghost-left'] if 'ghost-left' in ghosts else [None],
-                                        self.__get_raw_data_block(didentifier, is_root),
+                                        self.__get_raw_blocks(didentifier, is_root),
                                         ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if not l:
@@ -274,14 +271,14 @@ class StorageHandler(object):
             blocks = _get_blocks_with_ghost()
         else:
             # Use chain generator method (iflatten) to reduce memory consumption
-            blocks = self.__get_raw_data_block(didentifier, is_root, iflatten=True)
+            blocks = self.__get_raw_blocks(didentifier, is_root, iflatten=True)
 
         if operation_context.has_multiple_args():
             args = [blocks] + str(query).split(operation_context.delimiter)
         else:
             args = [blocks, query]
 
-        return operations, args
+        return operation_context.get_functions(), args
 
     def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
         # Check whether its self who is responsible
@@ -298,7 +295,7 @@ class StorageHandler(object):
                 self.__terminate_job(didentifier, fidentifier, STATUS_PROCESSING)
                 return
             else:
-                # Result already calculated with no dataset change
+                # Result already calculated with no context change
                 self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
                 return
 
@@ -353,8 +350,8 @@ class StorageHandler(object):
         first_iteration = itr == 0
 
         operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
-        operations = operation_context.get_operations()
-        reduce_operation = operations[-1]
+        functions = operation_context.get_functions()
+        reduce_function = functions[-1]
 
         # See if its first iteration or the cache has the value
         has_result = self.__srcs.contains(didentifier) \
@@ -364,7 +361,7 @@ class StorageHandler(object):
         if not has_result:
             _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
                                                           query, is_root)
-            res = _local_execute(operations, args)
+            res = _local_execute(functions, args)
             info("Result for " + self.__config.node + " is: " + str(res))
             if is_root:
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
@@ -381,14 +378,14 @@ class StorageHandler(object):
                 return
 
             if not first_iteration:
-                self.__srcs.get(didentifier)[fidentifier] = [reduce_operation((recv_value, res))]
+                self.__srcs.get(didentifier)[fidentifier] = [reduce_function((recv_value, res))]
         except StopIteration:
             data = self.__srcs.get(didentifier)[fidentifier]
 
             if first_iteration:
                 res = data[RESULT]
             else:
-                res = reduce_operation((recv_value, data[RESULT]))
+                res = reduce_function((recv_value, data[RESULT]))
 
             info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
@@ -473,14 +470,14 @@ def _wrapper_local_execute(args):
     return _local_execute(*args)
 
 
-def _local_execute(operations, args):
+def _local_execute(functions, args):
     try:
-        operation = operations.pop(0)
-        if isinstance(operation, SequentialOperation):
-            return _local_execute(operations, _local_execute(list(operation.functions), args))
+        possible_function = functions.pop(0)
+        if isinstance(possible_function, SequentialOperation):
+            return _local_execute(functions, _local_execute(list(possible_function.functions), args))
 
-        if isinstance(operation, ParallelOperation):
-            suboperations = operation.functions
+        if isinstance(possible_function, ParallelOperation):
+            suboperations = possible_function.functions
             pool = ThreadPool(4)
 
             subargs = []
@@ -489,11 +486,11 @@ def _local_execute(operations, args):
                                      else suboperation.functions), args))
 
             res = pool.map(_wrapper_local_execute, subargs)
-            return _local_execute(operations, res)
+            return _local_execute(functions, res)
 
-        if isfunction(operation) or isbuiltin(operation):
-            res = operation(args)
-            return _local_execute(operations, res)
+        if isfunction(possible_function) or isbuiltin(possible_function):
+            res = possible_function(args)
+            return _local_execute(functions, res)
 
     except IndexError:
         return args

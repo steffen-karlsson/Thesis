@@ -62,8 +62,8 @@ class GatewayHandler(object):
         name, dataset_source, package, extra_meta_data = secure_load(bundle)
         class_name = package.rsplit(".", 1)[1]
 
-        dataset = get_class_from_source(dataset_source, class_name)
-        operations = dataset.get_operations()
+        context = get_class_from_source(dataset_source, class_name)
+        operations = context.get_operations()
         if operations and (not isinstance(operations, list) or
                            not all(isinstance(k, OperationContext) for k in operations)):
             raise NotImplementedError("Operations has to be of type OperationContext")
@@ -78,9 +78,7 @@ class GatewayHandler(object):
                                 'package': package,
                                 'source': pdata,
                                 'num-blocks': 0})
-
-        if operations is not None:
-            extra_meta_data['operations'] = [operation.fun_name for operation in operations]
+        extra_meta_data['operations'] = [operation.fun_name for operation in operations] if operations else []
 
         virtualized_identifier = self.__find_identifier(self.__virtualize_name(name))
         return self.__get_storage_node().create(virtualized_identifier, udumps(extra_meta_data))
@@ -112,12 +110,12 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        dataset, meta_data = res
+        context, meta_data = res
         start = meta_data['root-idx']
 
         block_count = 0
         local_block_count = 0
-        max_stride = dataset.get_block_stride()
+        max_stride = context.get_block_stride()
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
 
@@ -126,8 +124,8 @@ class GatewayHandler(object):
 
         # TODO: Check if dataset already have blocks and append to there
 
-        data = dataset.load_data(path_or_url)
-        for block in self.__next_block(dataset, data):
+        data = context.load(path_or_url)
+        for block in self.__next_block(context, data):
             # TODO: Save response and check if correct is saved and received
             self.__storage_nodes[start].append(identifier, block, create_new_stride)
 
@@ -143,10 +141,10 @@ class GatewayHandler(object):
 
         self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
 
-    def __next_block(self, dataset, data):
+    def __next_block(self, context, data):
         block = []
         block_size = 0
-        for entry in dataset.next_entry(data):
+        for entry in context.next_entry(data):
             entry_size = getsizeof(entry)
             if block_size + entry_size > self.__block_size:
                 yield block
@@ -160,7 +158,7 @@ class GatewayHandler(object):
             # Check if block is not empty and yield rest
             yield block
 
-    def get_dataset_operations(self, name):
+    def get_operations(self, name):
         res = self.__get_meta_from_name(name)
         if is_error(res):
             return res
@@ -171,23 +169,23 @@ class GatewayHandler(object):
         didentifier = self.__find_identifier(self.__virtualize_name(name))
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
 
-        dataset_result_cache = self.__gcs.get(didentifier)
-        if fidentifier in dataset_result_cache:
+        result_cache = self.__gcs.get(didentifier)
+        if fidentifier in result_cache:
             # We already have the value
             return
 
-        dataset_result_cache[fidentifier] = (STATUS_PROCESSING, None)
+        result_cache[fidentifier] = (STATUS_PROCESSING, None)
         self.__get_storage_node().submit_job(didentifier, fidentifier, function, query, self.__config.node)
 
     def poll_for_result(self, name, function, query):
         didentifier = self.__find_identifier(self.__virtualize_name(name))
         fidentifier = find_identifier("%s:%s:%s" % (didentifier, function, query), None)
 
-        dataset_result_cache = self.__gcs.get(didentifier)
-        if fidentifier not in dataset_result_cache:
+        result_cache = self.__gcs.get(didentifier)
+        if fidentifier not in result_cache:
             return STATUS_NOT_FOUND, None
 
-        return dataset_result_cache[fidentifier]
+        return result_cache[fidentifier]
 
     # Internal Result Api
     def set_status_result(self, didentifier, fidentifier, status, result):

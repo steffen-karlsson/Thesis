@@ -54,11 +54,11 @@ class _OperationsHandler(RequestHandler):
 
     @asynchronous
     def get(self, dataset_name):
-        functions = API.get_dataset_operations(dataset_name)
+        operations = API.get_operations(dataset_name)
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
-        self.finish(udumps(list() if functions is None else functions))
+        self.finish(udumps(list() if operations is None else operations))
 
 
 class _CreateDatasetHandler(RequestHandler):
