@@ -7,21 +7,23 @@
 
 from abc import abstractmethod, ABCMeta
 
+from sofa.base import SofaBaseObject
 
-class AbsDatasetCollection:
+
+class AbsDatasetCollection(SofaBaseObject):
     """
     Abstract and not initializable class to define a collection of datasets.
     """
+
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, name=None, description=None):
+        super(AbsDatasetCollection, self).__init__("collection:%s" % name if name else None, description)
 
     @abstractmethod
     def get_dataset_type(self, identifier):
         """
-        Returns the class type implementing :class:`.AbsDatasetContext` matching the
-        identifier (i.e. variable name in netcdf or hdf5 context)
+        Returns the class type implementing :class:`.AbsDatasetContext` matching the identifier (i.e. variable name in netcdf or hdf5 context)
 
         :param identifier:
         :type identifier: str
@@ -29,34 +31,15 @@ class AbsDatasetCollection:
         """
         pass
 
-    def rename_identifier(self, identifier):
-        """
-        Override the method if the dataset has to be renamed (only used in the case where a collection
-        is initialized from path or url)
-
-        :param identifier: Current name from the collection data
-        :type identifier: str
-        :return: New name
-        """
-        return identifier
-
     def get_identifiers(self):
         """
         :return: List of identifiers (to be stored) and available, default: None = all
         """
         return None
 
-    @abstractmethod
-    def load_collection(self, path_or_url):
-        """
-        Define how to load the collection (if needed) from the specified local path or url.
-
-        :param path_or_url: Local path or url to the data
-        :type path_or_url: str
-        :raises: :class:`.NotImplementedError` - default: if the collections isn't parsed, but combined
-        :return: Dictionary with specified :class:`get_identifiers` as keys and their respective data as values.
-        """
-        raise NotImplementedError()
-
     def use_all_identifiers(self):
         return self.get_identifiers() is None
+
+    def next_entry(self, data):
+        # Not needed for dataset collection
+        pass
