@@ -30,7 +30,7 @@ setup(
             "conf.py",
             "Makefile",
             "configparser.rst",
-            "absdatasetcontext.rst",
+            "sofabasetype.rst"
             "index.rst",
             "conf.py"
         ]

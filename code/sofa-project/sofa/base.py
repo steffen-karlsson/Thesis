@@ -1,16 +1,16 @@
-# Created by Steffen Karlsson on 02-11-2016
+# Created by Steffen Karlsson on 04-07-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 """
-.. module:: absdatasetcontext
+.. module:: sofabasetyoe
 """
 
 from abc import abstractmethod, ABCMeta
 
 
-class AbsDatasetContext:
+class SofaBaseObject:
     """
-    Abstract and not initializable class to define the context of a dataset by overriding it.
+    Abstract and not initializable class to define the context of a fundamental base sofa object
     """
     __metaclass__ = ABCMeta
 
@@ -25,29 +25,21 @@ class AbsDatasetContext:
         return self.__description
 
     @abstractmethod
+    def load(self, path_or_url):
+        """
+        Define how to load the object (if needed) from the specified local path or url in the Gateway append method.
+
+        :param path_or_url: Local path or url to the data
+        :type path_or_url: str
+        """
+        pass
+
+    @abstractmethod
     def get_operations(self):
         """
-        Returns a list of :class:`.Function` with function display name and operations as a
-        :class:`.SequentialOperation`, which is a complex object with two or more functions, in sequential or
-        :class:`.ParallelOperation` order, with the last element being a reduce function.
-
-        :return: list
-        """
-        pass
-
-    @abstractmethod
-    def get_map_functions(self):
-        """
-        Returns a list of appropriate map functions for this dataset
-
-        :return: list
-        """
-        pass
-
-    @abstractmethod
-    def get_reduce_functions(self):
-        """
-        Returns a list of appropriate reduce functions for this dataset
+        Returns a list of available :class:`.OperationContext` on executable on the object: with function display name
+        and operations as a :class:`.SequentialOperation`, which is a complex object with two or more functions,
+        in sequential or :class:`.ParallelOperation` order, with the last element being a reduce function.
 
         :return: list
         """
@@ -65,16 +57,6 @@ class AbsDatasetContext:
         """
         pass
 
-    @abstractmethod
-    def load_data(self, path_or_url):
-        """
-        Define how to load the data from the specified local path or url in the Gateway append method.
-
-        :param path_or_url: Local path or url to the data
-        :type path_or_url: str
-        """
-        pass
-
     def get_block_stride(self):
         """
         Method to override in order to define a stride for the block distribution different from default e.g. 1.
@@ -84,6 +66,17 @@ class AbsDatasetContext:
         """
         return 1
 
+    @abstractmethod
+    def verify_function(self, function_name):
+        """
+        Only applicable for objects implementing get_operations!
+        Return the function if its valid function_name or None
+
+        :param function_name: Name of a function when instantiating and verifying operations
+        :type function_name: str
+        :return: function if its valid function_name or None
+        """
+        pass
 
 def load_data_by_url(url):
     from urllib2 import urlopen
