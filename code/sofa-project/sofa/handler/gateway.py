@@ -113,6 +113,9 @@ class GatewayHandler(object):
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
 
+        # Clean function cache
+        self.__gcs.delete(identifier)
+
         data = dataset.load_data(path_or_url)
         for block in self.__next_block(dataset, data):
             # TODO: Save response and check if correct is saved and received
