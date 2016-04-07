@@ -8,7 +8,7 @@
 from time import sleep
 from abc import abstractmethod, ABCMeta
 
-from sofa.error import is_error
+from sofa.error import verify_error, is_processing
 from bdae.api import GatewayScientistApi
 
 
@@ -64,8 +64,11 @@ class AbsPyScientistGateway:
             sleep(poll_delay)
 
             res = self._api.poll_for_result(name, function, query)
-            if not is_error(res):
-                if callback:
-                    # Return result in callback
-                    callback(res[1])
-                return
+            if is_processing(res):
+                continue
+
+            verify_error(res)
+            if callback:
+                # Return result in callback
+                callback(res[1])
+            return
