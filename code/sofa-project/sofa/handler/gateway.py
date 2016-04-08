@@ -5,6 +5,7 @@ from sys import getsizeof
 from random import choice
 from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
+from math import floor
 
 from sofa.cache import CacheSystem
 from sofa.error import is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING
@@ -111,18 +112,18 @@ class GatewayHandler(object):
             return res
 
         context, meta_data = res
-        start = meta_data['root-idx']
 
         block_count = 0
-        local_block_count = 0
         max_stride = context.get_block_stride()
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
 
+        # Include calculation on whether the dataset already has blocks
+        start = floor((meta_data['root-idx'] + (meta_data['num-blocks'] / max_stride)) % self.__num_storage_nodes)
+        current_stride = meta_data['num-blocks'] % max_stride
+
         # Clean function cache
         self.__gcs.delete(identifier)
-
-        # TODO: Check if dataset already have blocks and append to there
 
         data = context.preprocess(data_ref)
         for block in self.__next_block(context, data):
@@ -130,13 +131,13 @@ class GatewayHandler(object):
             self.__storage_nodes[start].append(identifier, block, create_new_stride)
 
             block_count += 1
-            local_block_count += 1
+            current_stride += 1
 
             # Create new stride if only one storage node, is first iteration or max local block count reached
-            create_new_stride = num_storage_nodes == 1 or local_block_count == max_stride
+            create_new_stride = num_storage_nodes == 1 or current_stride == max_stride
 
             if create_new_stride:
-                local_block_count = 0
+                current_stride = 0
                 start = (start + 1) % num_storage_nodes
 
         self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
