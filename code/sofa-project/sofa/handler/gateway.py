@@ -104,7 +104,7 @@ class GatewayHandler(object):
         return self.__get_storage_node().delete(identifier)
 
     def append(self, bundle):
-        name, path_or_url = secure_load(bundle)
+        name, data_ref = secure_load(bundle)
         identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'class-name')
         if is_error(res):
@@ -124,7 +124,7 @@ class GatewayHandler(object):
 
         # TODO: Check if dataset already have blocks and append to there
 
-        data = context.load(path_or_url)
+        data = context.preprocess(data_ref)
         for block in self.__next_block(context, data):
             # TODO: Save response and check if correct is saved and received
             self.__storage_nodes[start].append(identifier, block, create_new_stride)

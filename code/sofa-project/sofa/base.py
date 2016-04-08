@@ -25,12 +25,13 @@ class SofaBaseObject:
         return self.__description
 
     @abstractmethod
-    def load(self, path_or_url):
+    def preprocess(self, data_ref):
         """
-        Define how to load the object (if needed) from the specified local path or url in the Gateway append method.
+        Define how to load the object (if needed) from the specified local path or url in the Gateway append method,
+        it's recommended to implement load as a generator i.e. yield, since its supported and memory saving.
 
-        :param path_or_url: Local path or url to the data
-        :type path_or_url: str
+        :param data_ref: The actual data, local path or url to the data
+        :type data_ref: str or data
         """
         pass
 

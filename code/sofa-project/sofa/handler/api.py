@@ -99,8 +99,8 @@ class GatewayApi(object):
     def update(self, name, package):
         return GatewayApi._set_dataset_by_function(name, package, None, self._api.update)
 
-    def append(self, name, url):
-        return secure_send((name, str(url)), self._api.append)
+    def append(self, name, path_or_url):
+        return secure_send((name, path_or_url), self._api.append)
 
     def delete(self, name):
         return self._api.delete(name)
