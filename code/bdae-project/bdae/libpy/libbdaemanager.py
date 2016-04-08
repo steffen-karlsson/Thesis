@@ -9,9 +9,10 @@ from abc import ABCMeta
 from inspect import isgeneratorfunction
 
 from bdae.libpy.libbdaescientist import AbsPyScientistGateway
-from sofa.error import verify_error
+from sofa.error import verify_error, DatasetAlreadyExistsException, DatasetNotExistsException, is_error
 from bdae.api import GatewayManagerApi
 from bdae.dataset import AbsMapReduceDataset
+from bdae.collection import AbsDatasetCollection
 
 
 class CollectionAlreadyExistsException(Exception):
@@ -48,7 +49,7 @@ class AbsPyManagerGateway(AbsPyScientistGateway):
             raise Exception("Dataset has to be of type AbsDatasetContext")
 
         if not dataset.get_name():
-            raise Exception("Use the dataset constructor and specify name in order to "
+            raise Exception("Use the constructor and specify name in order to "
                             "retrieve and work on the dataset later")
 
         reduce_functions = [fun.__name__ for fun in dataset.get_reduce_functions()]
@@ -60,11 +61,63 @@ class AbsPyManagerGateway(AbsPyScientistGateway):
             if not isgeneratorfunction(map_fun):
                 raise Exception("%s is not an generator i.e. yields" % map_fun.func_name)
 
-        description = dataset.get_description()
+        self.__finialize_create(dataset)
+
+    def __finialize_create(self, context):
+        description = context.get_description()
         meta_data = {'description': description if description else ""}
 
-        package = _get_full_identifier(dataset)
-        verify_error(self._api.create(dataset.get_name(), package, extra_meta_data=meta_data))
+        package = _get_full_identifier(context)
+        verify_error(self._api.create(context.get_name(), package, extra_meta_data=meta_data))
+
+    def initialize_collection(self, collection, with_new_data=None):
+        """
+        Initializes a new collection with specified name
+
+        :param collection: Reference to the collection.
+        :type collection: Implementation of :class:`.AbsDatasetCollection`
+        :param with_new_data: Specify path or url if the new collection has to be initialized from data - Otherwise (default: None) it will be combined of existing datasets.
+        :type with_new_data: path or url
+        :raises: :class:`.CollectionAlreadyExistsException` if a collection with that name is already specified.
+        :raises: :class:`.DatasetNotExistsException` if one of the specified datasets doesn't exists, in the case where the collection is combined of existing datasets.
+        """
+
+        if not isinstance(collection, AbsDatasetCollection):
+            raise Exception("Dataset has to be of type AbsDatasetContext")
+
+        if not collection.get_name():
+            raise Exception("Use the collection constructor and specify name in order to "
+                            "retrieve and work on the dataset later")
+
+        verify_specified_datasets = True
+        if with_new_data:
+            # Collection has to be initialized from path or url, by load_collection
+            try:
+                for identifier, data_ref in collection.preprocess(with_new_data):
+                    dataset = collection.get_dataset_type(identifier)
+                    # Create dataset
+                    self.create_dataset(dataset)
+
+                    # If it went fine, append data
+                    self.append_to_dataset(identifier, data_ref)
+
+                verify_specified_datasets = False
+            except NotImplementedError:
+                # Verify if dataset exists instead
+                pass
+
+        if verify_specified_datasets:
+            # Collection is initialized from existing datasets, therefor check that all are there.
+            for identifier in collection.get_identifiers():
+                if is_error(self._api.exists(identifier)):
+                    raise DatasetNotExistsException("Specified dataset: '%s' does not exists" % identifier)
+
+        try:
+            # A collection is represented as a dataset with a prefixed name internally in the storage system
+            self.__finialize_create(collection)
+        except DatasetAlreadyExistsException:
+            name = collection.get_name().split(':')[1]
+            raise CollectionAlreadyExistsException("Collection with name: '%s' already exists" % name)
 
     def append_to_dataset(self, name, url):
         """
