@@ -120,8 +120,8 @@ class GatewayHandler(object):
         create_new_stride = True
 
         # Include calculation on whether the dataset already has blocks
-        start = floor((meta_data['root-idx'] + (meta_data['num-blocks'] / max_stride)) % self.__num_storage_nodes)
-        current_stride = meta_data['num-blocks'] % max_stride
+        start = int(floor((meta_data['root-idx'] + (meta_data['num-blocks'] / max_stride)) % self.__num_storage_nodes))
+        current_stride = int(meta_data['num-blocks'] % max_stride)
 
         # Clean function cache
         self.__gcs.delete(identifier)

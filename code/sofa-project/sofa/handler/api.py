@@ -14,9 +14,9 @@ class _StorageApi(object):
         self._api = None
         self._storage_uri = storage_uri
 
-    def create(self, identifier, jdataset):
+    def create(self, identifier, meta_data, is_update=False):
         self._validate_api()
-        return secure_send((identifier, jdataset, False), self._api.create)
+        return secure_send((identifier, meta_data, is_update), self._api.create)
 
     def append(self, identifier, block, create_new_stride):
         self._validate_api()
@@ -43,9 +43,9 @@ class _StorageApi(object):
         self._validate_api()
         return self._api.delete(identifier)
 
-    def update(self, identifier, jdataset):
+    def update(self, identifier, meta_data):
         self._validate_api()
-        return secure_send((identifier, jdataset, True), self._api.create)
+        return secure_send((identifier, meta_data, True), self._api.create)
 
     def _validate_api(self):
         if not self._api:
@@ -61,22 +61,22 @@ class _StorageToMonitorApi(object):
 
 
 class _InternalStorageApi(_StorageApi):
-    def initialize_execution(self, root, didentifier, fidentifier, function_name, jdataset, query):
+    def initialize_execution(self, root, didentifier, fidentifier, function_name, meta_data, query):
         self._validate_api()
-        async(self._api).initialize_execution(root, didentifier, fidentifier, function_name, jdataset, query)
+        async(self._api).initialize_execution(root, didentifier, fidentifier, function_name, meta_data, query)
 
-    def execute_function(self, itr, root, didentifier, fidentifier, function_name, jdataset, query, prev_value=0):
+    def execute_function(self, itr, root, didentifier, fidentifier, function_name, meta_data, query, prev_value=0):
         self._validate_api()
-        async(self._api).execute_function(itr, root, didentifier, fidentifier, function_name, jdataset, query,
+        async(self._api).execute_function(itr, root, didentifier, fidentifier, function_name, meta_data, query,
                                           prev_value)
 
     def send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, root, needs_both):
         self._validate_api()
         secure_send((left_ghost, right_ghost, didentifier, fidentifier, root, needs_both), async(self._api).send_ghost)
 
-    def ready(self, didentifier, fidentifier, function_name, jdataset, query):
+    def ready(self, didentifier, fidentifier, function_name, meta_data, query):
         self._validate_api()
-        secure_send((didentifier, fidentifier, function_name, jdataset, query), async(self._api).ready)
+        secure_send((didentifier, fidentifier, function_name, meta_data, query), async(self._api).ready)
 
 
 class GatewayApi(object):
