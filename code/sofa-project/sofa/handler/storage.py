@@ -67,6 +67,7 @@ class StorageHandler(object):
         res = self.__get_operation_context(None, function_name, meta_data=meta_data)
         if is_error(res):
             self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
+            return
 
         operation_context, _ = res
         if not operation_context.needs_ghost():

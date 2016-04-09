@@ -166,7 +166,7 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        return res['operation']
+        return res['operations']
 
     def get_datasets(self):
         return self.__get_storage_node().get_datasets()
