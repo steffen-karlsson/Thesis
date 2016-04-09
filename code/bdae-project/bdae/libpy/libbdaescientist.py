@@ -6,37 +6,26 @@
 """
 
 from time import sleep
-from abc import abstractmethod, ABCMeta
 
 from sofa.error import verify_error, is_processing
 from bdae.api import GatewayScientistApi
 
 
-class AbsPyScientistGateway:
+class PyBDAEScientist:
     """
     Abstract class to override in order to implement a scientist gateway to the framework
     """
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, gateway_uri):
         if gateway_uri:
             self._api = GatewayScientistApi(gateway_uri)
 
-    @abstractmethod
-    def get_implemented_datasets(self):
-        """
-        Abstract method to be overriden to return a dictionary of name, class reference combinations.
+    # TODO: Add possibility to show description of dataset?
 
-        Example:
-
-        .. code-block:: python
-
-            return {"my dataset name": "mypackage.myfile.MyDatasetClass"}
-
-        :rtype: dict
-        """
-        pass
+    def get_datasets(self):
+        res = self._api.get_datasets()
+        verify_error(res)
+        return res
 
     def get_api_proxy(self):
         return self._api

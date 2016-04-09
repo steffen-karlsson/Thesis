@@ -17,6 +17,9 @@ class GatewayScientistApi(object):
     def get_operations(self, name):
         return self._api.get_operations(name)
 
+    def get_datasets(self):
+        return self._api.get_datasets()
+
 
 class GatewayManagerApi(GatewayScientistApi):
     def __init__(self, gateway_uri):

@@ -66,7 +66,7 @@ class GatewayHandler(object):
         context = get_class_from_source(dataset_source, class_name)
         operations = context.get_operations()
         if operations and (not isinstance(operations, list) or
-                           not all(isinstance(k, OperationContext) for k in operations)):
+                               not all(isinstance(k, OperationContext) for k in operations)):
             raise NotImplementedError("Operations has to be of type OperationContext")
 
         if not extra_meta_data:
@@ -75,6 +75,7 @@ class GatewayHandler(object):
         # Update with the actual metadata
         digest, pdata = secure(dataset_source)
         extra_meta_data.update({'digest': digest,
+                                'name': name,
                                 'class-name': class_name,
                                 'package': package,
                                 'source': pdata,
@@ -128,6 +129,7 @@ class GatewayHandler(object):
         data = context.preprocess(data_ref)
         for block in self.__next_block(context, data):
             # TODO: Save response and check if correct is saved and received
+            # TODO: Use self.__get_storage_node() and don't index into storage_nodes, alternatively do a redirect on storage
             self.__storage_nodes[start].append(identifier, block, create_new_stride)
 
             block_count += 1
@@ -165,6 +167,9 @@ class GatewayHandler(object):
             return res
 
         return res['operation']
+
+    def get_datasets(self):
+        return self.__get_storage_node().get_datasets()
 
     def submit_job(self, name, function, query):
         didentifier = self.__find_identifier(self.__virtualize_name(name))

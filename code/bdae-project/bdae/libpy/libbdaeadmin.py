@@ -5,19 +5,15 @@
 .. module:: libbdaeadmin
 """
 
-from abc import ABCMeta
-
-from bdae.libpy.libbdaemanager import AbsPyManagerGateway
+from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.api import GatewayAdminApi
 
 
-class AbsPyAdminGateway(AbsPyManagerGateway):
+class PyBDAEAdmin(PyBDAEManager):
     """
     Abstract class to override in order to implement a administrator gateway to the framework
     """
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, gateway_uri):
-        super(AbsPyAdminGateway, self).__init__(None)
+        PyBDAEManager.__init__(self, None)
         self.__api = GatewayAdminApi(gateway_uri)

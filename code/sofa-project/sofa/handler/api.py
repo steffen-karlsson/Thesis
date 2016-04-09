@@ -26,6 +26,10 @@ class _StorageApi(object):
         self._validate_api()
         return secure_send((identifier, update_type, key, value), self._api.update_meta_key)
 
+    def get_datasets(self, is_internal_call=False):
+        # TODO: secure return
+        return self._api.get_datasets(is_internal_call)
+
     def get_meta_from_identifier(self, identifier):
         self._validate_api()
         # TODO: secure return
@@ -87,6 +91,9 @@ class GatewayApi(object):
 
     def get_operations(self, name):
         return self._api.get_operations(name)
+
+    def get_datasets(self):
+        return self._api.get_datasets()
 
     @staticmethod
     def _set_dataset_by_function(name, package, extra_meta_data, funcion):

@@ -225,6 +225,21 @@ class StorageHandler(object):
         self.__RAW[str(identifier)][0] = udumps(meta_data)
         return STATUS_SUCCESS
 
+    def get_datasets(self, is_internal_call=False):
+        all_others = self.__num_storage_nodes
+
+        def __self_datasets():
+            return [uloads(self.get_meta_from_identifier(int(key)))['name'] for key in self.__FLAG.iterkeys()]
+
+        if not is_internal_call and all_others > 0:
+            # Broadcast storm to all nodes
+            info("Pool get_datasets")
+            others_datasets = ThreadPool(all_others).map(_wrapper_get_datasets, self.__storage_nodes)
+            return sum(__self_datasets() + others_datasets, [])
+        else:
+            # Calculate self
+            return __self_datasets()
+
     def __get_raw_blocks(self, didentifier, is_root, iflatten=False):
         blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
         return chain(*blocks) if iflatten else blocks
@@ -300,7 +315,7 @@ class StorageHandler(object):
                 return
 
         # Update is working state before anything else
-        all_nodes = self.__num_storage_nodes + 1
+        all_nodes = self.__num_storage_nodes + 1  # Plus one for self
         self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway]
 
         res = self.get_meta_from_identifier(didentifier)
@@ -464,6 +479,10 @@ def _wrapper_initialize_execution(args):
 
 def _wrapper_execute_function(args):
     args[0].execute_function(*args[1])
+
+
+def _wrapper_get_datasets(arg):
+    return arg.get_datasets(is_internal_call=True)
 
 
 def _wrapper_local_execute(args):

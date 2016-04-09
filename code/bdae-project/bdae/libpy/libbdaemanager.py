@@ -5,10 +5,9 @@
 .. module:: libbdaemanager
 """
 
-from abc import ABCMeta
 from inspect import isgeneratorfunction
 
-from bdae.libpy.libbdaescientist import AbsPyScientistGateway
+from bdae.libpy.libbdaescientist import PyBDAEScientist
 from sofa.error import verify_error, DatasetAlreadyExistsException, DatasetNotExistsException, is_error
 from bdae.api import GatewayManagerApi
 from bdae.dataset import AbsMapReduceDataset
@@ -24,15 +23,13 @@ def _get_full_identifier(obj):
     return "%s.%s" % (obj.__module__, obj.__class__.__name__)
 
 
-class AbsPyManagerGateway(AbsPyScientistGateway):
+class PyBDAEManager(PyBDAEScientist):
     """
     Abstract class to override in order to implement a manager gateway to the framework
     """
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, gateway_uri):
-        super(AbsPyManagerGateway, self).__init__(None)
+        PyBDAEScientist.__init__(self, None)
         self._api = GatewayManagerApi(gateway_uri)
 
     def create_dataset(self, dataset):
