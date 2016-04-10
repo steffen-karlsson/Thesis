@@ -16,14 +16,13 @@ $(document).ready(function() {
         console.log($("#update-dataset").val());
     });
 
-    $.getJSON( "/get_implemented_datasets", function( data ) {
-        $.each( data, function( key, val ) {
-            $("#dataset-dropdown-menu").append("<li value=\"" + val + "\" id=\"dataset-first\"><a href=\"#\">"
-                + key + " </a></li>");
+    $.getJSON( "/get_registered_datasets", function( data ) {
+        $.each( data, function( index, name ) {
+            $("#dataset-dropdown-menu").append("<li id=\"dataset-first\"><a href=\"#\">" + name + " </a></li>");
 
-            var element1 = "<li value=\"" + val + "\" id=\"";
-            var element2 = "-dataset-first\"><a href=\"#\">" + val.substring(val.lastIndexOf(".") + 1) + " </a></li>";
-            $("#new-dataset-dropdown-menu").append(element1 + "new" + element2);
+//            var element1 = "<li value=\"" + val + "\" id=\"";
+//            var element2 = "-dataset-first\"><a href=\"#\">" + val.substring(val.lastIndexOf(".") + 1) + " </a></li>";
+//            $("#new-dataset-dropdown-menu").append(element1 + "new" + element2);
         });
 
         // Adding current dataset supported operations to query
@@ -45,7 +44,7 @@ $(document).ready(function() {
         addDropDownListener("#new-dataset", function( text ) {
             console.log(">> " + text);
         });
-        adjustWidthBySelf("#new-dataset", offset=40)
+        adjustWidthBySelf("#new-dataset", offset=40);
 
         onClickListener("#query", function () {
             callData = { "dataset-name": window.dataset,
@@ -70,13 +69,30 @@ function showWaitingDialog (title) {
     });
 }
 
+function showDialog (text_title, text_message, glyph) {
+    BootstrapDialog.show({
+        label: BootstrapDialog.TYPE_SUCCESS,
+        title: function (dialog) {
+            var $title = $('<span class="glyphicon ' + glyph +'" aria-hidden="true"></span><span>' + text_title + '</span>');
+            return $title;
+        },
+        message: function (dialog) {
+            var $message = $('<strong>' + text_message + '</strong>');
+            return $message;
+        }
+    });
+}
+
+function showErrorDialog (text_message) {
+    showDialog('Error', text_message, 'glyphicon-remove-circle');
+}
+
 function setDatasetFunctions(dataset_name) {
     window.dataset = dataset_name
     $.getJSON("/get_operations/" + dataset_name, function( data ) {
         $.each( data, function( idx, entry ) {
-            //TODO: Remove old dataset functions
-            $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">"
-                + entry + " </a></li>");
+            $("#query-dropdown-menu").empty();
+            $("#query-dropdown-menu").append("<li id=\"query-first\"><a href=\"#\">" + entry + " </a></li>");
         });
 
         addDropDownListener("#query");
@@ -98,35 +114,37 @@ function pollForQueryResult(callData, delay, itr){
             statusCode: {
                 // Success
                 200: function ( data ) {
-                    console.log("DATA >> " + data)
+                    console.log("DATA >> " + data);
                     window.dialog.close();
 
-                    resMessage = callData["function-name"] + "('" + callData["query"] + "') at " + callData["dataset-name"] + " is: " + data
-                    BootstrapDialog.show({
-                        label: BootstrapDialog.TYPE_SUCCESS,
-                        title: function (dialog) {
-                            var $title = $('<span class="glyphicon glyphicon-ok-sign" aria-hidden="true"></span> <span>Execution success</span>');
-                            return $title;
-                        },
-                        message: function (dialog) {
-                            var $message = $('<strong>Result for ' + callData["function-name"] + ' with argument: "' + callData["query"] + '" is: ' + data + '</strong>');
-                            return $message;
-                        }
-                    });
+                    message = 'Result for ' + callData["function-name"] + ' with argument: "' + callData["query"] + '" is: ' + data;
+                    showDialog('Execution success', message, 'glyphicon-ok-circle');
                 },
                 // Processing
                 202: function () {
                     console.log("Still processing");
                     callData['is-polling'] = true;
+
+                    window.dialog.close();
                     pollForQueryResult(callData, delay, itr + 1);
                 },
                 // Invalid data
                 400: function () {
                     console.log("Invalid data");
+                    window.dialog.close();
+                    showErrorDialog('Invalid data: Please verify data on the dataset');
+                },
+                // No data in dataset
+                410: function () {
+                    console.log("No data in dataset");
+                    window.dialog.close();
+                    showErrorDialog('The dataset doesn\'t contain any data');
                 },
                 // Not found
                 404: function () {
-                    console.log("Not Found");
+                    console.log("Not found");
+                    window.dialog.close();
+                    showErrorDialog('Dataset doesn\'t exists');
                 },
             }
         });

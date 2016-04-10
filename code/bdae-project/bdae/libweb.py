@@ -13,9 +13,9 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application, RequestHandler, asynchronous, StaticFileHandler
 
 from sofa.error import DatasetAlreadyExistsException
-from bdae.libpy.libbdaeadmin import AbsPyAdminGateway
-from bdae.libpy.libbdaemanager import AbsPyManagerGateway
-from bdae.libpy.libbdaescientist import AbsPyScientistGateway
+from bdae.libpy.libbdaeadmin import PyBDAEAdmin
+from bdae.libpy.libbdaemanager import PyBDAEManager
+from bdae.libpy.libbdaescientist import PyBDAEScientist
 
 GW = None
 API = None
@@ -42,11 +42,11 @@ class _RegisteredDatasetHandler(RequestHandler):
 
     @asynchronous
     def get(self):
-        datasets = GW.get_implemented_datasets()
+        datasets = GW.get_datasets()
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
-        self.finish(udumps(dict() if datasets is None else datasets))
+        self.finish(udumps(list() if datasets is None else datasets))
 
 
 class _OperationsHandler(RequestHandler):
@@ -141,22 +141,22 @@ class GatewayWebWrapper(Application):
             (r'/docs/(.*)', _DocumentationHandler),
         ]
 
-        if isinstance(gateway, AbsPyScientistGateway):
+        if isinstance(gateway, PyBDAEScientist):
             routes += [
                 (r'/', _RootHandler),
-                (r'/get_implemented_datasets', _RegisteredDatasetHandler),
+                (r'/get_registered_datasets', _RegisteredDatasetHandler),
                 (r'/get_operations/(.*)', _OperationsHandler),
                 (r'/job', _JobHandler),
             ]
 
-        if isinstance(gateway, AbsPyManagerGateway):
+        if isinstance(gateway, PyBDAEManager):
             routes += [
                 (r'/create', _CreateDatasetHandler),
                 (r'/delete', _DeleteDatasetHandler),
                 (r'/update', _UpdateDatasetHandler)
             ]
 
-        if isinstance(gateway, AbsPyAdminGateway):
+        if isinstance(gateway, PyBDAEAdmin):
             routes += [
                 # TODO: add monitor apis
             ]
