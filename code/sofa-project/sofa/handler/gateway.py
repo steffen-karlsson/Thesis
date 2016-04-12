@@ -59,6 +59,13 @@ class GatewayHandler(object):
 
         return get_class_from_source(source, meta_data[key]), meta_data
 
+    def __get_property(self, name, key):
+        res = self.__get_meta_from_name(name)
+        if is_error(res):
+            return res
+
+        return res[key]
+
     def create(self, bundle):
         name, dataset_source, package, extra_meta_data = secure_load(bundle)
         class_name = package.rsplit(".", 1)[1]
@@ -89,11 +96,7 @@ class GatewayHandler(object):
         return self.__get_meta_from_name(name)
 
     def get_type(self, name):
-        res = self.__get_meta_from_name(name)
-        if is_error(res):
-            return res
-
-        return res['package']
+        return self.__get_property(name, 'package')
 
     def update(self, bundle):
         pass
@@ -162,14 +165,13 @@ class GatewayHandler(object):
             yield block
 
     def get_operations(self, name):
-        res = self.__get_meta_from_name(name)
-        if is_error(res):
-            return res
-
-        return res['operations']
+        return self.__get_property(name, 'operations')
 
     def get_datasets(self):
         return self.__get_storage_node().get_datasets()
+
+    def get_description(self, name):
+        return self.__get_property(name, 'description')
 
     def submit_job(self, name, function, query):
         didentifier = self.__find_identifier(self.__virtualize_name(name))

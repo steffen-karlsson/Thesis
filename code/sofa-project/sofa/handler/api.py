@@ -118,6 +118,9 @@ class GatewayApi(object):
     def get_type(self, name):
         return self._api.get_type(name)
 
+    def get_description(self, name):
+        return self._api.get_description(name)
+
 
 class _InternalGatewayApi(GatewayApi):
     def set_status_result(self, didentifer, fidentifer, status, result):

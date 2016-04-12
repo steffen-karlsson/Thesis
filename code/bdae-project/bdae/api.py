@@ -20,6 +20,9 @@ class GatewayScientistApi(object):
     def get_datasets(self):
         return self._api.get_datasets()
 
+    def get_description(self, name):
+        return self._api.get_description(name)
+
 
 class GatewayManagerApi(GatewayScientistApi):
     def __init__(self, gateway_uri):

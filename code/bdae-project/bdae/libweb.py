@@ -18,7 +18,6 @@ from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 
 GW = None
-API = None
 
 
 def get_static_path():
@@ -54,7 +53,7 @@ class _OperationsHandler(RequestHandler):
 
     @asynchronous
     def get(self, dataset_name):
-        operations = API.get_operations(dataset_name)
+        operations = GW.get_operations(dataset_name)
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
@@ -98,11 +97,11 @@ class _JobHandler(RequestHandler):
         body = dict(uloads(self.request.body))
 
         if body['is-polling']:
-            status, res = API.poll_for_result(body['dataset-name'], body['function-name'], body['query'])
+            status, res = GW.poll_for_result(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(status)
             self.finish(str(res))
         else:
-            API.submit_job(body['dataset-name'], body['function-name'], body['query'])
+            GW.submit_job(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(202)
             self.finish()
 
@@ -126,9 +125,8 @@ class GatewayWebWrapper(Application):
     """
 
     def __init__(self, gateway):
-        global API, GW
+        global GW
         GW = gateway
-        API = gateway.get_api_proxy()
 
         settings = {
             r'static_path': r"%s/web/static" % get_static_path(),

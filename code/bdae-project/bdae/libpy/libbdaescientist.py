@@ -20,15 +20,34 @@ class PyBDAEScientist:
         if gateway_uri:
             self._api = GatewayScientistApi(gateway_uri)
 
-    # TODO: Add possibility to show description of dataset?
-
     def get_datasets(self):
+        """
+        :return: List of all dataset names available
+        """
         res = self._api.get_datasets()
         verify_error(res)
         return res
 
-    def get_api_proxy(self):
-        return self._api
+    def get_description(self, name):
+        """
+        Returns the description of the dataset specified by the parameter name
+
+        :param name: Name of a dataset
+        :type name: str
+        :return: str -- description
+        """
+        return self._api.get_description(name)
+
+    def get_operations(self, name):
+        """
+        :param name: Name of a dataset
+        :type name: str
+        :return: List of all operations available on the dataset
+        """
+        return self._api.get_operations(name)
+
+    def poll_for_result(self, name, function, query):
+        return self._api.poll_for_result(name, function, query)
 
     def submit_job(self, name, function, query, callback=None, poll_delay=0.2):
         """
@@ -47,12 +66,14 @@ class PyBDAEScientist:
         """
 
         self._api.submit_job(name, function, query)
+        if not callback:
+            return
 
         while True:
             # Sleep and try to poll again
             sleep(poll_delay)
 
-            res = self._api.poll_for_result(name, function, query)
+            res = self.poll_for_result(name, function, query)
             if is_processing(res):
                 continue
 
