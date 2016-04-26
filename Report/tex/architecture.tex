@@ -1,11 +1,16 @@
-\chapter{Big Data Area Network}
-
 \BigLetter{D}{efining}, designing and orchestrating a distributed system used as a file archive is a compromising process of electing architecture, communication and security, etc. This chapter describes and discusses the choices and opportunities regarding what henceforward will be denoted as \CodeNameFull. 
 
-\section{Overview}
-\cfigure{general-overview}{General flow and overview of the framework including the gateway(s) used by the user to query the system for information from the big data area network.}{General flow and overview of the framework}{0.85}
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.60]{pdf/sofa-overview.pdf}
+	\caption[General overview of \CodeName]{General overview of \CodeName and the participating components and their associates, including $n_g$ gateways denoted by $\text{g}1 \ldots \text{g}n_g$, $n_s$ storage nodes by $\text{s}1 \ldots \text{s}n_s$ and $n_m$ monitors by $\text{m}1 \ldots \text{m}n_m$. \label{fig:sofa-overview}}
+\end{figure}
 
-As mentioned is the project an alternative to the existing big data analysis frameworks, and file archives described previously, and the architecture will be influenced and inspired by those, both inaccuracies and characteristics. The underlying file archive architecture in the framework seek to model an interpretation of a Storage Area Network (SAN) used for BDA operating in a trusted homogeneous computing environment designated as a \Network (Big Data Area Network). The illustration at Figure \ref{fig:general-overview} depicts the general overview and flow of the system just described, where each component are examined subsequently.
+\section{Overview}
+This project, as mentioned is an alternative to the existing file archives targeting big data analysis frameworks; the architectural structure will be influenced and inspired by those described in the related work section (\ref{sec:related}) among others, both by characteristics and feature, but certainly from inaccuracies too. 
+\newline
+
+The architecture of file archive seeks to model an interpretation of a Storage Area Network (SAN) primarily used for research and scientific related big data analysis operating in a trusted homogeneous computing environment. The illustration at Figure \ref{fig:sofa-overview} depicts the general overview and flow of the system just described, where each component are examined subsequently in chapter \ref{chp:components}.
 
 \section{Hardware}
 The framework will first and foremost be designed to execute on a homogeneous collection of machines connected to a network, \ie a cluster, the choice could have been a grid (a collection of heterogeneous machines) too. 
@@ -25,32 +30,77 @@ The implementation will be targeted inexpensive commodity hardware just as \eg D
 \textit{It is an acronym for Just a Bunch of Disks and is a hardware architecture with multiple hard drives, but without configuration of RAID and thus doesn't provide redundancy nor performance improvements.}
 \end{definition}
 
-\section{Architecture}
+
+\section{Architectural style}
 Section \ref{sec:architectures} describes a collection of different distributed system architectures\cite{Tanenbaum:2006:DSP:1202502}, where the architecture of the project will be affected by knowledge and benefits from existing solutions (described in section \ref{sec:related}). 
-
-The result will implement the notion of a hybrid related distributed system with a decentralized collection of interconnected storage nodes accessible by potentially multiple replicated stateless gateway servers and observed by one or more monitors. 
 \newline
 
-The architecture of the interconnected storage nodes is highly influenced by Dynamo and will reflect a zero-hop distributed hash table (DHT, described as part of the decentralized architecture in section \ref{sec:architectures}) and thus provide full data consistency concerning the CAP theorem, \reference{def:cap}{sec:cap}. Unfortunately, this also means that complexity regarding the consistency protocol increases at a membership level.
+The result will seek to model the notion of a hybrid related distributed system with a decentralized collection of interconnected storage nodes accessible by potentially multiple replicated stateless gateway servers and observed by one or more monitors.
 
-\cfigure{overview}{Detailed overview of the influencing components in the BDAN including \textit{n} gateways denoted by $\text{g}1 \cdots \text{g}n$, storage nodes by $\text{s}1 \cdots \text{s}n$ and monitors by $\text{m}1 \cdots \text{m}n$.}{Detailed overview of the influencing components}{0.63}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.7]{pdf/architecture-overview.pdf}
+	\caption[Architectural overview]{Architectural overview of the hybrid related distributed system reflecting a zero-hop distributed hash table ring of storage nodes. \label{fig:architecture-overview}}
+\end{figure}
 
-The design and structure of the storage node will be described in chapter \ref{chap:storage}, the gateway in chapter \ref{chap:gateway} and the monitor in chapter \ref{chap:monitor}.
-
-\section{Partition and distribution}
-The partitioning and distribution protocol in the Big Data Area Network is based on consistent hashing (\reference{def:ch}{sec:partitioning}) and round robin (described in section \ref{sec:distribution}).
-
-\cfigure{rr-partitioning}{General flow of the partitioning and data distribution protocol in BDAN, assuming one gateway server \textit{g} and a client \textit{c} attempting to insert a data set \textit{A} consisting of \textit{n} blocks $\text{d}1 \cdots \text{d}n$.}{Overview of the partitioning and data distribution protocol}{0.5}
-
-Figure \ref{fig:rr-partitioning} illustrates the general flow of the preferred partitioning and distribution protocol. The dataset is from the client sent to one of the gateway servers, where it is using consistent hashing (as in Amazons Dynamo project) assigned a unique identifier and partitioned into approximately\footnote{As described in section \ref{sec:ambitions} is one of the ambitions to store arbitrary sized block.} equal block sizes. The blocks are then by the client distributed in a round robin manner to the storage nodes. It is presumably sufficient as a distribution protocol  under the assumptions outlined in section \ref{sec:assumptions} with regards to big data.
-
-%implements a fail-stop failure model  
-
-\section{Redundancy}
-Redundancy in the \Network is carried out using \eg software RAID in ZFS (described in Description \ref{def:zfs}), which provides block-level striping with double distributed parity, that ensures fault tolerance by upto two failed drives. The motivation for this is that the existing replication protocols in \eg Hadoop and the Google File System are using a vast amount of space and considering that the primary usage of this is big data is this too expensive. 
+The architecture of the interconnected storage nodes (depicted at Figure \ref{fig:architecture-overview}) is highly influenced by Dynamo and will reflect a zero-hop distributed hash table (DHT, described as part of the decentralized architecture in section \ref{sec:architectures}) and thus provides full data consistency concerning the CAP theorem, \reference{def:cap}{sec:cap}. Unfortunately, this also means that complexity regarding the consistency protocol increases at a membership level.
 \newline
 
-If their protocol, on the other hand, is based on erasure codes then it is no longer replication, but fault tolerance with a degree of durability. This type of responsibility is in this system carried out in hardware by the JBODs, such that there is no need for the extensive amount of network data transfer.
+The design and structure of the storage node will be described as part of chapter \ref{chp:components} in section \ref{sec:storage}, the gateway in section \ref{sec:gateway} and the monitor in chapter \ref{sec:monitor}.
 
-\section{Security}
-As outlined while characterizing the assumptions of the project in section \ref{sec:assumptions} security and data integrity was mentioned, and the conclusion is that it internally in the BDAN has been given a reduced priority since it is expected to execute in a trusted environment, just as the Amazon Dynamo framework. Having said that are security by all means prioritized eventually on the gateway server as input to this is not originating from trusted components.
+\section{Communication}
+
+
+\section{Partitioning and distribution}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.5]{pdf/rr-partitioning.pdf}
+	\caption[Overview of the partitioning and data distribution protocol]{General flow of the partitioning and data distribution protocol in \CodeName, assuming one gateway server \textit{g} and a client \textit{c} attempting to insert a data set \textit{A} consisting of \textit{n} blocks $\text{d}1 \ldots \text{d}n$.\label{fig:rr-partitioning}}
+\end{figure}
+%As mentioned in section \ref{sec:partitioning} are data organ
+
+\section{Naming and virtualization}
+A requirement is that each instance of \CodeNameFull associated with a specific global instance name \eg based on the research area or even specific data types. This name is predominantly used to virtualize components, data, and caches and thereby supporting multiple executions of \CodeName instances at once with own domain.
+\newline
+
+Elements in the framework are identified using a predominantly structured naming based technique (described in \cite{Tanenbaum:2006:DSP:1202502}), where each semicolon denotes an explicit and more specific context. 
+
+\subsubsection*{Nodes}
+The pattern of the naming scheme of node components (depicted at as a general overview at Figure \ref{fig:sofa-overview} and described in chapter \ref{chp:components}) are characterized as following:
+\vspace*{2mm}
+\begin{equation*}
+	\texttt{sofa}:<\text{instance name}>:<\text{type ref}>:<\text{sequence number}>
+\end{equation*}
+, where \texttt{type ref} is one of following component types: gateway, storage or monitor and \texttt{sequence number} is a positive increasing number in range $0\ldots n$ where $n$ is either the number of gateways, storage nodes or monitors respectively
+
+\subsubsection*{Data}
+\begin{equation*}
+	<\text{instance name}>:<\text{data type}>:<\text{data name}>
+\end{equation*}
+\vspace*{1mm}
+
+The naming scheme of data which also are described in chapter \ref{chp:components} are defined as above, where \texttt{instance name} is the same as above, the \texttt{data type} is an optional parameter if the framework supports multiple types. The name of the data is required to be unique and specified as \texttt{data name}. The \texttt{sofa} identifier is not necessary since the data is only accessible in a sofa based context.
+\newline
+
+As mentioned in the preceding sections \textit{architectural style} and \textit{partitioning and distribution} are slaves organized in a zero-hop distributed hash table based architecture with a user-specific limited key-space size (system configurations are described in details in section \ref{sec:configuration}). The full name is hashed\footnote{\texttt{hash(}data-name\texttt{)} \texttt{mod} \texttt{size(}key-space\texttt{)}} to generate an anonymous unique identifier to insert new data and localize existing data.
+
+\section{Redundancy and replication}
+Redundancy in \CodeName is carried out using \eg software RAID in ZFS (described in Description \ref{def:zfs}), which provides block-level striping with double distributed parity, that ensures fault tolerance by upto two failed drives. The motivation for this is that the existing replication protocols in \eg Hadoop, and the Google File System described in section \ref{sec:related} and \ref{sec:replication} are using a vast amount of space and communication are too expensive considering that the primary usage of this is big datasets.
+\newline
+
+If redundancy protocol however is based on erasure codes then it is no longer replication, but fault tolerance with a degree of durability. This type of responsibility is in this system carried out in hardware by the JBODs, such that there is no need for the extensive amount of network data transfer.
+\vspace*{2mm}
+
+\begin{definition}[ZFS] \label{def:zfs}
+\textit{It is composed of one or more virtual storage pools which are a collection of virtual devices that can be interpreted as a RAID (Redundant Array of Independent Disks) set in a standard file system.}
+\newline
+
+\textit{ZFS is an extensive 128-bit addressable file system that always is consistent on disk, this is because it performs a copy on write operation when adding new data, \ie writing modified data into a new space and reuse the old space in the future, thus eliminating the write hole error (corrupted file system) \eg on power loss.}
+\end{definition}
+\vspace*{2mm}
+
+\section{Security} \label{sec:security}
+The focus on data integrity and security have predominantly been given low priority, since the system is expected to execute in a trusted environment, exactly like Amazon Dynamo. It is intentionally implemented without internal authentication or authorization because there hasn't been any attention on data integrity and security by the assumption that the system is built for trusted environments.
+\newline
+
+Nevertheless are security evidently an influential component from the outside, when handling user inputs.

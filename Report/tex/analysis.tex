@@ -1,55 +1,75 @@
-\chapter{Analysis}
+\BigLetter{I}{nteresting} aspects of system design, architecture, and infrastructure from existing big data analysis computational frameworks will be examined and deliberated throughout this chapter. Prior architecture presumptions and objectives will additionally be formulated to demarcate the scope of the prototype but also to indicate the sphere of importance. 
 
-\BigLetter{I}{nteresting} aspects of system design, architecture, and infrastructure from existing big data analysis computational frameworks will be examined and deliberated throughout this chapter. Prior architecture assumptions and ambitions will additionally be formulated to demarcate partly the scope of the prototype but also to indicate the sphere of importance. Subsequently, will examples of test data be presented, those will collectively contribute to a comprehensive research challenging various aspects of the project.
+Generalized test data (form and configuration) within the addressed research areas will subsequently be presented. Those will collectively contribute to a comprehensive investigation challenging various aspects of the project.
 \newline
 
-BDA is widely used in most research areas, and businesses and the volume, variety, and velocity that data are progressing will continue expanding. The demand for processing huge amount data has never been larger; this includes \eg cracking hidden patterns, unknown correlations and seeking new valuable information in the data.
+Big data analysis (BDA) is widely used in most research areas, and businesses and the volume, variety, and velocity that data are progressing will continue expanding. The demand for processing huge amount data has never been larger; this includes \eg cracking hidden patterns, unknown correlations and seeking new valuable information in the data.
+
+\section{Observations}
+Hadoop (described and evaluated in section \ref{sec:related}), one of the most widely used large-scale frameworks for BDA are characterized in \cite{Mundkur:2011:DCP:2034654.2034670} as \textit{"rather heavyweight and difficult to adapt to custom environments"}. 
+
+Supercomputing enthusiast Glenn Lockwood describes in his blog post \cite{PageLockwoodHadoop} that high-performance computing (HPC) communities keep having troubles understanding the match between Hadoop and HPC. The reason is that it isn't designed with HPC in mind and is developed under other circumstances, and for another purpose than what it is used for nowadays, among other things. Additionally, it is written in the programming language Java which core feature is the fact that it is platform-independent \cite{PageJava}, \ie a concept that is diametrically opposite to HPC where it is favored to optimize code for specific hardware.
+
+\section{Single Master}
+A vast majority of the computing platforms discussed in section \ref{sec:related} are based on a master/slave architecture where the specific master is stateful and could be a potential bottleneck (defined in Definition \ref{def:bottle}) in the system. Additionally is such a setting also a single point of failure (SPOF) error, meaning that a fail or crash can be fatal, expensive, or even a catastrophe.
 \newline
 
-\subsection*{Insight}
-Hadoop, which is one of the most widely used large-scale frameworks for BDA are as described in \cite{Mundkur:2011:DCP:2034654.2034670} \textit{"rather heavyweight and difficult to adapt to custom environments"}. Supercomputing enthusiast Glenn Lockwood describes in his blog post \cite{PageLockwoodHadoop} that high-performance computing (HPC) communities keep having problems understanding how Hadoop and HPC matches, because the design isn't with HPC in mind and developed under other circumstances, and for another purpose than what it is used for, among other things. 
+As described in section \ref{sec:related} is the single master pattern in the case of Hadoop at the earlier versions (before \textbf{2.x}) an honest issue. Aforementioned is because the stateful master, which keeps the entire namespace in RAM (Random Access Memory), doesn't support automatic fail-over. Although the master periodically persists namespace state on disk as a system record image and moreover keeps a synchronized log of all events too, those are required to be replayed at a restart.
 
-Additionally, it is written in the programming language Java which core feature is the fact that it is platform-independent \cite{PageJava}, \ie a concept that is diametrically opposite to HPC where it is favored to optimize code for specific hardware.
-
-\subsection*{Single Master}
-A vast majority of the computing platforms discussed in section \ref{sec:related} are based on a master/slave architecture where the specific master is stateful and could be a potential bottleneck (defined in Definition \ref{def:bottle}) in the system. Additionally is such a setting also a single point of failure, meaning that a fail or crash can be fatal, expensive, or even a catastrophe.
+Later versions as described previously supports fail-over to a working redundant standby copy, with a hardware and communication cost. Other solutions to the SPOF error described in section \ref{sec:related} such as the Facebook Avatarnode Hadoop extension requires integrations and instances of extra systems like ZooKeeper.
 \newline
 
-Preceding is the case in Hadoop HDFS since it doesn't support automatic failover. The master keeps the entire namespace in RAM (Random Access Memory), which it periodically persist on disk as a system record image, moreover is a log of all events kept synchronized if the master requires a restart.
+Other systems like the Google File System (GFS) follows the same stateful metadata master model, whereas DDFS, which is the data access model of Disco (described in section \ref{sec:related}) implements an interesting model where the metadata and data chunks are stored jointly on the cluster hosts. Nevertheless are a metadata cache system implemented on the master, which apropos is a single master motivated by the preference for consistency over availability in the CAP Theorem (\reference{def:cap}{sec:cap}).
+
+\section{Partitioning} \label{sec:partitioning}
+The concept of data partitioning was previously outlined in the technical background in section \ref{sec:dd} and as mentioned is consistent hashing one opportunity to separate data uniformly across multiple machines. 
+
+It is a generalization and foundation of decentralized distributed architectures such as Distributed Hash Tables (DHT). 
 \newline
 
-Other systems like the Google File System (GFS) follows the same stateful metadata master model, whereas DDFS, which is the data access model of Disco (described in section \ref{sec:related}) implements an interesting and innovative model where the metadata and data chunks are stored jointly on the cluster hosts.
+The Amazon Dynamo project described in section \ref{sec:related} implements consistent hashing with virtual nodes (outlined in definition \ref{def:virtualnodes}) as data partitioning protocol where each data item is identified and determined by a 128-bit identifier generated by an MD5 hash function.
 \vspace*{3mm}
 
-\subsection*{Partitioning}
-The concept of data partitioning was previously outlined in the technical background in section \ref{sec:partitioning} and as mentioned is consistent hashing one opportunity to separate data uniformly across multiple machines. It is a generalization and foundation of decentralized distributed architectures such as Distributed Hash Tables (DHT). 
+\begin{definition}[Virtual nodes] \label{def:virtualnodes}
+\textit{Introducing virtual nodes in a consistent hashing ring serves the purpose of loading balancing an non-uniform distribution of existing objects, by replicating points along the circle, likely increasing the total performance by offloading the overloaded potential bottleneck (outlined in definition \ref{def:bottle}) server(s).}
+\end{definition}
+\vspace*{3mm}
 
-The Amazon Dynamo project described in section \ref{sec:related} implements consistent hashing with virtual nodes as data partitioning protocol where each data item is identified and determined by a 128-bit identifier generated by an MD5 hash function.
+Systems such as Hadoop implements a straightforward and random blocks allocation strategy that strongly seek to distribute new blocks uniformly amongst all the DataNodes. The fundamental consideration behind this logic is to try avoiding situations where newly added nodes become bottlenecks (the term is outlined in definition \ref{def:bottle}) because their overall disk utilization is low. Considerable drawbacks of this strategy are:
 
-\section{Assumptions} \label{sec:assumptions}
-Following assumptions are constructed first and foremost to limit the prototype to the field of study interesting for this project and secondly because match the surrounding environment and settings.
-
-\vspace*{2mm}
 \begin{itemize}
-	\item The solution is targeted and used for BDA.
-	\item Data entries can be processed and analyzed independently, which can be derived straight forward from the previous statement.
-	\item The solution is operating in a homogeneous and high-performance computing environment like a cluster.
-	\item The majority of the data is passive, \eg not entirely accessed as much as data are expected to be in GFS.
-	\item A whole dataset is accessed, processed or modified at once.
-	\item No replication scheme, other than \eg software RAID using ZFS (described in Definition \ref{def:zfs}), due to the expected sizes of the datasets.
-	\item Focus on data integrity and security have been given low priority, since the system is expected to execute in a trusted environment, exactly like Amazon Dynamo described in section \ref{sec:related}.
+	\item Doesn’t consider existing nodes disk utilization (usually forcing multiple and repeatedly load balancing tasks due to an imbalanced cluster).
+	\item Doesn't consider the real-time workload on nodes before selecting one.
+\end{itemize}
+
+\section{Replication} \label{sec:replication}
+The block replica placement strategy in HDFS predominant and critical aspect regarding data reliability, performance and potentially network bandwidth utilization too. By default is a user-defined number of replicas (default is 3) is placed as following in the system:
+
+\begin{itemize}
+	\item First block is placed on the node where the writer is located.
+	\item Location of second and third block is a distance based calculation favoring bandwidth and cluster structure.
+	\item Rest of the block replicas are placed randomly. 
 \end{itemize}
 \vspace*{3mm}
 
-\begin{definition}[ZFS] \label{def:zfs}
-\textit{It is an extensive 128-bit addressable file system that is always consistent on disk, this is because it performs a copy on write operation when adding new data, \ie writing modified data into a new space and reuse the old space in the future, thus eliminating the write hole error (corrupted file system) \eg on power loss.}
+, providing: \textit{"$\ldots$ a tradeoff between minimizing the write cost, and maximizing data reliability, availability and aggregate read bandwidth"} as specified in \cite{Shvachko:2010:HDF:1913798.1914427} by Shvachko \etal. The block replica placement strategy aforementioned can be overridden by a user-specified if necessary. The multiple and repeatedly load balancing tasks as described in section \ref{sec:partitioning} are still compelling.
 \newline
 
-\textit{ZFS is composed of one or more virtual storage pools which are a collection of virtual devices that can be interpreted as a RAID (Redundant Array of Independent Disks) set in a standard file system.}
-\end{definition}
+Disco DDFS is using non-RAID (Redundant Array of Independent Disks) disk configuration. However, it provides fault-tolerance by implementing a \textit{N}-way replication\footnote{Amazon Dynamo \cite{DeCandia:2007:DAH:1294261.1294281} implements this protocol too.}, which is similar but simpler version of HDFS.
 
-\section{Ambitions} \label{sec:ambitions}
-Following ambitions for the architectural overview has been established and evaluated based on the assumptions described in the previous section and the experiences taught by studying similar system such as the once outlined in section \ref{sec:related}.
+\section{Presumptions} \label{sec:presumptions}
+Based on the analysis and reasoning throughout this chapter are presumptions constructed and has first and foremost the purpose of limiting the prototype and secondly because match the surrounding environment and settings and additionally comply with the general assumption outlined in section \ref{sec:assumption}.
+
+\vspace*{2mm}
+\begin{itemize}
+	\item The solution is operating in a homogeneous and high-performance computing environment like a cluster.
+	\item Minimal replication scheme (discussed in section \ref{sec:replication})
+	\item Reduced security priority within the system (discussed in section \ref{sec:security}).
+\end{itemize}
+\vspace*{3mm}
+
+\section{Objectives}
+The general objectives for the architectural overview has been established and evaluated based on the presumptions described in the previous section and the experiences taught by studying similar system such as the once outlined in section \ref{sec:related}.
 
 \vspace*{3mm}
 \begin{itemize}
@@ -62,7 +82,7 @@ Following ambitions for the architectural overview has been established and eval
 \vspace*{3mm}
 
 \section{Examples}
-The focus of this project will be on three different types of datasets, which combined will contribute to an exploratory research and development process of the big data file archive and will challenge various critical aspects, additionally, will they combined adhere the ambitions described in section \ref{sec:ambitions}. The selected types of data sets are all contemporary and relevant both in the field of study but also in businesses.
+The focus of this project will be on three different types of datasets, which combined will contribute to an exploratory research and development process of the big data file archive and will challenge various critical aspects, additionally, will they combined adhere the presumptions described in section \ref{sec:presumptions} and the overall assumptions described in section \ref{sec:assumption}. The selected types of data sets are all contemporary and relevant both in the field of study but also in businesses.
 
 \subsection*{Image data}
 The type of image data challenges the aspects of the solution with regards to datasets with fixed sized chunks and thus enabling the opportunity of precisely calculating positions and offsets when fetching the data from disk again. Also does this part cover the problem of choosing, designing and implementing a domain-specific metadata language for describing the content and data context. 
@@ -71,10 +91,13 @@ The choice of test image data is limited to high-resolution grayscale X-rays rep
 
 \subsection*{Text}
 Challenges regarding text-based data including first and foremost the semantic correlation, which is well known by nature and furthermore is highly relevant in nowadays prominent companies such as Twitters business model. Secondly, this type of data is typically of a much smaller size than \eg images as described above and thus, demands the support for arbitrary sized blocks on disk. 
+\newline
 
 The correlation complications cover additionally the design and implementation of an extension to the chosen metadata context description format, which enables more generic data-specific definitions. The choice of text test data covers \eg readily available raw news articles.
 
 \subsection*{Simulation results}
-The third and final type of data is large complex and multidimensional scientific simulation results which easily exceeds petabytes\footnote{1 PB =  1000 terabytes = $10^{15}$ bytes.} of data per dataset. The fact that data like this produces single entries in multiple dimensions with a lot of features is a challenge and difficulty because only a subset of those features is interesting from a BDA point-of-view.
+The third and final type of data is large complex and multidimensional scientific simulation results which easily exceeds petabytes\footnote{1 PB =  1000 terabytes = $10^{15}$ bytes.} of data per dataset. 
+
+The fact that data like this produces single entries in multiple dimensions with a lot of features is a challenge and difficulty because only a subset of those features is interesting from a BDA point-of-view.
 
 The choice of test data for this type is astrophysics and climate modeling data that increases to extremely large collections. Both of these types suffers from the facts mentioned above.

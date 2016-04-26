@@ -1,6 +1,6 @@
 \documentclass[12pt,a4paper,final,oneside,openany]{memoir}
 
-\usepackage[titelside, en, nat]{ku-forside}
+\usepackage[lang=en,grid]{kufront}
 \usepackage[english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -33,20 +33,20 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 
-\def \CodeName{BDOS }
-\def \CodeNameFull{BDOS (Big Data Object Store)}
-\def \Gateway{BDQE }
-\def \Network{BDAN }
+\def \CodeName{SOFA }
+\def \CodeNameFull{SOFA (Semantic Oriented File Archive) }
 
 \def \FullName{Steffen Karlsson}
 \def \HandinDate{August 2016}
 
-\titel{\CodeName}
-\undertitel{A semantics aware big data object-based storage system}
-\forfatter{\FullName -- \texttt{ckh340@alumni.ku.dk}}
-\opgave{Master's Thesis}
-\dato{\HandinDate}
-\vejleder{\textbf{Supervisor:} Professor Brian Vinter}
+\renewcommand{\kufrontfont}{\sffamily}
+
+\title{\CodeName}
+\subtitle{\large A semantics oriented file archive for big data analysis}
+\author{\Large \FullName \quad {\ttfamily\large ckh340@alumni.ku.dk}}
+\date{\HandinDate}
+\project{\bfseries\LARGE Master's Thesis}
+\supervisor{\textbf{Supervisor:} Professor Brian Vinter}
 
 \renewcommand*{\cftpartname}{Part\space}
 \cftpagenumbersoff{part}
@@ -64,7 +64,7 @@
 
 \newcommand{\todo}[1]{{\color{red} \textbf{TODO:}} #1}
 
-\newcommand{\reference}[2]{outlined in Definition \ref{#1} and described in further details in section \ref{#2}}
+\newcommand{\reference}[2]{outlined in definition \ref{#1} and described in further details in section \ref{#2}}
 
 \newcommand{\etal}{\textit{et al}. }
 \newcommand{\ie}{\textit{i}.\textit{e}., }
@@ -105,11 +105,14 @@
 \makeheadposition{diku}{flushright}{flushright}{}{}   
 
 \begin{document}
-\pagestyle{plain}
+\pagestyle{empty}
 \frontmatter
 \clearpage
-\maketitle
 
+\maketitle
+\clearpage
+
+\pagestyle{plain}
 \vspace{3cm}
 \addcontentsline{toc}{chapter}{Abstract}
 \begin{abstract}
@@ -118,6 +121,7 @@
 
 \setlength{\cftpartnumwidth}{4em}
 
+\chapter{Preface}
 \input{tex/preface.tex}
 
 \clearpage
@@ -133,21 +137,47 @@
 \counterwithout{table}{chapter}
 \counterwithout{figure}{chapter}
 
+\chapter{Introduction}
 \input{tex/introduction.tex}
 
+\chapter{Technical Background} \label{chp:background}
 \input{tex/background.tex}
 
+
+\part{A Semantic Oriented File Archive} \label{prt:sofa}
+\chapter{Analysis} \label{chp:analysis}
 \input{tex/analysis.tex}
 
+\chapter{Architecture and Design} \label{chp:architecture}
 \input{tex/architecture.tex}
 
-%\part{Big Data Context Descriptor} \label{part:bdcd}
+\chapter{Components} \label{chp:components}
+\input{tex/components.tex}
 
-%\part{Big Data Query Engine} \label{part:bdqe}
+\chapter{API} \label{chp:api}
+\input{tex/sofa-api.tex}
 
-\appendix
-%\input{appendix.tex}
 
+\part{Extensions} \label{prt:extensions}
+\chapter{A Big Data Analysis Engine} \label{chp:bdae}
+\input{tex/bdae.tex}
+
+\chapter{SofaFUSE} \label{chp:fuse}
+\input{tex/sofa-fuse.tex}
+
+
+\part{Evaluation} \label{prt:evaluation}
+\chapter{Test} \label{chp:test}
+\input{tex/test.tex}
+
+\chapter{Benchmark} \label{chp:benchmark}
+\input{tex/benchmark.tex}
+
+\chapter{Conclusion} \label{chp:conclusion}
+\input{tex/conclusion.tex}
+
+
+\part{Epilogue} \label{prt:epilogue}
 \backmatter
 \renewcommand*{\printchaptertitle}[1]{\flushleft\chaptitlefont#1}
 \renewcommand*{\chaptitlefont}{\normalfont\sffamily\Huge\bfseries}
@@ -156,5 +186,8 @@
 \sectionmark{Bibliography}
 \bibliographystyle{ieeetr}
 \bibliography{tex/references}
+
+\appendix
+\input{tex/appendix.tex}
 
 \end{document}
