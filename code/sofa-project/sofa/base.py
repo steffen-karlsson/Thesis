@@ -35,6 +35,14 @@ class SofaBaseObject:
         """
         pass
 
+    def postprocess(self, res):
+        """
+        Define how to e.g. save the data or other post process steps if needed.
+
+        :param res: The result of the map reduce operation
+        """
+        return res
+
     @abstractmethod
     def get_operations(self):
         """
