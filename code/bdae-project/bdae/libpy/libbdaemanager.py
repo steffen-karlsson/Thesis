@@ -6,6 +6,7 @@
 """
 
 from inspect import isgeneratorfunction
+from logging import debug
 
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 from sofa.error import verify_error, DatasetAlreadyExistsException, DatasetNotExistsException, is_error
@@ -56,7 +57,7 @@ class PyBDAEManager(PyBDAEScientist):
 
         for map_fun in dataset.get_map_functions():
             if not isgeneratorfunction(map_fun):
-                raise Exception("%s is not an generator i.e. yields" % map_fun.func_name)
+                debug("%s is not an generator i.e. yields" % map_fun.func_name)
 
         self.__finialize_create(dataset)
 
