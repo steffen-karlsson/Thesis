@@ -289,10 +289,12 @@ class StorageHandler(object):
             # Use chain generator method (iflatten) to reduce memory consumption
             blocks = self.__get_raw_blocks(didentifier, is_root, iflatten=True)
 
-        if operation_context.has_multiple_args():
-            args = [blocks] + str(query).split(operation_context.delimiter)
-        else:
-            args = [blocks, query]
+        args = [blocks]
+        if query:
+            if operation_context.has_multiple_args():
+                args = args + str(query).split(operation_context.delimiter)
+            else:
+                args = args + [query]
 
         return operation_context.get_functions(), args
 
