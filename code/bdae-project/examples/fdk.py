@@ -7,8 +7,7 @@ from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 from bdae.dataset import AbsMapReduceDataset
 from sofa.operation import OperationContext
-
-BASE_PATH = "/home/steffenkarlsson/src/Thesis/code/bdae-project/examples/fdkdata/"
+from os import getcwd
 
 NUM_PROJECTIONS = 320
 DETECTOR_ROWS = 192
@@ -40,7 +39,7 @@ class FDKDataset(AbsMapReduceDataset):
         import matplotlib.pyplot as plt
         import matplotlib.cm as cm
 
-        path = BASE_PATH + "foo.png"
+        path = getcwd() + "/test.png"
 
         plt.clf()
         plt.matshow(asarray(res), fignum=1, cmap=cm.Greys_r)
@@ -111,6 +110,8 @@ def fdkcore(args):
 
 
 if __name__ == '__main__':
+    BASE_PATH = getcwd() + "/testdata/"
+
     manager = PyBDAEManager("sofa:textdata:gateway:0")
     manager.create_dataset(FDKDataset(name="FDK dataset", description="Testing reconstruction"))
     manager.append_to_dataset("FDK dataset", BASE_PATH + "projections.bin")
