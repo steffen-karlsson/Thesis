@@ -69,11 +69,25 @@ function showWaitingDialog (title) {
     });
 }
 
+function showImageDialog (text_title, path, glyph) {
+    window.dialog = BootstrapDialog.show( {
+        label: BootstrapDialog.TYPE_SUCCESS,
+        title: function (dialog) {
+            var $title = $('<span class="glyphicon ' + glyph +'" aria-hidden="true"></span><span> ' + text_title + '</span>');
+            return $title;
+        },
+        message: function (dialog) {
+            var $image = $('<img src="' + path + '" />');
+            return $image;
+        }
+    });
+}
+
 function showDialog (text_title, text_message, glyph) {
     BootstrapDialog.show({
         label: BootstrapDialog.TYPE_SUCCESS,
         title: function (dialog) {
-            var $title = $('<span class="glyphicon ' + glyph +'" aria-hidden="true"></span><span>' + text_title + '</span>');
+            var $title = $('<span class="glyphicon ' + glyph +'" aria-hidden="true"></span><span> ' + text_title + '</span>');
             return $title;
         },
         message: function (dialog) {
@@ -114,11 +128,17 @@ function pollForQueryResult(callData, delay, itr){
             statusCode: {
                 // Success
                 200: function ( data ) {
-                    console.log("DATA >> " + data);
                     window.dialog.close();
+                    console.log("DATA >> " + data);
+                    data = JSON.parse(data)
+                    console.log("DATA >> " + data);
 
-                    message = 'Result for ' + callData["function-name"] + ' with argument: "' + callData["query"] + '" is: ' + data;
-                    showDialog('Execution success', message, 'glyphicon-ok-circle');
+                    if (data['is-path']) {
+                        showImageDialog('Execution success', data['data'], 'glyphicon-ok-circle')
+                    } else {
+                        message = 'Result for ' + callData["function-name"] + ' with argument: "' + callData["query"] + '" is: ' + data['data'];
+                        showDialog('Execution success', message, 'glyphicon-ok-circle');
+                    }
                 },
                 // Processing
                 202: function () {

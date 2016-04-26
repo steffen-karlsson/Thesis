@@ -80,5 +80,5 @@ class PyBDAEScientist:
             verify_error(res)
             if callback:
                 # Return result in callback
-                callback(res[1])
+                callback(res[1][0])
             return

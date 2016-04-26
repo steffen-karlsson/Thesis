@@ -6,9 +6,10 @@ from random import choice
 from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
 from math import floor
+from os import path
 
 from sofa.cache import CacheSystem
-from sofa.error import is_error, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING
+from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, STATUS_SUCCESS
 from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
@@ -193,7 +194,17 @@ class GatewayHandler(object):
         if fidentifier not in result_cache:
             return STATUS_NOT_FOUND, None
 
-        return result_cache[fidentifier]
+        job_res = result_cache[fidentifier]
+        if is_processing(job_res):
+            return STATUS_PROCESSING, None
+
+        res = self.__get_class_from_identifier(didentifier, 'class-name')
+        if is_error(res):
+            return res
+
+        context, _ = res
+        job_res = context.postprocess(job_res[1])
+        return STATUS_SUCCESS, (job_res, path.exists(job_res))
 
     # Internal Result Api
     def set_status_result(self, didentifier, fidentifier, status, result):

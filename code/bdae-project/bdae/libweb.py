@@ -7,6 +7,7 @@
 
 from ujson import dumps as udumps, loads as uloads
 from os import path
+from base64 import b64encode
 
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
@@ -99,7 +100,11 @@ class _JobHandler(RequestHandler):
         if body['is-polling']:
             status, res = GW.poll_for_result(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(status)
-            self.finish(str(res))
+            if res[1]:
+                with open(res[0], "rb") as f:
+                    self.finish(udumps({'data': "data:image/png;base64," + b64encode(f.read()), 'is-path': True}))
+            else:
+                self.finish(udumps({'data': res[0], 'is-path': False}))
         else:
             GW.submit_job(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(202)

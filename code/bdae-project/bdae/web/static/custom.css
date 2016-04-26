@@ -36,3 +36,8 @@
     height: 50px;
     margin-left: 10px;
 }
+
+.modal-content {
+    display: inline-block;
+    min-width: 780px;
+}
