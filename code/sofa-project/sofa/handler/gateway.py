@@ -204,7 +204,7 @@ class GatewayHandler(object):
 
         context, _ = res
         job_res = context.postprocess(job_res[1])
-        return STATUS_SUCCESS, (job_res, path.exists(job_res))
+        return STATUS_SUCCESS, (job_res, isinstance(job_res, str) and path.exists(job_res))
 
     # Internal Result Api
     def set_status_result(self, didentifier, fidentifier, status, result):
