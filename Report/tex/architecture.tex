@@ -52,12 +52,22 @@ The design and structure of the storage node will be described as part of chapte
 
 
 \section{Partitioning and distribution}
+The partitioning and distribution protocol in \CodeName is based on consistent hashing (\reference{def:ch}{sec:partitioning}) and the round-robin load balancing algorithm (described in definition \ref{def:rr}). The downside of this distribution algorithm is that it does not take state, availability and workload among other properties of the servers into account. However, one of the presumptions (described in section \ref{sec:presumptions}) is that the framework primarily is expected to be operating in homogeneous and high-performance computing environment like a cluster.
+\vspace*{3mm}
+
+\begin{definition}[Round-robin] \label{def:rr}
+\textit{A simple, fair share and starvation free load balancing algorithm that is easy to implement. The algorithm is distributing elements until there are no more among the available servers in a one-by-one or chunk-by-chunk fashion, thus the name of the algorithm.}
+\end{definition}
+\vspace*{3mm}
+
 \begin{figure}[h!]
 	\centering
 	\includegraphics[scale=0.5]{pdf/rr-partitioning.pdf}
 	\caption[Overview of the partitioning and data distribution protocol]{General flow of the partitioning and data distribution protocol in \CodeName, assuming one gateway server \textit{g} and a client \textit{c} attempting to insert a data set \textit{A} consisting of \textit{n} blocks $\text{d}1 \ldots \text{d}n$.\label{fig:rr-partitioning}}
 \end{figure}
-%As mentioned in section \ref{sec:partitioning} are data organ
+
+\vspace*{3mm}
+Figure \ref{fig:rr-partitioning} illustrates the general flow of the preferred partitioning and distribution protocol. The data is from the client to a arbitrary gateway server, where it is using consistent hashing (as in Amazons Dynamo project) assigned a unique identifier and partitioned into approximately\footnote{As described in section \ref{sec:objectives} is one of the ambitions to store arbitrary sized block.} equal block sizes. The blocks are distributed in a round-robin fashion to the storage nodes, after the metadata for the data is assigned to the root server\footnote{The server responsible for the data, which is determined by the identifier.}. It is presumably sufficient as a distribution protocol under the assumptions outlined in section \ref{sec:assumption} with regards to big data.
 
 \section{Naming and virtualization}
 A requirement is that each instance of \CodeNameFull associated with a specific global instance name \eg based on the research area or even specific data types. This name is predominantly used to virtualize components, data, and caches and thereby supporting multiple executions of \CodeName instances at once with own domain.
