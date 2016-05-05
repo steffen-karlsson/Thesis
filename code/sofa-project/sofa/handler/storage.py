@@ -552,9 +552,10 @@ def _local_execute(self, functions, args):
             res = possible_function(args)
             return _local_execute(self, functions, res)
 
-        if any([keyword.findall(possible_function) for keyword in KEYWORDS.keys()]):
-            # Find keyword function and call it
-            res = KEYWORDS[possible_function](possible_function, [self, args])
+        # Find keyword function and call it
+        is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
+        if is_keyword_fun:
+            res = KEYWORDS.values()[is_keyword_fun[0]](possible_function, [self, args])
             return _local_execute(self, functions, res)
 
     except IndexError:
