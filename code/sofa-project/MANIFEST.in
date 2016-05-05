@@ -3,5 +3,6 @@ recursive-include *.py
 include sofa/docs/index.rst
 include sofa/docs/configparser.rst
 include sofa/docs/sofabasetype.rst
+include sofa/docs/strategy.rst
 include sofa/docs/Makefile
 include sofa/docs/conf.py

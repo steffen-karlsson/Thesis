@@ -30,7 +30,8 @@ setup(
             "conf.py",
             "Makefile",
             "configparser.rst",
-            "sofabasetype.rst"
+            "sofabasetype.rst",
+            "strategy.rst",
             "index.rst",
             "conf.py"
         ]

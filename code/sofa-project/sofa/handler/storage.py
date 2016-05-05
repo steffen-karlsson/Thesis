@@ -18,7 +18,7 @@ from sofa.secure import secure_load, secure_load2
 from sofa.tree_barrier import TreeBarrier
 from sofa.cache import CacheSystem
 from sofa.handler.api import _InternalStorageApi, _InternalGatewayApi
-from sofa.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
+from sofa.foundation.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
 
 RESULT = 0
 REQUEST_COUNT = 1

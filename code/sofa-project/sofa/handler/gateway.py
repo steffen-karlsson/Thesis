@@ -13,7 +13,7 @@ from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_
 from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
-from sofa.operation import OperationContext
+from sofa.foundation.operation import OperationContext
 
 
 def find_identifier(name, mod):

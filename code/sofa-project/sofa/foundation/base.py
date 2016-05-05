@@ -6,7 +6,8 @@
 """
 
 from abc import abstractmethod, ABCMeta
-
+from sofa.handler.storage import KEYWORDS
+from strategy import RoundRobin
 
 class SofaBaseObject:
     """
@@ -66,14 +67,14 @@ class SofaBaseObject:
         """
         pass
 
-    def get_block_stride(self):
+    def get_distribution_strategy(self):
         """
-        Method to override in order to define a stride for the block distribution different from default e.g. 1.
+        Method to override in order to define a new distribution strategy from default e.g. Round Robin.
         NB! If number of storage nodes in the system is one, then this is ignored.
 
-        :return: int
+        :return: :class:`.RoundRobin`, :class:`.Tiles` or :class:`.Linear`
         """
-        return 1
+        return RoundRobin()
 
     @abstractmethod
     def verify_function(self, function_name):
@@ -85,7 +86,8 @@ class SofaBaseObject:
         :type function_name: str
         :return: function if its valid function_name or None
         """
-        pass
+        return function_name if function_name in KEYWORDS else None
+
 
 def load_data_by_url(url):
     from urllib2 import urlopen

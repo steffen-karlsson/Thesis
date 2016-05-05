@@ -2,8 +2,8 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from bdae.templates.text_dataset import TextDataBySentence
-from sofa.base import load_data_by_url
-from sofa.operation import OperationContext
+from sofa.foundation.base import load_data_by_url
+from sofa.foundation.operation import OperationContext
 
 
 class MobyDickDatasetSentence(TextDataBySentence):

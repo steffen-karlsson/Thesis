@@ -6,7 +6,8 @@
 """
 
 from abc import abstractmethod, ABCMeta
-from sofa.base import SofaBaseObject
+
+from sofa.foundation.base import SofaBaseObject
 
 
 class AbsMapReduceDataset(SofaBaseObject):

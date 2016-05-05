@@ -1,13 +1,15 @@
 # Created by Steffen Karlsson on 04-25-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+from os import getcwd
+
 from numpy import fromfile, float32, dot, divide, int32, rint, zeros, array, add, asarray
 
 from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
+from bdae.libweb import GatewayWebWrapper
 from bdae.dataset import AbsMapReduceDataset
-from sofa.operation import OperationContext
-from os import getcwd
+from sofa.foundation.operation import OperationContext
 
 NUM_PROJECTIONS = 320
 DETECTOR_ROWS = 192
@@ -125,4 +127,6 @@ if __name__ == '__main__':
                      BASE_PATH + 'transform.bin',
                      BASE_PATH + 'volumeweight.bin'])
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
+    GatewayWebWrapper(scientist).start(9990)
+    # scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
+

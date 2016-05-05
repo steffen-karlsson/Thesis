@@ -10,7 +10,8 @@ from numpy.lib import stride_tricks, median
 from tifffile import imread
 
 from bdae.libpy.libbdaescientist import PyBDAEScientist
-from sofa.operation import OperationContext
+from sofa.foundation.operation import OperationContext
+from sofa.foundation.strategy import Tiles
 from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.templates.image_dataset import ImageDataset
 
@@ -72,6 +73,9 @@ class AVS5MDataset(ImageDataset):
 
     def postprocess(self, res):
         return res
+
+    def get_distribution_strategy(self):
+        return Tiles(3)
 
 
 def median_filter(args):

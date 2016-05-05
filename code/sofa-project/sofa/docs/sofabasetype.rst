@@ -1,6 +1,6 @@
 Base Datatype
 =============
 
-.. automodule:: sofa.base
+.. automodule:: sofa.foundation.base
     :members:
     :private-members:
