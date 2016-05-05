@@ -38,4 +38,8 @@ class AbsMapReduceDataset(SofaBaseObject):
     def verify_function(self, function_name):
         function_map = {func.func_name: func for func in self.get_reduce_functions()}
         function_map.update({func.func_name: func for func in self.get_map_functions()})
-        return function_map[function_name] if function_name in function_map else None
+
+        if function_name in function_map:
+            return function_map[function_name]
+
+        return super(AbsMapReduceDataset, self).verify_function(function_name)

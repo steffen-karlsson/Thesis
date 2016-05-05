@@ -10,6 +10,7 @@ from multiprocessing.pool import ThreadPool
 from collections import defaultdict
 from itertools import izip_longest, chain
 from inspect import isfunction, isbuiltin
+from re import compile
 
 from sofa.handler import get_class_from_source
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
@@ -24,6 +25,33 @@ RESULT = 0
 REQUEST_COUNT = 1
 IS_WORKING = 2
 GATEWAY = 3
+
+
+def _forward_and_extract(fun, num_args):
+    # Forwards to the right function (fun) with possible extracted arguments based on the pattern
+    # defined in KEYWORDS and as argument to _forward_extract_args.
+    def _forward_extract_args(fun_name, args):
+        has_arguments = ':' in fun_name
+        expects_arguments = num_args > 0
+        if has_arguments and expects_arguments:
+            key_fun_args = fun_name.split(":")[1:]
+            if key_fun_args != num_args:
+                # TODO: throw exception
+                pass
+
+            return fun(args[0], args[1:], tuple(key_fun_args))
+        else:
+            return fun(args[0], args[1:])
+
+    return _forward_extract_args
+
+
+# Function for KEYWORD: neighborhood
+def _exchange_neighborhood(self, args, ghosts=(1, 1)):
+    pass
+
+
+KEYWORDS = {compile("neighborhood(?::\d:\d)?$"): _forward_and_extract(_exchange_neighborhood, 2)}
 
 
 class StorageHandler(object):
@@ -182,11 +210,21 @@ class StorageHandler(object):
 
         # Else do the job self.
         # TODO: Block from calling any other operation on this context
-        # TODO: Delete all blocks
 
-        # Delete local cache, since context is removed
+        # Delete all blocks
+        local_blocks = len(self.__RAW[identifier]) - 1  # Remove meta data from number of blocks
+        total_blocks = int(uloads(self.__RAW[identifier][0])['num-blocks'])
+
+        if local_blocks != total_blocks:
+            # TODO delete the rest of the blocks on other storage nodes
+            pass
+
+        # Delete local blocks + meta data
+        del self.__RAW[identifier]
+
+        # Delete local cache and ghosts, since context is removed
         self.__srcs.delete(identifier)
-        # TODO: delete identifier from self.__dgcs
+        self.__dgcs.delete(identifier)
         return STATUS_SUCCESS
 
     def get_meta_from_identifier(self, didentifier):
@@ -379,7 +417,7 @@ class StorageHandler(object):
         if not has_result:
             _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
                                                           query, is_root)
-            res = _local_execute(functions, args)
+            res = _local_execute(self, functions, args)
             info("Result for " + self.__config.node + " is: " + str(res))
             if is_root:
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
@@ -492,7 +530,7 @@ def _wrapper_local_execute(args):
     return _local_execute(*args)
 
 
-def _local_execute(functions, args):
+def _local_execute(self, functions, args):
     try:
         possible_function = functions.pop(0)
         if isinstance(possible_function, SequentialOperation):
@@ -508,11 +546,16 @@ def _local_execute(functions, args):
                                      else suboperation.functions), args))
 
             res = pool.map(_wrapper_local_execute, subargs)
-            return _local_execute(functions, res)
+            return _local_execute(self, functions, res)
 
         if isfunction(possible_function) or isbuiltin(possible_function):
             res = possible_function(args)
-            return _local_execute(functions, res)
+            return _local_execute(self, functions, res)
+
+        if any([keyword.findall(possible_function) for keyword in KEYWORDS.keys()]):
+            # Find keyword function and call it
+            res = KEYWORDS[possible_function](possible_function, [self, args])
+            return _local_execute(self, functions, res)
 
     except IndexError:
         return args
