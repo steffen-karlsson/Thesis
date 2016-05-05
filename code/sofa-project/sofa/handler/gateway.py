@@ -5,8 +5,9 @@ from sys import getsizeof
 from random import choice
 from ujson import dumps as udumps, loads as uloads
 from collections import defaultdict
-from math import floor
+from math import floor, ceil
 from os import path
+from inspect import isclass, getmembers
 
 from sofa.cache import CacheSystem
 from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, STATUS_SUCCESS
@@ -14,6 +15,7 @@ from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
 from sofa.foundation.operation import OperationContext
+from sofa.foundation import strategy as sofa_strategies
 
 
 def find_identifier(name, mod):
@@ -118,10 +120,21 @@ class GatewayHandler(object):
 
         context, meta_data = res
 
+        strategy = context.get_distribution_strategy()
+        if not isinstance(strategy, zip(*getmembers(sofa_strategies, isclass))[1]):
+            return STATUS_NOT_FOUND, strategy.__class__.__name__, "is an invalid strategy"
+
         block_count = 0
-        max_stride = context.get_block_stride()
         num_storage_nodes = self.__num_storage_nodes
         create_new_stride = True
+
+        max_stride = 1
+        if isinstance(strategy, sofa_strategies.Linear):
+            # Using ceil to make sure that there isn't too many on last server
+            # Example: Outcome of 100 / 3 should be 34, 34, 32 rather than 33, 33, 34
+            max_stride = int(ceil(strategy.num_blocks / float(num_storage_nodes)))
+        if isinstance(strategy, sofa_strategies.Tiles):
+            max_stride = strategy.num_tiles
 
         # Include calculation on whether the dataset already has blocks
         start = int(floor((meta_data['root-idx'] + (meta_data['num-blocks'] / max_stride)) % self.__num_storage_nodes))

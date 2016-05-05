@@ -19,8 +19,9 @@ class Tiles:
 
 class Linear:
     """
-    Data blocks are split into n approximately equal sized blocks, where n is the number of servers,
-    such that there is no overlap of data on any given server.
+    Data blocks (total number is defined as num_blocks parameter and need to be known on before hand) are split
+    into n approximately equal sized blocks, where n is the number of servers, such that there is no overlap of
+    data on any given server.
     """
-    def __init__(self):
-        pass
+    def __init__(self, num_blocks):
+        self.num_blocks = num_blocks
