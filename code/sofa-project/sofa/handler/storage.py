@@ -79,12 +79,12 @@ class StorageHandler(object):
         nxt = self.__storage_nodes[self.__config.node_idx % self.__num_storage_nodes]
         return prev, nxt
 
-    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count,
-                     didentifier, is_root, use_cyclic, is_local_transfer):
+    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count, didentifier, use_cyclic, is_local_transfer):
         # is_left_ghost = True if sending right
         # is_right_ghost = True if sending left
 
-        self_data = self.__get_raw_blocks(didentifier, is_root)
+        is_root = str(didentifier) in self.__FLAG
+        self_data = self.__get_raw_blocks(didentifier)
         left_ghost, right_ghost = (None,) * 2
 
         if is_right_ghost:
@@ -121,7 +121,7 @@ class StorageHandler(object):
 
         return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
-    def __handle_ghosts(self, didentifier, is_root, operation_context, done_callback_handler, is_local_transfer=False):
+    def __handle_ghosts(self, didentifier, operation_context, done_callback_handler, is_local_transfer=False):
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
         if not is_local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
@@ -130,7 +130,7 @@ class StorageHandler(object):
         send_right = operation_context.ghost_left and (r_neighbor or is_local_transfer)
 
         left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, operation_context.ghost_count, didentifier,
-                                                    is_root, operation_context.use_cyclic, is_local_transfer)
+                                                    operation_context.use_cyclic, is_local_transfer)
 
         if is_local_transfer:
             done_callback_handler(is_ready=False, left=(None, left_ghost), right=(None, right_ghost))
@@ -265,7 +265,8 @@ class StorageHandler(object):
             # Calculate self
             return __self_datasets()
 
-    def __get_raw_blocks(self, didentifier, is_root, iflatten=False):
+    def __get_raw_blocks(self, didentifier, iflatten=False):
+        is_root = str(didentifier) in self.__FLAG
         blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
         return chain(*blocks) if iflatten else blocks
 
@@ -289,7 +290,7 @@ class StorageHandler(object):
 
         return STATUS_NOT_FOUND
 
-    def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query, is_root):
+    def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query):
         # Get blocks to work on
 
         def _get_blocks_with_ghost():
@@ -297,7 +298,7 @@ class StorageHandler(object):
 
             # Merge ghosts into blocks
             for l, m, r in izip_longest(ghosts['ghost-left'] if 'ghost-left' in ghosts else [None],
-                                        self.__get_raw_blocks(didentifier, is_root),
+                                        self.__get_raw_blocks(didentifier),
                                         ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if not l:
@@ -311,7 +312,7 @@ class StorageHandler(object):
             blocks = _get_blocks_with_ghost()
         else:
             # Use chain generator method (iflatten) to reduce memory consumption
-            blocks = self.__get_raw_blocks(didentifier, is_root, iflatten=True)
+            blocks = self.__get_raw_blocks(didentifier, iflatten=True)
 
         args = [blocks]
         if query:
@@ -350,7 +351,7 @@ class StorageHandler(object):
         if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool _wrapper_initialize_execution")
-            args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
+            args = [(node, common) for node in self.__storage_nodes] + [(self, common)]
             ThreadPool(all_nodes).map_async(_wrapper_initialize_execution, args)
         else:
             # Calculate self
@@ -375,7 +376,6 @@ class StorageHandler(object):
 
         # If im the only node in the system
         is_local_transfer = self.__num_storage_nodes == 0
-        is_root = self.__config.node == root
 
         res = self.__get_operation_context(didentifier, function_name)
         if is_error(res):
@@ -386,6 +386,9 @@ class StorageHandler(object):
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
             if is_ready:
+                # # No extra requests for ghosts
+                # self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] = 0
+
                 # There is no need for ghosts
                 if is_local_transfer:
                     self.execute_function(0, didentifier, fidentifier, function_name,
@@ -419,13 +422,11 @@ class StorageHandler(object):
             return
 
         # Find ghosts from local neighbors if needed else execute
-        self.__handle_ghosts(didentifier, is_root, operation_context,
-                             done_callback_handler, is_local_transfer=is_local_transfer)
+        self.__handle_ghosts(didentifier, operation_context, done_callback_handler, is_local_transfer=is_local_transfer)
 
     def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, root, query, recv_value):
         info("Execute function " + function_name + " at " + str(self.__config.node))
 
-        is_root = self.__config.node == root
         first_iteration = itr == 0
 
         operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
@@ -439,11 +440,12 @@ class StorageHandler(object):
                      and self.__srcs.get(didentifier)[fidentifier][RESULT]
 
         if not has_result:
-            _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
-                                                          query, is_root)
-            operation_context_args = (operation_context, root)
+            _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context, query)
+            operation_context_args = (operation_context, root, didentifier)
             res = _local_execute(self, functions, args, operation_context_args)
             info("Result for " + self.__config.node + " is: " + str(res))
+
+            is_root = str(didentifier) in self.__FLAG
             if is_root:
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
                 self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
@@ -509,7 +511,7 @@ class StorageHandler(object):
 
         if left_ghost is not None:
             is_ghost_right = False
-            is_root = self.__config.node == root
+            is_root = str(didentifier) in self.__FLAG
             num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
 
             if root or len(left_ghost) < num_blocks:

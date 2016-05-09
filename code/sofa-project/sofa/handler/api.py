@@ -61,14 +61,14 @@ class _StorageToMonitorApi(object):
 
 
 class _InternalStorageApi(_StorageApi):
-    def initialize_execution(self, root, didentifier, fidentifier, function_name, meta_data, query):
+    def initialize_execution(self, didentifier, fidentifier, function_name, root, query):
         self._validate_api()
-        async(self._api).initialize_execution(root, didentifier, fidentifier, function_name, meta_data, query)
+        async(self._api).initialize_execution(didentifier, fidentifier, function_name, root, query)
 
-    def execute_function(self, itr, root, didentifier, fidentifier, function_name, meta_data, query, prev_value=0):
+    def execute_function(self, itr, root, didentifier, fidentifier, function_name, meta_data, query, recv_value=0):
         self._validate_api()
-        async(self._api).execute_function(itr, root, didentifier, fidentifier, function_name, meta_data, query,
-                                          prev_value)
+        async(self._api).execute_function(itr, root, didentifier, fidentifier,
+                                          function_name, meta_data, query, recv_value)
 
     def send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, root, needs_both):
         self._validate_api()
