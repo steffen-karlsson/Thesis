@@ -30,7 +30,7 @@ GATEWAY = 3
 def _forward_and_extract(fun, num_args):
     # Forwards to the right function (fun) with possible extracted arguments based on the pattern
     # defined in KEYWORDS and as argument to _forward_extract_args.
-    def _forward_extract_args(fun_name, args):
+    def _forward_extract_args(fun_name, operation_context_args, args):
         has_arguments = ':' in fun_name
         expects_arguments = num_args > 0
         if has_arguments and expects_arguments:
@@ -39,17 +39,16 @@ def _forward_and_extract(fun, num_args):
                 # TODO: throw exception
                 pass
 
-            return fun(args[0], args[1:], tuple(key_fun_args))
+            return fun(args[0], args[1:], operation_context_args, tuple(key_fun_args))
         else:
-            return fun(args[0], args[1:])
+            return fun(args[0], args[1:], operation_context_args)
 
     return _forward_extract_args
 
 
 # Function for KEYWORD: neighborhood
-def _exchange_neighborhood(self, args, ghosts=(1, 1)):
+def _exchange_neighborhood(self, args, operation_context_args, ghost_count=(1, 1)):
     pass
-
 
 KEYWORDS = {compile("neighborhood(?::\d:\d)?$"): _forward_and_extract(_exchange_neighborhood, 2)}
 
@@ -80,6 +79,38 @@ class StorageHandler(object):
         nxt = self.__storage_nodes[self.__config.node_idx % self.__num_storage_nodes]
         return prev, nxt
 
+    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count,
+                     didentifier, is_root, use_cyclic, is_local_transfer):
+        # is_left_ghost = True if sending right
+        # is_right_ghost = True if sending left
+
+        self_data = self.__get_raw_blocks(didentifier, is_root)
+        left_ghost, right_ghost = (None,) * 2
+
+        if is_right_ghost:
+            # Only the blocks and the edge between nodes, that's why 0
+            right_ghost = [block[0][:ghost_count] for block in self_data]
+
+            if is_local_transfer or is_root:
+                if use_cyclic:
+                    overflow = right_ghost[0]
+                    # TODO: No wrapping supported, implement on last node
+                    pass
+
+                # Only storage node in the system or previous node doesn't need first when sending left
+                right_ghost = right_ghost[1:]
+
+        if is_left_ghost:
+            # Only the blocks and the edge between nodes, that's why -1
+            left_ghost = [block[-1][-ghost_count:] for block in self_data]
+
+            if use_cyclic:
+                overflow = left_ghost[-1]
+                # TODO: No wrapping supported, implement on last node
+                pass
+
+        return left_ghost, right_ghost
+
     def __context_exists(self, didentifier):
         return str(didentifier) in self.__FLAG
 
@@ -90,67 +121,22 @@ class StorageHandler(object):
 
         return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
-    def __handle_ghosts(self, didentifier, fidentifier, root, function_name, meta_data, query, local_transfer=False):
-        info("Handle ghosts at " + str(self.__config.node))
-        res = self.__get_operation_context(None, function_name, meta_data=meta_data)
-        if is_error(res):
-            self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
-            return
-
-        operation_context, _ = res
-        if not operation_context.needs_ghost():
-            # We don't need to handle ghosts
-            info("No need for ghosts at " + str(self.__config.node))
-            self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
-            return
-
-        is_root = self.__config.node == root
+    def __handle_ghosts(self, didentifier, is_root, operation_context, done_callback_handler, is_local_transfer=False):
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
-        if not local_transfer:
+        if not is_local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
 
-        send_left = operation_context.ghost_right and (l_neighbor or local_transfer)
-        send_right = operation_context.ghost_left and (r_neighbor or local_transfer)
+        send_left = operation_context.ghost_right and (l_neighbor or is_local_transfer)
+        send_right = operation_context.ghost_left and (r_neighbor or is_local_transfer)
 
-        self_data = self.__get_raw_blocks(didentifier, is_root)
-        if send_left:
-            # Only the blocks and the edge between nodes, that's why 0
-            right_ghost = [block[0][:operation_context.ghost_count] for block in self_data]
+        left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, operation_context.ghost_count, didentifier,
+                                                    is_root, operation_context.use_cyclic, is_local_transfer)
 
-            if local_transfer or is_root:
-                if operation_context.use_cyclic:
-                    overflow = right_ghost[0]
-                    # TODO: No wrapping supported, implement on last node
-                    pass
-
-                # Only storage node in the system or previous node doesn't need first when sending left
-                right_ghost = right_ghost[1:]
-
-        if send_right:
-            # Only the blocks and the edge between nodes, that's why -1
-            left_ghost = [block[-1][-operation_context.ghost_count:] for block in self_data]
-
-            if operation_context.use_cyclic:
-                overflow = left_ghost[-1]
-                # TODO: No wrapping supported, implement on last node
-                pass
-
-        assert left_ghost is not None or right_ghost is not None
-
-        needs_both = operation_context.ghost_right and operation_context.ghost_left
-        fun_args = (didentifier, fidentifier, needs_both, (function_name, meta_data, root, query))
-
-        if local_transfer:
-            self.__local_send_ghost(left_ghost, right_ghost, *fun_args)
+        if is_local_transfer:
+            done_callback_handler(is_ready=False, left=(None, left_ghost), right=(None, right_ghost))
             return
 
-        if send_left:
-            info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
-            l_neighbor.send_ghost(None, right_ghost, *fun_args)
-
-        if send_right:
-            info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
-            r_neighbor.send_ghost(left_ghost, None, *fun_args)
+        done_callback_handler(is_ready=False, left=(l_neighbor, right_ghost), right=(r_neighbor, left_ghost))
 
     def create(self, bundle):
         identifier, meta_data, is_update = secure_load(bundle)
@@ -359,13 +345,8 @@ class StorageHandler(object):
         all_nodes = self.__num_storage_nodes + 1  # Plus one for self
         self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway]
 
-        res = self.get_meta_from_identifier(didentifier)
-        if is_error(res):
-            return res
-        meta_data = uloads(res)
-
         root = self.__config.node
-        common = (didentifier, fidentifier, function_name, meta_data, root, query)
+        common = (didentifier, fidentifier, function_name, root, query)
         if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool _wrapper_initialize_execution")
@@ -385,7 +366,7 @@ class StorageHandler(object):
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
-    def initialize_execution(self, didentifier, fidentifier, function_name, meta_data, root, query):
+    def initialize_execution(self, didentifier, fidentifier, function_name, root, query):
         info("Initialize execution at " + str(self.__config.node))
 
         self.__tb = TreeBarrier(self.__config.node,
@@ -393,11 +374,53 @@ class StorageHandler(object):
                                 root)
 
         # If im the only node in the system
-        use_local_transfer = self.__num_storage_nodes == 0
+        is_local_transfer = self.__num_storage_nodes == 0
+        is_root = self.__config.node == root
+
+        res = self.__get_operation_context(didentifier, function_name)
+        if is_error(res):
+            self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
+            return
+        operation_context, meta_data = res
+
+        def done_callback_handler(is_ready, left, right):
+            # left and right is tuples with node reference and data to send
+            if is_ready:
+                # There is no need for ghosts
+                if is_local_transfer:
+                    self.execute_function(0, didentifier, fidentifier, function_name,
+                                          meta_data, self.__config.node, query, 0)
+                else:
+                    self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
+                return
+
+            fun_args = (didentifier, fidentifier, operation_context.needs_both_ghosts(),
+                        (function_name, meta_data, root, query))
+
+            l_neighbor, right_ghost = left
+            r_neighbor, left_ghost = right
+
+            # Ghost is required
+            if is_local_transfer:
+                self.__handle_received_ghosts(left_ghost, right_ghost, *fun_args)
+            else:
+                if operation_context.ghost_right and r_neighbor:
+                    info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
+                    l_neighbor.send_ghost(None, right_ghost, *fun_args)
+
+                if operation_context.ghost_left and r_neighbor:
+                    info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
+                    r_neighbor.send_ghost(left_ghost, None, *fun_args)
+
+        if not operation_context.needs_ghost():
+            # Check if ghosts is needed to complete the calculation
+            info("No need for ghosts at " + str(self.__config.node))
+            done_callback_handler(is_ready=True, left=None, right=None)
+            return
 
         # Find ghosts from local neighbors if needed else execute
-        self.__handle_ghosts(didentifier, fidentifier, root, function_name, meta_data, query,
-                             local_transfer=use_local_transfer)
+        self.__handle_ghosts(didentifier, is_root, operation_context,
+                             done_callback_handler, is_local_transfer=is_local_transfer)
 
     def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, root, query, recv_value):
         info("Execute function " + function_name + " at " + str(self.__config.node))
@@ -406,6 +429,7 @@ class StorageHandler(object):
         first_iteration = itr == 0
 
         operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
+        # TODO: Unify and remove reduce word to generalize SOFA
         functions = operation_context.get_functions()
         reduce_function = functions[-1]
 
@@ -417,7 +441,8 @@ class StorageHandler(object):
         if not has_result:
             _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context,
                                                           query, is_root)
-            res = _local_execute(self, functions, args)
+            operation_context_args = (operation_context, root)
+            res = _local_execute(self, functions, args, operation_context_args)
             info("Result for " + self.__config.node + " is: " + str(res))
             if is_root:
                 gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
@@ -476,7 +501,7 @@ class StorageHandler(object):
             else:
                 self.execute_function(*common)
 
-    def __local_send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
+    def __handle_received_ghosts(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
         info("Receiving ghost at " + self.__config.node)
 
         assert left_ghost is not None or right_ghost is not None
@@ -507,7 +532,7 @@ class StorageHandler(object):
             self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
 
     def send_ghost(self, bundle):
-        self.__local_send_ghost(*secure_load(bundle))
+        self.__handle_received_ghosts(*secure_load(bundle))
 
     # Internal Monitor Api
     def heartbeat(self):
@@ -530,11 +555,12 @@ def _wrapper_local_execute(args):
     return _local_execute(*args)
 
 
-def _local_execute(self, functions, args):
+def _local_execute(self, functions, args, operation_context_args):
     try:
         possible_function = functions.pop(0)
         if isinstance(possible_function, SequentialOperation):
-            return _local_execute(functions, _local_execute(list(possible_function.functions), args))
+            res = _local_execute(self, list(possible_function.functions), args, operation_context_args)
+            return _local_execute(self, functions, res, operation_context_args)
 
         if isinstance(possible_function, ParallelOperation):
             suboperations = possible_function.functions
@@ -542,21 +568,21 @@ def _local_execute(self, functions, args):
 
             subargs = []
             for suboperation in suboperations:
-                subargs.append((list(suboperation if (isfunction(suboperation) or isbuiltin(suboperation))
-                                     else suboperation.functions), args))
+                subargs.append((self, list(suboperation if (isfunction(suboperation) or isbuiltin(suboperation))
+                                           else suboperation.functions), args, operation_context_args))
 
             res = pool.map(_wrapper_local_execute, subargs)
-            return _local_execute(self, functions, res)
+            return _local_execute(self, functions, res, operation_context_args)
 
         if isfunction(possible_function) or isbuiltin(possible_function):
             res = possible_function(args)
-            return _local_execute(self, functions, res)
+            return _local_execute(self, functions, res, operation_context_args)
 
         # Find keyword function and call it
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
         if is_keyword_fun:
-            res = KEYWORDS.values()[is_keyword_fun[0]](possible_function, [self, args])
-            return _local_execute(self, functions, res)
+            res = KEYWORDS.values()[is_keyword_fun[0]](possible_function, operation_context_args, [self, args])
+            return _local_execute(self, functions, res, operation_context_args)
 
     except IndexError:
         return args
