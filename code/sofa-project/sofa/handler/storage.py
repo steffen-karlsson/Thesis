@@ -386,9 +386,6 @@ class StorageHandler(object):
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
             if is_ready:
-                # # No extra requests for ghosts
-                # self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] = 0
-
                 # There is no need for ghosts
                 if is_local_transfer:
                     self.execute_function(0, didentifier, fidentifier, function_name,
