@@ -86,7 +86,7 @@ class SofaBaseObject:
         :type function_name: str
         :return: function if its valid function_name or None
         """
-        return function_name if function_name in KEYWORDS else None
+        return function_name if any([keyword.findall(function_name) for keyword in KEYWORDS]) else None
 
 
 def load_data_by_url(url):

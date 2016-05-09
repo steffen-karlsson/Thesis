@@ -4,7 +4,7 @@
 from re import finditer
 
 
-def _strip(s):
+def _strip_operators(s):
     return s.strip()[1:-1]
 
 
@@ -89,9 +89,9 @@ class OperationContext:
         par_end = parallel_operator[1]
 
         if not syntax.startswith(seq_start) or not syntax.endswith(seq_end):
-            raise Exception("Synatx has start with %s and end with %s, i.e. be sequential" % (seq_start, seq_end))
+            raise Exception("Syntax has start with %s and end with %s, i.e. be sequential" % (seq_start, seq_end))
 
-        syntax, last_fun = _strip(syntax).rsplit(",", 1)
+        syntax, last_fun = _strip_operators(syntax).rsplit(",", 1)
         functions = _crawl_syntax(context, syntax, [context.verify_function(last_fun.strip())],
                                   seq_start, seq_end, par_start, par_end)
         return OperationContext(fun_name, Sequential(*functions))
@@ -109,7 +109,7 @@ class OperationContext:
         self.ghost_right = False
         self.use_cyclic = False
 
-    def with_ghost(self, ghost_count, use_ghost_left, use_ghost_right, use_cyclic=False):
+    def with_initial_ghosts(self, ghost_count, use_ghost_left, use_ghost_right, use_cyclic=False):
         # Halo Lines
         self.ghost_count = ghost_count
         self.ghost_left = use_ghost_left
@@ -117,13 +117,11 @@ class OperationContext:
         self.use_cyclic = use_cyclic
         return self
 
-    def with_multiple_arguments(self, num_args, delimiter=','):
-        self.num_args = num_args
-        self.delimiter = delimiter
-        return self
-
     def needs_ghost(self):
         return self.ghost_count > 0 and (self.ghost_left or self.ghost_right)
+
+    def needs_both_ghosts(self):
+        return self.ghost_right and self.ghost_left
 
     def has_multiple_args(self):
         return self.num_args > 1
