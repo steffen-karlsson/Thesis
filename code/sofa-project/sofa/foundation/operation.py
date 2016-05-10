@@ -117,6 +117,11 @@ class OperationContext:
         self.use_cyclic = use_cyclic
         return self
 
+    def with_multiple_arguments(self, num_args, delimiter=','):
+        self.num_args = num_args
+        self.delimiter = delimiter
+        return self
+
     def needs_ghost(self):
         return self.ghost_count > 0 and (self.ghost_left or self.ghost_right)
 
