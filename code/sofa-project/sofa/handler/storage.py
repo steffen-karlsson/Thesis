@@ -11,6 +11,7 @@ from collections import defaultdict
 from itertools import izip_longest, chain
 from inspect import isfunction, isbuiltin
 from re import compile
+from collections import Iterable
 
 from sofa.handler import get_class_from_source
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
@@ -30,7 +31,7 @@ GATEWAY = 3
 def _forward_and_extract(fun, num_args):
     # Forwards to the right function (fun) with possible extracted arguments based on the pattern
     # defined in KEYWORDS and as argument to _forward_extract_args.
-    def _forward_extract_args(fun_name, operation_context_args, args):
+    def _forward_extract_args(handler, args, fun_name, operation_context_args):
         has_arguments = ':' in fun_name
         expects_arguments = num_args > 0
         if has_arguments and expects_arguments:
@@ -39,18 +40,45 @@ def _forward_and_extract(fun, num_args):
                 # TODO: throw exception
                 pass
 
-            return fun(args[0], args[1:], operation_context_args, tuple(key_fun_args))
+            return fun(handler, args, operation_context_args, tuple(key_fun_args))
         else:
-            return fun(args[0], args[1:], operation_context_args)
+            return fun(handler, args, operation_context_args)
 
     return _forward_extract_args
 
 
 # Function for KEYWORD: neighborhood
-def _exchange_neighborhood(self, args, operation_context_args, ghost_count=(1, 1)):
-    pass
+def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1, 1)):
+    operation_context, didentifier = operation_context_args
 
-KEYWORDS = {compile("neighborhood(?::\d:\d)?$"): _forward_and_extract(_exchange_neighborhood, 2)}
+    # Set ghost properties on the context
+    operation_context.with_initial_ghosts(int(ghost_count[0]), True, True, use_cyclic=False)
+
+    all_others = handler.get_num_storage_nodes(True)
+    is_local_transfer = all_others == 1
+
+    def done_callback_handler(_, left, right):
+        pass
+    
+    handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
+                          is_local_transfer=is_local_transfer, self_data=args[0])
+
+
+class WillContinueExecuting(Exception):
+    def __init__(self, partial_value=None):
+        self.partial_value = partial_value
+
+
+class Keywords(dict):
+    def __init__(self, **kwargs):
+        super(Keywords, self).__init__(**kwargs)
+        self[compile("neighborhood(?::\d:\d)?$")] = _forward_and_extract(_exchange_neighborhood, 2)
+
+    def find_function(self, index):
+        return self.values()[index]
+
+
+KEYWORDS = Keywords()
 
 
 class StorageHandler(object):
@@ -69,22 +97,30 @@ class StorageHandler(object):
 
         self.__num_storage_nodes = len(self.__storage_nodes)
         self.__neighbors = self.__get_neighbors()
-        self.__space_size = self.__config.keyspace_size / (self.__num_storage_nodes + 1)  # Plus self
+        self.__space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
+
+    def get_num_storage_nodes(self, including_self=False):
+        return self.__num_storage_nodes + (1 if including_self else 0)
 
     def __get_neighbors(self):
-        if self.__num_storage_nodes == 0:
+        if self.get_num_storage_nodes() == 0:
             return None
 
-        prev = self.__storage_nodes[(self.__config.node_idx - 1) % self.__num_storage_nodes]
-        nxt = self.__storage_nodes[self.__config.node_idx % self.__num_storage_nodes]
+        prev = self.__storage_nodes[(self.__config.node_idx - 1) % self.get_num_storage_nodes()]
+        nxt = self.__storage_nodes[self.__config.node_idx % self.get_num_storage_nodes()]
         return prev, nxt
 
-    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count, didentifier, use_cyclic, is_local_transfer):
+    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count, didentifier, use_cyclic,
+                     is_local_transfer, self_data=None):
         # is_left_ghost = True if sending right
         # is_right_ghost = True if sending left
 
+        if not self_data:
+            self_data = self.__get_raw_blocks(didentifier)
+        elif isinstance(self_data, Iterable):
+            self_data = list(self_data)
+
         is_root = str(didentifier) in self.__FLAG
-        self_data = self.__get_raw_blocks(didentifier)
         left_ghost, right_ghost = (None,) * 2
 
         if is_right_ghost:
@@ -121,7 +157,8 @@ class StorageHandler(object):
 
         return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
 
-    def __handle_ghosts(self, didentifier, operation_context, done_callback_handler, is_local_transfer=False):
+    def handle_ghosts(self, didentifier, operation_context, done_callback_handler,
+                      is_local_transfer=False, self_data=None):
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
         if not is_local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
@@ -130,7 +167,8 @@ class StorageHandler(object):
         send_right = operation_context.ghost_left and (r_neighbor or is_local_transfer)
 
         left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, operation_context.ghost_count, didentifier,
-                                                    operation_context.use_cyclic, is_local_transfer)
+                                                    operation_context.use_cyclic, is_local_transfer,
+                                                    self_data=self_data)
 
         if is_local_transfer:
             done_callback_handler(is_ready=False, left=(None, left_ghost), right=(None, right_ghost))
@@ -179,9 +217,9 @@ class StorageHandler(object):
             self.__RAW[identifier] = []
 
         if create_new_stride:
-            self.__RAW[identifier].append([block])
+            self.__RAW[identifier].append(block)
         else:
-            self.__RAW[identifier][-1].append(block)
+            self.__RAW[identifier][-1].extend(block)
 
         # Delete local cache, since context is appended
         self.__srcs.delete(identifier)
@@ -251,12 +289,12 @@ class StorageHandler(object):
         return STATUS_SUCCESS
 
     def get_datasets(self, is_internal_call=False):
-        all_others = self.__num_storage_nodes
+        all_others = self.get_num_storage_nodes(True)
 
         def __self_datasets():
             return [uloads(self.get_meta_from_identifier(int(key)))['name'] for key in self.__FLAG.iterkeys()]
 
-        if not is_internal_call and all_others > 0:
+        if not is_internal_call and all_others > 1:
             # Broadcast storm to all nodes
             info("Pool get_datasets")
             others_datasets = ThreadPool(all_others).map(_wrapper_get_datasets, self.__storage_nodes)
@@ -265,10 +303,10 @@ class StorageHandler(object):
             # Calculate self
             return __self_datasets()
 
-    def __get_raw_blocks(self, didentifier, iflatten=False):
+    def __get_raw_blocks(self, didentifier):
         is_root = str(didentifier) in self.__FLAG
-        blocks = self.__RAW[str(didentifier)][1 if is_root else 0:]
-        return chain(*blocks) if iflatten else blocks
+        return self.__RAW[str(didentifier)][1 if is_root else 0:]  # Blocks on self
+        # return chain(*blocks) if iflatten else blocks
 
     def __get_operation_context(self, didentifier, function_name, meta_data=None):
         if not meta_data:
@@ -311,8 +349,7 @@ class StorageHandler(object):
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
         else:
-            # Use chain generator method (iflatten) to reduce memory consumption
-            blocks = self.__get_raw_blocks(didentifier, iflatten=True)
+            blocks = self.__get_raw_blocks(didentifier)
 
         args = [blocks]
         if query:
@@ -321,7 +358,7 @@ class StorageHandler(object):
             else:
                 args = args + [query]
 
-        return operation_context.get_functions(), args
+        return args
 
     def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
         # Check whether its self who is responsible
@@ -343,19 +380,19 @@ class StorageHandler(object):
                 return
 
         # Update is working state before anything else
-        all_nodes = self.__num_storage_nodes + 1  # Plus one for self
+        all_nodes = self.get_num_storage_nodes(True)  # Plus one for self
         self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway]
 
         root = self.__config.node
         common = (didentifier, fidentifier, function_name, root, query)
         if all_nodes > 1:
             # Broadcast storm to all nodes
-            info("Pool _wrapper_initialize_execution")
+            info("Pool wrapper initialize job")
             args = [(node, common) for node in self.__storage_nodes] + [(self, common)]
-            ThreadPool(all_nodes).map_async(_wrapper_initialize_execution, args)
+            ThreadPool(all_nodes).map_async(_wrapper_initialize_job, args)
         else:
             # Calculate self
-            self.initialize_execution(*common)
+            self.initialize_job(*common)
 
     def __terminate_job(self, didentifier, fidentifier, status):
         data = self.__srcs.get(didentifier)[fidentifier]
@@ -367,15 +404,15 @@ class StorageHandler(object):
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
-    def initialize_execution(self, didentifier, fidentifier, function_name, root, query):
-        info("Initialize execution at " + str(self.__config.node))
+    def initialize_job(self, didentifier, fidentifier, function_name, root, query):
+        info("Initialize execution at " + str(self.__config.node) + " for function " + function_name)
 
         self.__tb = TreeBarrier(self.__config.node,
                                 list(self.__config.others['storage']) if 'storage' in self.__config.others else [],
                                 root)
 
         # If im the only node in the system
-        is_local_transfer = self.__num_storage_nodes == 0
+        is_local_transfer = self.get_num_storage_nodes() == 0
 
         res = self.__get_operation_context(didentifier, function_name)
         if is_error(res):
@@ -388,8 +425,7 @@ class StorageHandler(object):
             if is_ready:
                 # There is no need for ghosts
                 if is_local_transfer:
-                    self.execute_function(0, didentifier, fidentifier, function_name,
-                                          meta_data, self.__config.node, query, 0)
+                    self.execute_function(0, didentifier, fidentifier, function_name, meta_data, query, 0)
                 else:
                     self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
                 return
@@ -419,17 +455,14 @@ class StorageHandler(object):
             return
 
         # Find ghosts from local neighbors if needed else execute
-        self.__handle_ghosts(didentifier, operation_context, done_callback_handler, is_local_transfer=is_local_transfer)
+        self.handle_ghosts(didentifier, operation_context, done_callback_handler, is_local_transfer=is_local_transfer)
 
-    def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, root, query, recv_value):
+    def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, query, recv_value):
         info("Execute function " + function_name + " at " + str(self.__config.node))
 
-        first_iteration = itr == 0
-
         operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
-        # TODO: Unify and remove reduce word to generalize SOFA
         functions = operation_context.get_functions()
-        reduce_function = functions[-1]
+        last_function = functions[-1]
 
         # See if its first iteration or the cache has the value
         has_result = self.__srcs.contains(didentifier) \
@@ -437,35 +470,44 @@ class StorageHandler(object):
                      and self.__srcs.get(didentifier)[fidentifier][RESULT]
 
         if not has_result:
-            _, args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context, query)
-            operation_context_args = (operation_context, root, didentifier)
-            res = _local_execute(self, functions, args, operation_context_args)
-            info("Result for " + self.__config.node + " is: " + str(res))
+            args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context, query)
+            operation_context_args = (operation_context, didentifier)
 
-            is_root = str(didentifier) in self.__FLAG
-            if is_root:
-                gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
-                self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
-            else:
-                self.__srcs.get(didentifier)[fidentifier] = [res]
+            try:
+                res = _local_execute(self, functions, args, operation_context_args)
+                info("Result for " + self.__config.node + " is: " + str(res))
+
+                is_root = str(didentifier) in self.__FLAG
+                if is_root:
+                    gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
+                    self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
+                else:
+                    self.__srcs.get(didentifier)[fidentifier] = [res]
+            except WillContinueExecuting:
+                # Only happens if its a built in function from KEYWORDS executing,
+                # will return to this function later in the execution phase.
+                return
+
+        is_first_iteration = itr == 0
 
         try:
             res = self.__srcs.get(didentifier)[fidentifier][RESULT]
             if self.__tb.should_send(itr):
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + self.__config.node + " to the next")
-                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, meta_data, root, None, res)
+                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, meta_data, None, res)
                 return
 
-            if not first_iteration:
-                self.__srcs.get(didentifier)[fidentifier] = [reduce_function((recv_value, res))]
+            if not is_first_iteration:
+                self.__srcs.get(didentifier)[fidentifier] = [last_function((recv_value, res))]
+                return
         except StopIteration:
             data = self.__srcs.get(didentifier)[fidentifier]
 
-            if first_iteration:
+            if is_first_iteration:
                 res = data[RESULT]
             else:
-                res = reduce_function((recv_value, data[RESULT]))
+                res = last_function((recv_value, data[RESULT]))
 
             info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
@@ -490,12 +532,12 @@ class StorageHandler(object):
         info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
-            common = (0, didentifier, fidentifier, function_name, meta_data, self.__config.node, query, 0)
+            common = (0, didentifier, fidentifier, function_name, meta_data, query, 0)
 
-            if self.__num_storage_nodes > 0:
+            if self.get_num_storage_nodes() > 0:
                 info("Pool _wrapper_execute_function")
-                args = [(self, common)] + [(node, common) for node in self.__storage_nodes]
-                all_nodes = self.__num_storage_nodes + 1
+                args = [(node, common) for node in self.__storage_nodes] + [(self, common)]
+                all_nodes = self.get_num_storage_nodes(True)
                 ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
             else:
                 self.execute_function(*common)
@@ -538,8 +580,8 @@ class StorageHandler(object):
         pass
 
 
-def _wrapper_initialize_execution(args):
-    return args[0].initialize_execution(*args[1])
+def _wrapper_initialize_job(args):
+    return args[0].initialize_job(*args[1])
 
 
 def _wrapper_execute_function(args):
@@ -580,8 +622,8 @@ def _local_execute(self, functions, args, operation_context_args):
         # Find keyword function and call it
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
         if is_keyword_fun:
-            res = KEYWORDS.values()[is_keyword_fun[0]](possible_function, operation_context_args, [self, args])
-            return _local_execute(self, functions, res, operation_context_args)
+            KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)
+            raise WillContinueExecuting()
 
     except IndexError:
         return args
