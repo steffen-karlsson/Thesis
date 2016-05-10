@@ -52,7 +52,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
     operation_context, didentifier = operation_context_args
 
     # Set ghost properties on the context
-    operation_context.with_initial_ghosts(int(ghost_count[0]), True, True, use_cyclic=False)
+    operation_context.with_initial_ghosts(ghost_count, use_cyclic=False)
 
     all_others = handler.get_num_storage_nodes(True)
     is_local_transfer = all_others == 1
@@ -110,11 +110,7 @@ class StorageHandler(object):
         nxt = self.__storage_nodes[self.__config.node_idx % self.get_num_storage_nodes()]
         return prev, nxt
 
-    def __get_ghosts(self, is_left_ghost, is_right_ghost, ghost_count, didentifier, use_cyclic,
-                     is_local_transfer, self_data=None):
-        # is_left_ghost = True if sending right
-        # is_right_ghost = True if sending left
-
+    def __get_ghosts(self, send_right, send_left, didentifier, operation_context, is_local_transfer, self_data=None):
         if not self_data:
             self_data = self.__get_raw_blocks(didentifier)
         elif isinstance(self_data, Iterable):
@@ -122,10 +118,11 @@ class StorageHandler(object):
 
         is_root = str(didentifier) in self.__FLAG
         left_ghost, right_ghost = (None,) * 2
+        use_cyclic = operation_context.use_cyclic
 
-        if is_right_ghost:
+        if send_left:
             # Only the blocks and the edge between nodes, that's why 0
-            right_ghost = [block[:ghost_count] for block in self_data]
+            right_ghost = [block[:operation_context.get_ghost_count_left()] for block in self_data]
 
             if is_local_transfer or is_root:
                 if use_cyclic:
@@ -136,9 +133,9 @@ class StorageHandler(object):
                 # Only storage node in the system or previous node doesn't need first when sending left
                 right_ghost = right_ghost[1:]
 
-        if is_left_ghost:
+        if send_right:
             # Only the blocks and the edge between nodes, that's why -1
-            left_ghost = [block[-ghost_count:] for block in self_data]
+            left_ghost = [block[-operation_context.get_ghost_count_right():] for block in self_data]
 
             if use_cyclic:
                 overflow = left_ghost[-1]
@@ -163,12 +160,11 @@ class StorageHandler(object):
         if not is_local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
 
-        send_left = operation_context.ghost_right and (l_neighbor or is_local_transfer)
-        send_right = operation_context.ghost_left and (r_neighbor or is_local_transfer)
+        send_left = operation_context.send_left and (l_neighbor or is_local_transfer)
+        send_right = operation_context.send_right and (r_neighbor or is_local_transfer)
 
-        left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, operation_context.ghost_count, didentifier,
-                                                    operation_context.use_cyclic, is_local_transfer,
-                                                    self_data=self_data)
+        left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, didentifier, operation_context,
+                                                    is_local_transfer, self_data=self_data)
 
         if is_local_transfer:
             done_callback_handler(is_ready=False, left=(None, left_ghost), right=(None, right_ghost))
@@ -447,11 +443,11 @@ class StorageHandler(object):
             if is_local_transfer:
                 self.__handle_received_ghosts(left_ghost, right_ghost, *fun_args)
             else:
-                if operation_context.ghost_right and r_neighbor:
+                if operation_context.send_left and r_neighbor:
                     info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
                     l_neighbor.send_ghost(None, right_ghost, *fun_args)
 
-                if operation_context.ghost_left and r_neighbor:
+                if operation_context.send_right and r_neighbor:
                     info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
                     r_neighbor.send_ghost(left_ghost, None, *fun_args)
 

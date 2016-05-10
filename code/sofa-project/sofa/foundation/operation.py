@@ -102,18 +102,23 @@ class OperationContext:
 
         self.fun_name = fun_name
         self.functions = sequential_operations.functions
-        self.ghost_count = 0
+        self.ghost_count = (1, 1)
         self.num_args = 1
         self.delimiter = ','
-        self.ghost_left = False
-        self.ghost_right = False
+        self.send_left = False
+        self.send_right = False
         self.use_cyclic = False
 
-    def with_initial_ghosts(self, ghost_count, use_ghost_left, use_ghost_right, use_cyclic=False):
+    def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
+        is_tuple = isinstance(ghost_count, tuple)
+        if is_tuple and len(ghost_count) != 2:
+            raise Exception("Two counts (left, right) is required if ghost count is specified as a tuple, "
+                            "otherwise specify as an int for symmetric ghosts")
+
         # Halo Lines
         self.ghost_count = ghost_count
-        self.ghost_left = use_ghost_left
-        self.ghost_right = use_ghost_right
+        self.send_left = ghost_count[0] != 0 if is_tuple else True
+        self.send_right = ghost_count[1] != 0 if is_tuple else True
         self.use_cyclic = use_cyclic
         return self
 
@@ -122,11 +127,20 @@ class OperationContext:
         self.delimiter = delimiter
         return self
 
+    def get_ghost_count_left(self):
+        return self.__get_ghost(0)
+
+    def get_ghost_count_right(self):
+        return self.__get_ghost(1)
+
+    def __get_ghost(self, index):
+        return self.ghost_count[index] if isinstance(self.ghost_count, tuple) else self.ghost_count
+
     def needs_ghost(self):
-        return self.ghost_count > 0 and (self.ghost_left or self.ghost_right)
+        return self.ghost_count > 0 and (self.send_left or self.send_right)
 
     def needs_both_ghosts(self):
-        return self.ghost_right and self.ghost_left
+        return self.send_right and self.send_left
 
     def has_multiple_args(self):
         return self.num_args > 1
