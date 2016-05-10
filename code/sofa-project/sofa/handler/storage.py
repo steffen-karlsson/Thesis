@@ -57,7 +57,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
     all_others = handler.get_num_storage_nodes(True)
     is_local_transfer = all_others == 1
 
-    def done_callback_handler(_, left, right):
+    def done_callback_handler(is_ready, left, right):
         pass
 
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
@@ -496,7 +496,7 @@ class StorageHandler(object):
                 # Only happens if its a built in function from KEYWORDS executing,
                 # will return to this function later in the execution phase.
 
-                process_state['function-count'] = functions.index(e.function_name) + 1
+                process_state['function-count'] = operation_context.get_functions().index(e.function_name) + 1
                 return
 
         itr = int(process_state['iteration-count'])
