@@ -65,17 +65,17 @@ class _InternalStorageApi(_StorageApi):
         self._validate_api()
         async(self._api).initialize_job(didentifier, fidentifier, function_name, root, query)
 
-    def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, query, recv_value=0):
+    def execute_function(self, didentifier, fidentifier, meta_data, process_state):
         self._validate_api()
-        async(self._api).execute_function(itr, didentifier, fidentifier, function_name, meta_data, query, recv_value)
+        async(self._api).execute_function(didentifier, fidentifier, meta_data, process_state)
 
-    def send_ghost(self, left_ghost, right_ghost, didentifier, fidentifier, root, needs_both):
+    def send_ghost(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args):
         self._validate_api()
-        secure_send((left_ghost, right_ghost, didentifier, fidentifier, root, needs_both), async(self._api).send_ghost)
+        secure_send((left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args), async(self._api).send_ghost)
 
-    def ready(self, didentifier, fidentifier, function_name, meta_data, query):
+    def ready(self, didentifier, fidentifier, meta_data, process_state):
         self._validate_api()
-        secure_send((didentifier, fidentifier, function_name, meta_data, query), async(self._api).ready)
+        secure_send((didentifier, fidentifier, meta_data, process_state), async(self._api).ready)
 
 
 class GatewayApi(object):

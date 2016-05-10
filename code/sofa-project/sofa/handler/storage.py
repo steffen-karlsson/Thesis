@@ -8,7 +8,7 @@ from logging import info
 from ujson import loads as uloads, dumps as udumps
 from multiprocessing.pool import ThreadPool
 from collections import defaultdict
-from itertools import izip_longest, chain
+from itertools import izip_longest
 from inspect import isfunction, isbuiltin
 from re import compile
 from collections import Iterable
@@ -59,14 +59,14 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
 
     def done_callback_handler(_, left, right):
         pass
-    
+
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
                           is_local_transfer=is_local_transfer, self_data=args[0])
 
 
 class WillContinueExecuting(Exception):
-    def __init__(self, partial_value=None):
-        self.partial_value = partial_value
+    def __init__(self, function_name):
+        self.function_name = function_name
 
 
 class Keywords(dict):
@@ -125,7 +125,7 @@ class StorageHandler(object):
 
         if is_right_ghost:
             # Only the blocks and the edge between nodes, that's why 0
-            right_ghost = [block[0][:ghost_count] for block in self_data]
+            right_ghost = [block[:ghost_count] for block in self_data]
 
             if is_local_transfer or is_root:
                 if use_cyclic:
@@ -138,7 +138,7 @@ class StorageHandler(object):
 
         if is_left_ghost:
             # Only the blocks and the edge between nodes, that's why -1
-            left_ghost = [block[-1][-ghost_count:] for block in self_data]
+            left_ghost = [block[-ghost_count:] for block in self_data]
 
             if use_cyclic:
                 overflow = left_ghost[-1]
@@ -344,7 +344,7 @@ class StorageHandler(object):
                 if not r:
                     r = []
 
-                yield l + sum(m, []) + r
+                yield l + m + r
 
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
@@ -422,16 +422,23 @@ class StorageHandler(object):
 
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
+
+            process_state = {'function-name': function_name,
+                             'iteration-count': 0,
+                             'function-count': 0,
+                             'partial-value': 0,
+                             'query': query}
+
             if is_ready:
                 # There is no need for ghosts
                 if is_local_transfer:
-                    self.execute_function(0, didentifier, fidentifier, function_name, meta_data, query, 0)
+                    self.execute_function(didentifier, fidentifier, meta_data, process_state)
                 else:
-                    self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
+                    self.__report_ready(didentifier, fidentifier, meta_data, process_state)
                 return
 
-            fun_args = (didentifier, fidentifier, operation_context.needs_both_ghosts(),
-                        (function_name, meta_data, root, query))
+            fun_args = (operation_context.needs_both_ghosts(), didentifier,
+                        fidentifier, root, (meta_data, process_state))
 
             l_neighbor, right_ghost = left
             r_neighbor, left_ghost = right
@@ -457,11 +464,12 @@ class StorageHandler(object):
         # Find ghosts from local neighbors if needed else execute
         self.handle_ghosts(didentifier, operation_context, done_callback_handler, is_local_transfer=is_local_transfer)
 
-    def execute_function(self, itr, didentifier, fidentifier, function_name, meta_data, query, recv_value):
+    def execute_function(self, didentifier, fidentifier, meta_data, process_state):
+        function_name = process_state['function-name']
         info("Execute function " + function_name + " at " + str(self.__config.node))
 
         operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
-        functions = operation_context.get_functions()
+        functions = operation_context.get_functions()[process_state['function-count']:]
         last_function = functions[-1]
 
         # See if its first iteration or the cache has the value
@@ -470,7 +478,8 @@ class StorageHandler(object):
                      and self.__srcs.get(didentifier)[fidentifier][RESULT]
 
         if not has_result:
-            args = self.__get_operations_and_arguments(didentifier, fidentifier, operation_context, query)
+            args = self.__get_operations_and_arguments(didentifier, fidentifier,
+                                                       operation_context, process_state['query'])
             operation_context_args = (operation_context, didentifier)
 
             try:
@@ -483,11 +492,14 @@ class StorageHandler(object):
                     self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
                 else:
                     self.__srcs.get(didentifier)[fidentifier] = [res]
-            except WillContinueExecuting:
+            except WillContinueExecuting as e:
                 # Only happens if its a built in function from KEYWORDS executing,
                 # will return to this function later in the execution phase.
+
+                process_state['function-count'] = functions.index(e.function_name) + 1
                 return
 
+        itr = int(process_state['iteration-count'])
         is_first_iteration = itr == 0
 
         try:
@@ -495,11 +507,14 @@ class StorageHandler(object):
             if self.__tb.should_send(itr):
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + self.__config.node + " to the next")
-                receiver.execute_function(itr + 1, didentifier, fidentifier, function_name, meta_data, None, res)
+
+                process_state['iteration-count'] += 1
+                process_state['partial-value'] = res
+                receiver.execute_function(didentifier, fidentifier, meta_data, process_state)
                 return
 
             if not is_first_iteration:
-                self.__srcs.get(didentifier)[fidentifier] = [last_function((recv_value, res))]
+                self.__srcs.get(didentifier)[fidentifier] = [last_function((process_state['partial-value'], res))]
                 return
         except StopIteration:
             data = self.__srcs.get(didentifier)[fidentifier]
@@ -507,16 +522,16 @@ class StorageHandler(object):
             if is_first_iteration:
                 res = data[RESULT]
             else:
-                res = last_function((recv_value, data[RESULT]))
+                res = last_function((process_state['partial-value'], data[RESULT]))
 
             info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
-    def __report_ready(self, didentifier, fidentifier, function_name, meta_data, query):
+    def __report_ready(self, didentifier, fidentifier, meta_data, process_state):
         responsible = self.__find_responsibility(didentifier)
-        args = didentifier, fidentifier, function_name, meta_data, query
+        args = didentifier, fidentifier, meta_data, process_state
         if responsible:
             info("Reporting ready for other at: " + self.__config.node)
             responsible.ready(*args)
@@ -527,12 +542,12 @@ class StorageHandler(object):
     def ready(self, bundle):
         self.__local_ready(*secure_load(bundle))
 
-    def __local_ready(self, didentifier, fidentifier, function_name, meta_data, query):
+    def __local_ready(self, didentifier, fidentifier, meta_data, process_state):
         self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] -= 1
         info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
-            common = (0, didentifier, fidentifier, function_name, meta_data, query, 0)
+            common = (didentifier, fidentifier, meta_data, process_state)
 
             if self.get_num_storage_nodes() > 0:
                 info("Pool _wrapper_execute_function")
@@ -542,11 +557,10 @@ class StorageHandler(object):
             else:
                 self.execute_function(*common)
 
-    def __handle_received_ghosts(self, left_ghost, right_ghost, didentifier, fidentifier, needs_both, fun_args):
+    def __handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args):
         info("Receiving ghost at " + self.__config.node)
 
         assert left_ghost is not None or right_ghost is not None
-        function_name, meta_data, root, query = fun_args
 
         if left_ghost is not None:
             is_ghost_right = False
@@ -570,7 +584,7 @@ class StorageHandler(object):
 
         has_other_part = ('ghost-left' if is_ghost_right else 'ghost-right') in self.__dgcs.get(fidentifier)
         if has_other_part or not needs_both:
-            self.__report_ready(didentifier, fidentifier, function_name, meta_data, query)
+            self.__report_ready(didentifier, fidentifier, *fun_args)
 
     def send_ghost(self, bundle):
         self.__handle_received_ghosts(*secure_load(bundle))
@@ -623,7 +637,7 @@ def _local_execute(self, functions, args, operation_context_args):
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
         if is_keyword_fun:
             KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)
-            raise WillContinueExecuting()
+            raise WillContinueExecuting(possible_function)
 
     except IndexError:
         return args
