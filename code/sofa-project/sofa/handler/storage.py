@@ -28,18 +28,14 @@ IS_WORKING = 2
 GATEWAY = 3
 
 
-def _forward_and_extract(fun, num_args):
+def _forward_and_extract(fun, max_num_args):
     # Forwards to the right function (fun) with possible extracted arguments based on the pattern
     # defined in KEYWORDS and as argument to _forward_extract_args.
     def _forward_extract_args(handler, args, fun_name, operation_context_args):
         has_arguments = ':' in fun_name
-        expects_arguments = num_args > 0
+        expects_arguments = max_num_args > 0
         if has_arguments and expects_arguments:
             key_fun_args = fun_name.split(":")[1:]
-            if key_fun_args != num_args:
-                # TODO: throw exception
-                pass
-
             return fun(handler, args, operation_context_args, tuple(key_fun_args))
         else:
             return fun(handler, args, operation_context_args)
@@ -52,6 +48,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
     operation_context, didentifier = operation_context_args
 
     # Set ghost properties on the context
+    ghost_count = tuple(int(count) for count in ghost_count) if len(ghost_count) == 2 else int(ghost_count[0])
     operation_context.with_initial_ghosts(ghost_count, use_cyclic=False)
 
     all_others = handler.get_num_storage_nodes(True)
@@ -72,7 +69,7 @@ class WillContinueExecuting(Exception):
 class Keywords(dict):
     def __init__(self, **kwargs):
         super(Keywords, self).__init__(**kwargs)
-        self[compile("neighborhood(?::\d:\d)?$")] = _forward_and_extract(_exchange_neighborhood, 2)
+        self[compile("neighborhood(?::\d){0,2}$")] = _forward_and_extract(_exchange_neighborhood, 2)
 
     def find_function(self, index):
         return self.values()[index]
