@@ -69,9 +69,9 @@ class _InternalStorageApi(_StorageApi):
         self._validate_api()
         async(self._api).execute_function(didentifier, fidentifier, meta_data, process_state)
 
-    def send_ghost(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args):
+    def send_ghost(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args):
         self._validate_api()
-        secure_send((left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args), async(self._api).send_ghost)
+        secure_send((left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args), async(self._api).send_ghost)
 
     def ready(self, didentifier, fidentifier, meta_data, process_state):
         self._validate_api()

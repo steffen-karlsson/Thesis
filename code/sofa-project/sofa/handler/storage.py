@@ -12,6 +12,7 @@ from itertools import izip_longest
 from inspect import isfunction, isbuiltin
 from re import compile
 from collections import Iterable
+from numpy import ndarray, array
 
 from sofa.handler import get_class_from_source
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
@@ -24,7 +25,7 @@ from sofa.foundation.operation import Sequential as SequentialOperation, Paralle
 
 RESULT = 0
 REQUEST_COUNT = 1
-IS_WORKING = 2
+ROOT_IS_WORKING = 2
 GATEWAY = 3
 
 
@@ -45,7 +46,14 @@ def _forward_and_extract(fun, max_num_args):
 
 # Function for KEYWORD: neighborhood
 def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1, 1)):
-    operation_context, didentifier = operation_context_args
+    operation_context, didentifier, fidentifier, process_state = operation_context_args
+
+    # Use block-state = 'partial' such that arguments (with ghosts) for next function
+    # is based on previous results and not raw blocks
+    process_state['block-state'] = 'partial'
+
+    # Save the temporary result in the storage result cache system
+    handler.save_partial_value_state(didentifier, fidentifier, args)
 
     # Set ghost properties on the context
     ghost_count = tuple(int(count) for count in ghost_count) if len(ghost_count) == 2 else int(ghost_count[0])
@@ -55,15 +63,29 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
     is_local_transfer = all_others == 1
 
     def done_callback_handler(is_ready, left, right):
-        pass
+        # left and right is tuples with node reference and data to send
+        l_neighbor, right_ghost = left
+        r_neighbor, left_ghost = right
+        fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, (None, process_state))
+
+        # Ghost is required
+        if is_local_transfer:
+            handler.handle_received_ghosts(left_ghost, right_ghost, *fun_args)
+        else:
+            if operation_context.send_left and r_neighbor:
+                info("Sending ghost left from: " + str(handler) + ": " + str(right_ghost))
+                l_neighbor.send_ghost(None, right_ghost, *fun_args)
+
+            if operation_context.send_right and r_neighbor:
+                info("Sending ghost right from: " + str(handler) + ": " + str(left_ghost))
+                r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
-                          is_local_transfer=is_local_transfer, self_data=args[0])
+                          is_local_transfer=is_local_transfer, self_data=args)
 
 
 class WillContinueExecuting(Exception):
-    def __init__(self, function_name):
-        self.function_name = function_name
+    pass
 
 
 class Keywords(dict):
@@ -96,6 +118,16 @@ class StorageHandler(object):
         self.__neighbors = self.__get_neighbors()
         self.__space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
 
+    def save_partial_value_state(self, didentifier, fidentifier, res):
+        is_root = str(didentifier) in self.__FLAG
+        if is_root:
+            self.__srcs.get(didentifier)[fidentifier][RESULT] = res
+        else:
+            self.__srcs.get(didentifier)[fidentifier] = [res]
+
+    def __str__(self):
+        return self.__config.node
+
     def get_num_storage_nodes(self, including_self=False):
         return self.__num_storage_nodes + (1 if including_self else 0)
 
@@ -108,9 +140,9 @@ class StorageHandler(object):
         return prev, nxt
 
     def __get_ghosts(self, send_right, send_left, didentifier, operation_context, is_local_transfer, self_data=None):
-        if not self_data:
+        if self_data is None:
             self_data = self.__get_raw_blocks(didentifier)
-        elif isinstance(self_data, Iterable):
+        elif isinstance(self_data, Iterable) and not isinstance(self_data, (ndarray, array)):
             self_data = list(self_data)
 
         is_root = str(didentifier) in self.__FLAG
@@ -299,7 +331,6 @@ class StorageHandler(object):
     def __get_raw_blocks(self, didentifier):
         is_root = str(didentifier) in self.__FLAG
         return self.__RAW[str(didentifier)][1 if is_root else 0:]  # Blocks on self
-        # return chain(*blocks) if iflatten else blocks
 
     def __get_operation_context(self, didentifier, function_name, meta_data=None):
         if not meta_data:
@@ -321,15 +352,22 @@ class StorageHandler(object):
 
         return STATUS_NOT_FOUND
 
-    def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, query):
-        # Get blocks to work on
-
+    def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, process_state):
+        # Merge ghosts into blocks
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
 
-            # Merge ghosts into blocks
+            # Get blocks to work on
+            if process_state['block-state'] is 'raw':
+                blocks = self.__get_raw_blocks(didentifier)
+            elif process_state['block-state'] is 'partial':
+                # The result block is used for partial results in the case of built in functions with synchronization
+                blocks = self.__srcs.get(didentifier)[fidentifier][RESULT]
+
+            assert blocks != None
+
             for l, m, r in izip_longest(ghosts['ghost-left'] if 'ghost-left' in ghosts else [None],
-                                        self.__get_raw_blocks(didentifier),
+                                        blocks,
                                         ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if not l:
@@ -345,6 +383,7 @@ class StorageHandler(object):
             blocks = self.__get_raw_blocks(didentifier)
 
         args = [blocks]
+        query = process_state['query']
         if query:
             if operation_context.has_multiple_args():
                 args = args + str(query).split(operation_context.delimiter)
@@ -363,7 +402,7 @@ class StorageHandler(object):
         has_result = self.__srcs.contains(didentifier) and fidentifier in self.__srcs.get(didentifier)
         if has_result:
             data = self.__srcs.get(didentifier)[fidentifier]
-            if data[IS_WORKING]:
+            if data[ROOT_IS_WORKING]:
                 # Similar job is in progress
                 self.__terminate_job(didentifier, fidentifier, STATUS_PROCESSING)
                 return
@@ -416,10 +455,17 @@ class StorageHandler(object):
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
 
+             # See if its first iteration or the cache has the value
+            has_result = self.__srcs.contains(didentifier) \
+                         and fidentifier in self.__srcs.get(didentifier) \
+                         and self.__srcs.get(didentifier)[fidentifier][RESULT]
+
             process_state = {'function-name': function_name,
                              'iteration-count': 0,
                              'function-count': 0,
                              'partial-value': 0,
+                             'block-state': 'raw',
+                             'processing' : False if has_result else True,
                              'query': query}
 
             if is_ready:
@@ -430,22 +476,20 @@ class StorageHandler(object):
                     self.__report_ready(didentifier, fidentifier, meta_data, process_state)
                 return
 
-            fun_args = (operation_context.needs_both_ghosts(), didentifier,
-                        fidentifier, root, (meta_data, process_state))
-
             l_neighbor, right_ghost = left
             r_neighbor, left_ghost = right
+            fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, (meta_data, process_state))
 
             # Ghost is required
             if is_local_transfer:
-                self.__handle_received_ghosts(left_ghost, right_ghost, *fun_args)
+                self.handle_received_ghosts(left_ghost, right_ghost, *fun_args)
             else:
                 if operation_context.send_left and r_neighbor:
-                    info("Sending ghost left from: " + self.__config.node + ": " + str(right_ghost))
+                    info("Sending ghost left from: " + str(self) + ": " + str(right_ghost))
                     l_neighbor.send_ghost(None, right_ghost, *fun_args)
 
                 if operation_context.send_right and r_neighbor:
-                    info("Sending ghost right from: " + self.__config.node + ": " + str(left_ghost))
+                    info("Sending ghost right from: " + str(self) + ": " + str(left_ghost))
                     r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
         if not operation_context.needs_ghost():
@@ -459,37 +503,39 @@ class StorageHandler(object):
 
     def execute_function(self, didentifier, fidentifier, meta_data, process_state):
         function_name = process_state['function-name']
-        info("Execute function " + function_name + " at " + str(self.__config.node))
+        info("Execute function " + function_name + " at " + str(self))
 
-        operation_context, _ = self.__get_operation_context(None, function_name, meta_data=meta_data)
+        res = self.__get_operation_context(didentifier, function_name, meta_data=meta_data)
+        if is_error(res):
+            self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
+            return
+        operation_context, meta_data = res
+
+        # Calculate results of functions, which isn't already processed, i.e. function-count
         functions = operation_context.get_functions()[process_state['function-count']:]
         last_function = functions[-1]
 
-        # See if its first iteration or the cache has the value
-        has_result = self.__srcs.contains(didentifier) \
-                     and fidentifier in self.__srcs.get(didentifier) \
-                     and self.__srcs.get(didentifier)[fidentifier][RESULT]
-
-        if not has_result:
+        if process_state['processing']:
             args = self.__get_operations_and_arguments(didentifier, fidentifier,
-                                                       operation_context, process_state['query'])
-            operation_context_args = (operation_context, didentifier)
+                                                       operation_context, process_state)
+            if is_error(args):
+                self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
+                return
 
+            is_root = str(didentifier) in self.__FLAG
+            operation_context_args = (operation_context, didentifier, fidentifier, process_state)
             try:
                 res = _local_execute(self, functions, args, operation_context_args)
-                info("Result for " + self.__config.node + " is: " + str(res))
+                process_state['processing'] = False
+                info("Result for " + str(self) + " is: " + str(res))
 
-                is_root = str(didentifier) in self.__FLAG
                 if is_root:
-                    gateway = self.__srcs.get(didentifier)[fidentifier][GATEWAY]
-                    self.__srcs.get(didentifier)[fidentifier] = [res, None, True, gateway]
+                    self.__srcs.get(didentifier)[fidentifier][RESULT] = res
                 else:
                     self.__srcs.get(didentifier)[fidentifier] = [res]
-            except WillContinueExecuting as e:
+            except WillContinueExecuting:
                 # Only happens if its a built in function from KEYWORDS executing,
                 # will return to this function later in the execution phase.
-
-                process_state['function-count'] = operation_context.get_functions().index(e.function_name) + 1
                 return
 
         itr = int(process_state['iteration-count'])
@@ -499,7 +545,7 @@ class StorageHandler(object):
             res = self.__srcs.get(didentifier)[fidentifier][RESULT]
             if self.__tb.should_send(itr):
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
-                info("Sending from " + self.__config.node + " to the next")
+                info("Sending from " + str(self) + " to the next")
 
                 process_state['iteration-count'] += 1
                 process_state['partial-value'] = res
@@ -526,7 +572,7 @@ class StorageHandler(object):
         responsible = self.__find_responsibility(didentifier)
         args = didentifier, fidentifier, meta_data, process_state
         if responsible:
-            info("Reporting ready for other at: " + self.__config.node)
+            info("Reporting ready for other at: " + str(self))
             responsible.ready(*args)
         else:
             info("Reporting ready for self")
@@ -537,7 +583,7 @@ class StorageHandler(object):
 
     def __local_ready(self, didentifier, fidentifier, meta_data, process_state):
         self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] -= 1
-        info("Local request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
+        info(str(self) + " request count: " + str(self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT]))
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
             common = (didentifier, fidentifier, meta_data, process_state)
@@ -550,8 +596,8 @@ class StorageHandler(object):
             else:
                 self.execute_function(*common)
 
-    def __handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, root, fun_args):
-        info("Receiving ghost at " + self.__config.node)
+    def handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args):
+        info("Receiving ghost at " + str(self))
 
         assert left_ghost is not None or right_ghost is not None
 
@@ -560,7 +606,7 @@ class StorageHandler(object):
             is_root = str(didentifier) in self.__FLAG
             num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
 
-            if root or len(left_ghost) < num_blocks:
+            if is_root or len(left_ghost) < num_blocks:
                 # Received too much and shifted data
                 left_ghost = [None] + left_ghost[:-1]
             elif len(left_ghost) > num_blocks:
@@ -580,7 +626,7 @@ class StorageHandler(object):
             self.__report_ready(didentifier, fidentifier, *fun_args)
 
     def send_ghost(self, bundle):
-        self.__handle_received_ghosts(*secure_load(bundle))
+        self.handle_received_ghosts(*secure_load(bundle))
 
     # Internal Monitor Api
     def heartbeat(self):
@@ -629,8 +675,12 @@ def _local_execute(self, functions, args, operation_context_args):
         # Find keyword function and call it
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
         if is_keyword_fun:
+            # Update process state
+            operation_context, didentifier, fidentifier, process_state = operation_context_args
+            process_state['function-count'] = operation_context.get_functions().index(possible_function) + 1
+
             KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)
-            raise WillContinueExecuting(possible_function)
+            raise WillContinueExecuting()
 
     except IndexError:
         return args
