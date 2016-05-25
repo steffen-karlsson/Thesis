@@ -29,6 +29,10 @@ ROOT_IS_WORKING = 2
 GATEWAY = 3
 
 
+BLOCKS = 0
+QUERY = 1
+
+
 def _forward_and_extract(fun, max_num_args):
     # Forwards to the right function (fun) with possible extracted arguments based on the pattern
     # defined in KEYWORDS and as argument to _forward_extract_args.
@@ -53,7 +57,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
     process_state['block-state'] = 'partial'
 
     # Save the temporary result in the storage result cache system
-    handler.save_partial_value_state(didentifier, fidentifier, args)
+    handler.save_partial_value_state(didentifier, fidentifier, args[BLOCKS])
 
     # Set ghost properties on the context
     ghost_count = tuple(int(count) for count in ghost_count) if len(ghost_count) == 2 else int(ghost_count[0])
@@ -81,7 +85,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
                 r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
-                          is_local_transfer=is_local_transfer, self_data=args)
+                          is_local_transfer=is_local_transfer, self_data=args[BLOCKS])
 
 
 class WillContinueExecuting(Exception):
@@ -142,7 +146,9 @@ class StorageHandler(object):
     def __get_ghosts(self, send_right, send_left, didentifier, operation_context, is_local_transfer, self_data=None):
         if self_data is None:
             self_data = self.__get_raw_blocks(didentifier)
-        elif isinstance(self_data, Iterable) and not isinstance(self_data, (ndarray, array)):
+        elif isinstance(self_data, list) or isinstance(self_data, ndarray):
+            self_data = self_data
+        elif isinstance(self_data, Iterable):
             self_data = list(self_data)
 
         is_root = str(didentifier) in self.__FLAG
@@ -370,25 +376,27 @@ class StorageHandler(object):
                                         blocks,
                                         ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
-                if not l:
+                if l is None:
                     l = []
-                if not r:
+                if r is None:
                     r = []
 
                 yield l + m + r
+
+        args = [None, None]
 
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
         else:
             blocks = self.__get_raw_blocks(didentifier)
 
-        args = [blocks]
+        args[BLOCKS] = blocks
         query = process_state['query']
         if query:
             if operation_context.has_multiple_args():
-                args = args + str(query).split(operation_context.delimiter)
+                args[QUERY] = str(query).split(operation_context.delimiter)
             else:
-                args = args + [query]
+                args[QUERY] = [query]
 
         return args
 
@@ -669,8 +677,11 @@ def _local_execute(self, functions, args, operation_context_args):
             return _local_execute(self, functions, res, operation_context_args)
 
         if isfunction(possible_function) or isbuiltin(possible_function):
-            res = possible_function(args)
-            return _local_execute(self, functions, res, operation_context_args)
+            res = possible_function(args[BLOCKS], args[QUERY])
+            if not isinstance(res, tuple):
+                res = (res, None)
+
+            return _local_execute(self, functions, list(res), operation_context_args)
 
         # Find keyword function and call it
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
@@ -683,4 +694,4 @@ def _local_execute(self, functions, args, operation_context_args):
             raise WillContinueExecuting()
 
     except IndexError:
-        return args
+        return args[BLOCKS]

@@ -152,8 +152,8 @@ class GatewayHandler(object):
             block_count += 1
             current_stride += 1
 
-            # Create new stride if only one storage node, is first iteration or max local block count reached
-            create_new_stride = num_storage_nodes > 1 and current_stride == max_stride
+            # Create new stride if first iteration or max local block count reached
+            create_new_stride = current_stride == max_stride
 
             if create_new_stride:
                 current_stride = 0
