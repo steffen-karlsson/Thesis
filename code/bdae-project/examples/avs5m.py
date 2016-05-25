@@ -3,7 +3,7 @@
 
 from os import getcwd
 
-from numpy import arange, pad, array, mean, power, less, log, bool, \
+from numpy import arange, pad, array, mean, power, less, log, bool, concatenate, \
     ones, floor, sum as npsum, logical_and, size, int, empty, equal, min_scalar_type, max as npmax
 from numpy.core.multiarray import bincount
 from numpy.lib import stride_tricks, median
@@ -58,7 +58,8 @@ class AVS5MDataset(ImageDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "circle recognition", '[median_filter, thresholding, eroding, connected_components, find_groups]')
+            OperationContext.by(self, "circle recognition", '[median_filter, thresholding, '
+                                                            'eroding, connected_components, find_groups]')
         ]
 
     def next_entry(self, data):
@@ -78,8 +79,10 @@ class AVS5MDataset(ImageDataset):
         return Tiles(3)
 
 
-def median_filter(args):
-    image = array(sum(list(args[0]), []))
+def median_filter(blocks, ignore):
+    # No extra arguments: ignore
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    image = concatenate(blocks)
     median_image = empty(image.shape)
     window_size = array((L, L))
 
@@ -94,17 +97,21 @@ def median_filter(args):
         slices = stride_tricks.as_strided(im, shape=slice_shape, strides=(im.strides + im.strides))
         median_image[i, ...] = median(slices, axis=(-1, -2))
 
-    return median_image
+    return [median_image]
 
 
-def thresholding(args):
-    median_image = args
+def thresholding(blocks, ignore):
+    # No extra arguments: ignore
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    median_image = concatenate(blocks)
     v = mean(median_image[0][Y + M].T[X + M])
-    return less(log(power(median_image - v, 2) + 1), PIXEL_DIST)
+    return [less(log(power(median_image - v, 2) + 1), PIXEL_DIST)]
 
 
-def eroding(args):
-    thresholded_image = args
+def eroding(blocks, ignore):
+     # No extra arguments: ignore
+     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    thresholded_image = concatenate(blocks)
 
     w = int(floor(len(STREL) / 2))
     im = pad(thresholded_image, w, 'constant', constant_values=True)
@@ -124,13 +131,15 @@ def eroding(args):
     partial_erode = logical_and(slices[:, :, :], STREL)
     partial_erode = equal(partial_erode, STREL)
 
-    return npsum(partial_erode,
+    return [npsum(partial_erode,
                  axis=(-1, -2, -3)
-                 ) == size(STREL)
+                 ) == size(STREL)]
 
 
-def connected_components(args):
-    eroded_image = args
+def connected_components(blocks, ignore):
+     # No extra arguments: ignore
+     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    eroded_image = concatenate(blocks)
 
     # Find minimum data type to hold result (fit max-label)
     min_dtype = min_scalar_type(size(eroded_image))
@@ -168,11 +177,14 @@ def connected_components(args):
             old_sum = new_sum
 
     # Remove padding from image
-    return result[1:-1, 1:-1, 1:-1]
+    return [result[1:-1, 1:-1, 1:-1]]
 
 
-def find_groups(args):
-    return bincount(args.ravel()).argsort()[-NUM_GROUPS - 1:-1][::-1].tolist()
+def find_groups(blocks, ignore):
+     # No extra arguments: ignore
+     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    connected_components = concatenate(blocks)
+    return bincount(connected_components.ravel()).argsort()[-NUM_GROUPS - 1:-1][::-1].tolist()
 
 
 if __name__ == '__main__':

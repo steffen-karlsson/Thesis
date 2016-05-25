@@ -3,7 +3,7 @@
 
 from os import getcwd
 
-from numpy import fromfile, float32, dot, divide, int32, rint, zeros, array, add, asarray
+from numpy import fromfile, float32, dot, divide, int32, rint, zeros, array, add, asarray, concatenate
 
 from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
@@ -49,18 +49,21 @@ class FDKDataset(AbsMapReduceDataset):
         return path
 
 
-def ndsum(data):
-    return add.reduce(data).tolist()
+def ndsum(blocks, ignore):
+    # No extra arguments: ignore
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    return add.reduce(concatenate(blocks)).tolist()
 
 
-def fdkcore(args):
-    voxels = int(args[1])
+def fdkcore(blocks, args):
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+    voxels = int(args[0])
     x_voxels = y_voxels = z_voxels = voxels
 
-    combined_path = args[2]
-    z_voxel_coords_path = args[3]
-    transform_path = args[4]
-    volumeweight_path = args[5]
+    combined_path = args[1]
+    z_voxel_coords_path = args[2]
+    transform_path = args[3]
+    volumeweight_path = args[4]
 
     combined_matrix = fromfile(combined_path, dtype=float32)
     combined_matrix.shape = (4, x_voxels * y_voxels)
@@ -75,7 +78,7 @@ def fdkcore(args):
 
     recon_volume = zeros((z_voxels, y_voxels, x_voxels), dtype=float32)
 
-    projections = array(sum(list(args[0]), []))
+    projections = concatenate(blocks)
 
     for p in xrange(NUM_PROJECTIONS):
         # Numpy FDK operates on flat arrays
@@ -108,7 +111,7 @@ def fdkcore(args):
 
             recon_volume[z].flat += flat_proj_data[proj_indexs] * volume_weight[p] * mask
 
-    return recon_volume
+    return [recon_volume]
 
 
 if __name__ == '__main__':
@@ -126,7 +129,8 @@ if __name__ == '__main__':
                      BASE_PATH + 'z_voxel_coords.bin',
                      BASE_PATH + 'transform.bin',
                      BASE_PATH + 'volumeweight.bin'])
+    print args
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    GatewayWebWrapper(scientist).start(9990)
-    # scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
+    # GatewayWebWrapper(scientist).start(9990)
+    scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
 
