@@ -34,19 +34,19 @@ class FDKDataset(AbsMapReduceDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_multiple_arguments(5)
+            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_multiple_arguments(5).with_postprocesing(postprocess)
         ]
 
-    def postprocess(self, res):
-        import matplotlib.pyplot as plt
-        import matplotlib.cm as cm
+def postprocess(res):
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
 
-        path = getcwd() + "/test.png"
+    path = getcwd() + "/test.png"
 
-        plt.clf()
-        plt.matshow(asarray(res), fignum=1, cmap=cm.Greys_r)
-        plt.savefig(path)
-        return path
+    plt.clf()
+    plt.matshow(asarray(res), fignum=1, cmap=cm.Greys_r)
+    plt.savefig(path)
+    return path
 
 
 def ndsum(blocks, ignore):

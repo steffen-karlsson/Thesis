@@ -571,6 +571,9 @@ class StorageHandler(object):
             else:
                 res = last_function((process_state['partial-value'], data[RESULT]))
 
+            if operation_context.has_postprocessing_step():
+                res = operation_context.postprocess(res)
+
             info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)

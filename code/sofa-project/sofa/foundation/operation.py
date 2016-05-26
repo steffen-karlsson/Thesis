@@ -108,6 +108,7 @@ class OperationContext:
         self.send_left = False
         self.send_right = False
         self.use_cyclic = False
+        self.postprocess = None
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
         is_tuple = isinstance(ghost_count, tuple)
@@ -127,6 +128,10 @@ class OperationContext:
         self.delimiter = delimiter
         return self
 
+    def with_postprocesing(self, postprocess_step):
+        self.postprocess = postprocess_step
+        return self
+
     def get_ghost_count_left(self):
         return self.__get_ghost(0)
 
@@ -141,6 +146,9 @@ class OperationContext:
 
     def needs_both_ghosts(self):
         return self.send_right and self.send_left
+
+    def has_postprocessing_step(self):
+        return self.postprocess is not None
 
     def has_multiple_args(self):
         return self.num_args > 1

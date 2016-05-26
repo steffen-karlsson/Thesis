@@ -72,9 +72,6 @@ class AVS5MDataset(ImageDataset):
     def get_map_functions(self):
         return [median_filter, thresholding, eroding, connected_components]
 
-    def postprocess(self, res):
-        return res
-
     def get_distribution_strategy(self):
         return Tiles(3)
 

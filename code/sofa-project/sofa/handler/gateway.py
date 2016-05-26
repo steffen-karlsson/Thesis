@@ -211,12 +211,7 @@ class GatewayHandler(object):
         if is_processing(job_res):
             return STATUS_PROCESSING, None
 
-        res = self.__get_class_from_identifier(didentifier, 'class-name')
-        if is_error(res):
-            return res
-
-        context, _ = res
-        job_res = context.postprocess(job_res[1])
+        job_res = job_res[1]
         return STATUS_SUCCESS, (job_res, isinstance(job_res, str) and path.exists(job_res))
 
     # Internal Result Api
