@@ -34,7 +34,7 @@ class FDKDataset(AbsMapReduceDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_multiple_arguments(5).with_postprocesing(postprocess)
+            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_multiple_arguments().with_postprocesing(postprocess)
         ]
 
 def postprocess(res):

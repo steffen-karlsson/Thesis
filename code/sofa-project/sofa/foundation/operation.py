@@ -103,11 +103,11 @@ class OperationContext:
         self.fun_name = fun_name
         self.functions = sequential_operations.functions
         self.ghost_count = (1, 1)
-        self.num_args = 1
         self.delimiter = ','
         self.send_left = False
         self.send_right = False
         self.use_cyclic = False
+        self.__has_multiple_arguments = False
         self.postprocess = None
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
@@ -123,8 +123,8 @@ class OperationContext:
         self.use_cyclic = use_cyclic
         return self
 
-    def with_multiple_arguments(self, num_args, delimiter=','):
-        self.num_args = num_args
+    def with_multiple_arguments(self, delimiter=','):
+        self.__has_multiple_arguments = True
         self.delimiter = delimiter
         return self
 
@@ -150,8 +150,8 @@ class OperationContext:
     def has_postprocessing_step(self):
         return self.postprocess is not None
 
-    def has_multiple_args(self):
-        return self.num_args > 1
+    def has_multiple_arguments(self):
+        return self.__has_multiple_arguments
 
     def get_functions(self):
         return list(self.functions)

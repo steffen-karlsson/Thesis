@@ -393,7 +393,7 @@ class StorageHandler(object):
         args[BLOCKS] = blocks
         query = process_state['query']
         if query:
-            if operation_context.has_multiple_args():
+            if operation_context.has_multiple_arguments():
                 args[QUERY] = str(query).split(operation_context.delimiter)
             else:
                 args[QUERY] = [query]
