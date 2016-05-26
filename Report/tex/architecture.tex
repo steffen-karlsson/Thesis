@@ -110,7 +110,7 @@ If redundancy protocol however is based on erasure codes then it is no longer re
 \vspace*{2mm}
 
 \section{Security} \label{sec:security}
-The focus on data integrity and security have predominantly been given low priority, since the system is expected to execute in a trusted environment, exactly like Amazon Dynamo. It is intentionally implemented without internal authentication or authorization because there hasn't been any attention on data integrity and security by the assumption that the system is built for trusted environments.
+The focus on data integrity and security have predominantly been given low priority, since the system is expected to execute in a trusted environment, exactly like Amazon Dynamo, thus it is intentionally implemented without internal authentication or authorization.
 \newline
 
-Nevertheless are security evidently an influential component from the outside, when handling user inputs.
+Nevertheless, security is evidently an influential component and property at the boundary of the system, one of many actions is \eg using the secure HTTPS connection on the network requests to the entry gateway servers instead of ordinary HTTP. Validation of user input is most certainly also a reasonable action when it comes to security.
