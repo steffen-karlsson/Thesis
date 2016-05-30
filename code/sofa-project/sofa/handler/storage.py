@@ -662,7 +662,10 @@ def _wrapper_local_execute(args):
 
 def _local_execute(self, functions, args, operation_context_args):
     try:
+        operation_context, didentifier, fidentifier, process_state = operation_context_args
         possible_function = functions.pop(0)
+        fun_counter = operation_context.get_functions().index(possible_function)
+
         if isinstance(possible_function, SequentialOperation):
             res = _local_execute(self, list(possible_function.functions), args, operation_context_args)
             return _local_execute(self, functions, res, operation_context_args)
@@ -680,7 +683,11 @@ def _local_execute(self, functions, args, operation_context_args):
             return _local_execute(self, functions, res, operation_context_args)
 
         if isfunction(possible_function) or isbuiltin(possible_function):
-            res = possible_function(args[BLOCKS], args[QUERY])
+            blocks = args[BLOCKS]
+            if operation_context.needs_block_formatting():
+                blocks = operation_context.block_formatter(blocks, fun_counter)
+
+            res = possible_function(blocks, args[QUERY])
             if not isinstance(res, tuple):
                 res = (res, None)
 
@@ -690,7 +697,6 @@ def _local_execute(self, functions, args, operation_context_args):
         is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
         if is_keyword_fun:
             # Update process state
-            operation_context, didentifier, fidentifier, process_state = operation_context_args
             process_state['function-count'] = operation_context.get_functions().index(possible_function) + 1
 
             KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)

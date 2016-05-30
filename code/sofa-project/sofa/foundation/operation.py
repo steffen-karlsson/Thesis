@@ -109,6 +109,7 @@ class OperationContext:
         self.use_cyclic = False
         self.__has_multiple_arguments = False
         self.post_process = None
+        self.block_formatter = None
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
         is_tuple = isinstance(ghost_count, tuple)
@@ -128,8 +129,12 @@ class OperationContext:
         self.delimiter = delimiter
         return self
 
-    def with_post_processing(self, post_process_step):
-        self.post_process = post_process_step
+    def with_block_formatting(self, fun_block_formatter):
+        self.block_formatter = fun_block_formatter
+        return self
+
+    def with_post_processing(self, fun_post_process_step):
+        self.post_process = fun_post_process_step
         return self
 
     def get_ghost_count_left(self):
@@ -149,6 +154,12 @@ class OperationContext:
 
     def has_post_processing_step(self):
         return self.post_process is not None
+
+    def needs_block_formatting(self):
+        return self.block_formatter is not None
+
+    def format_blocks(self, block_gen):
+        return self.block_formatter(block_gen)
 
     def execute_post_process(self, args):
         return self.post_process(args)
