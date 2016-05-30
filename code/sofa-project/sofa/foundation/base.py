@@ -68,7 +68,6 @@ class SofaBaseObject:
         """
         return RoundRobin()
 
-    @abstractmethod
     def verify_function(self, function_name):
         """
         Only applicable for objects implementing get_operations!
