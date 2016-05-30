@@ -336,7 +336,7 @@ class StorageHandler(Dispatcher):
 
         return STATUS_NOT_FOUND
 
-    def __get_operations_and_arguments(self, didentifier, fidentifier, operation_context, process_state):
+    def __get_operations_and_arguments(self, didentifier, fidentifier, process_state):
         # Merge ghosts into blocks
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
@@ -492,8 +492,7 @@ class StorageHandler(Dispatcher):
         last_function = functions[-1]
 
         if process_state['processing']:
-            args = self.__get_operations_and_arguments(didentifier, fidentifier,
-                                                       operation_context, process_state)
+            args = self.__get_operations_and_arguments(didentifier, fidentifier, process_state)
             if is_error(args):
                 self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
                 return
