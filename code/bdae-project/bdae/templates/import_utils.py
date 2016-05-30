@@ -8,9 +8,10 @@ from logging import warn
 def map_function_binder(new_name, py_fun):
     def _wrapped_py_fun(blocks, args):
         for block in blocks:
-            # TODO: Cannot just join with space if its numpy array and float data i.e., this only works for string data
-            block = " ".join(block)
-            yield sum(py_fun(block, args[i]) for i in xrange(len(args)))
+            if args is None:
+                yield py_fun(block)
+            else:
+                yield py_fun(block, *args)
 
     _wrapped_py_fun.__name__ = new_name
     return _wrapped_py_fun
@@ -21,7 +22,7 @@ def reduce_function_binder(new_name, py_fun):
         if args is None:
             return py_fun(blocks)
 
-        return py_fun(blocks, args)
+        return py_fun(blocks, *args)
 
     _wrapped_py_fun.__name__ = new_name
     return _wrapped_py_fun
