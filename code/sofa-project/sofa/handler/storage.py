@@ -2,7 +2,6 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from shelve import open
-from math import floor
 from sys import getsizeof
 from logging import info
 from ujson import loads as uloads, dumps as udumps
@@ -12,8 +11,10 @@ from itertools import izip_longest
 from inspect import isfunction, isbuiltin
 from re import compile
 from collections import Iterable
-from numpy import ndarray, array
 
+from numpy import ndarray
+
+from sofa.handler.dispatcher import Dispatcher, dispatch
 from sofa.handler import get_class_from_source
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
     STATUS_PROCESSING, STATUS_NO_DATA, is_error
@@ -27,7 +28,6 @@ RESULT = 0
 REQUEST_COUNT = 1
 ROOT_IS_WORKING = 2
 GATEWAY = 3
-
 
 BLOCKS = 0
 QUERY = 1
@@ -104,7 +104,7 @@ class Keywords(dict):
 KEYWORDS = Keywords()
 
 
-class StorageHandler(object):
+class StorageHandler(Dispatcher):
     def __init__(self, config, others):
         self.__config = config
         self.__tb = None
@@ -112,15 +112,18 @@ class StorageHandler(object):
         self.__dgcs = CacheSystem(defaultdict, args=dict)  # Dataset Ghosts Cache System
         self.__RAW = open("sofa_raw.db", writeback=True)
         self.__FLAG = open("sofa_flag.db", writeback=True)
-
         if 'storage' in others:
             self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri in others['storage']]
         else:
             self.__storage_nodes = []
-
         self.__num_storage_nodes = len(self.__storage_nodes)
         self.__neighbors = self.__get_neighbors()
-        self.__space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
+
+        space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
+        super(StorageHandler, self).__init__(self.__config.node_idx, space_size)
+
+    def get_responsible(self, index):
+        return self.__storage_nodes[index]
 
     def save_partial_value_state(self, didentifier, fidentifier, res):
         is_root = str(didentifier) in self.__FLAG
@@ -182,13 +185,6 @@ class StorageHandler(object):
     def __context_exists(self, didentifier):
         return str(didentifier) in self.__FLAG
 
-    def __find_responsibility(self, didentifier):
-        responsible = int(floor(didentifier / self.__space_size))
-        if self.__config.node_idx == responsible:
-            return None
-
-        return self.__storage_nodes[responsible - 1]  # Self is not included in __storage_nodes
-
     def handle_ghosts(self, didentifier, operation_context, done_callback_handler,
                       is_local_transfer=False, self_data=None):
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
@@ -207,13 +203,9 @@ class StorageHandler(object):
 
         done_callback_handler(is_ready=False, left=(l_neighbor, right_ghost), right=(r_neighbor, left_ghost))
 
-    def create(self, bundle):
-        identifier, meta_data, is_update = secure_load(bundle)
-
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(identifier)
-        if responsible:
-            return responsible.create(identifier, meta_data, is_update)
+    @dispatch
+    def create(self, identifier, bundle):
+        meta_data, is_update = secure_load(bundle)
 
         if is_update:
             # TODO: Block from calling any other operation on this context, while update is finishing
@@ -257,13 +249,8 @@ class StorageHandler(object):
 
         return STATUS_SUCCESS
 
+    @dispatch
     def delete(self, identifier):
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(identifier)
-        if responsible:
-            return responsible.delete(identifier)
-
-        # Else do the job self.
         # TODO: Block from calling any other operation on this context
 
         # Delete all blocks
@@ -282,25 +269,16 @@ class StorageHandler(object):
         self.__dgcs.delete(identifier)
         return STATUS_SUCCESS
 
+    @dispatch
     def get_meta_from_identifier(self, didentifier):
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(didentifier)
-        if responsible:
-            return responsible.get_meta_from_identifier(didentifier)
-
-        # Else do the job self.
         if not self.__context_exists(didentifier):
             return STATUS_NOT_FOUND
 
         return self.__RAW[str(didentifier)][0]
 
-    def update_meta_key(self, bundle):
-        identifier, update_type, key, value = secure_load(bundle)
-
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(identifier)
-        if responsible:
-            return responsible.update_meta_key(identifier, update_type, key, value)
+    @dispatch
+    def update_meta_key(self, identifier, bundle):
+        update_type, key, value = secure_load(bundle)
 
         # Else do the job self.
         res = self.get_meta_from_identifier(identifier)
@@ -395,13 +373,8 @@ class StorageHandler(object):
         args[QUERY] = [query] if query and not isinstance(query, list) else query
         return args
 
+    @dispatch
     def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
-        # Check whether its self who is responsible
-        responsible = self.__find_responsibility(didentifier)
-        if responsible:
-            return responsible.submit_job(didentifier, fidentifier, function_name, query, gateway)
-
-        # Else do the job self.
         has_result = self.__srcs.contains(didentifier) and fidentifier in self.__srcs.get(didentifier)
         if has_result:
             data = self.__srcs.get(didentifier)[fidentifier]
@@ -458,7 +431,7 @@ class StorageHandler(object):
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
 
-             # See if its first iteration or the cache has the value
+            # See if its first iteration or the cache has the value
             has_result = self.__srcs.contains(didentifier) \
                          and fidentifier in self.__srcs.get(didentifier) \
                          and self.__srcs.get(didentifier)[fidentifier][RESULT]
@@ -468,7 +441,7 @@ class StorageHandler(object):
                              'function-count': 0,
                              'partial-value': 0,
                              'block-state': 'raw',
-                             'processing' : False if has_result else True,
+                             'processing': False if has_result else True,
                              'query': query}
 
             if is_ready:

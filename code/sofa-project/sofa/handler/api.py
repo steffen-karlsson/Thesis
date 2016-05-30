@@ -2,6 +2,7 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from inspect import getsourcefile
+from functools import partial
 
 from Pyro4 import Proxy, locateNS, async
 
@@ -16,7 +17,7 @@ class _StorageApi(object):
 
     def create(self, identifier, meta_data, is_update=False):
         self._validate_api()
-        return secure_send((identifier, meta_data, is_update), self._api.create)
+        return secure_send((meta_data, is_update), partial(self._api.create, identifier))
 
     def append(self, identifier, block, create_new_stride):
         self._validate_api()
@@ -24,7 +25,7 @@ class _StorageApi(object):
 
     def update_meta_key(self, identifier, update_type, key, value):
         self._validate_api()
-        return secure_send((identifier, update_type, key, value), self._api.update_meta_key)
+        return secure_send((update_type, key, value), partial(self._api.update_meta_key, identifier))
 
     def get_datasets(self, is_internal_call=False):
         # TODO: secure return
