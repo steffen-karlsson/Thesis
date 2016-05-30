@@ -34,9 +34,9 @@ class FDKDataset(AbsMapReduceDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]')
-                .with_multiple_arguments().with_post_processing(post_process)
+            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_post_processing(post_process)
         ]
+
 
 def post_process(res):
     import matplotlib.pyplot as plt
@@ -50,21 +50,15 @@ def post_process(res):
     return path
 
 
-def ndsum(blocks, ignore):
+def ndsum(blocks):
     # No extra arguments: ignore
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     return add.reduce(concatenate(blocks)).tolist()
 
 
-def fdkcore(blocks, args):
+def fdkcore(blocks, voxels, combined_path, z_voxel_coords_path, transform_path, volumeweight_path):
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
-    voxels = int(args[0])
     x_voxels = y_voxels = z_voxels = voxels
-
-    combined_path = args[1]
-    z_voxel_coords_path = args[2]
-    transform_path = args[3]
-    volumeweight_path = args[4]
 
     combined_matrix = fromfile(combined_path, dtype=float32)
     combined_matrix.shape = (4, x_voxels * y_voxels)
@@ -125,13 +119,11 @@ if __name__ == '__main__':
     def callback(res):
         print "Saved"
 
-    args = ",".join(['64',
-                     BASE_PATH + 'combined.bin',
-                     BASE_PATH + 'z_voxel_coords.bin',
-                     BASE_PATH + 'transform.bin',
-                     BASE_PATH + 'volumeweight.bin'])
-    print args
+    args = [64,
+            BASE_PATH + 'combined.bin',
+            BASE_PATH + 'z_voxel_coords.bin',
+            BASE_PATH + 'transform.bin',
+            BASE_PATH + 'volumeweight.bin']
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
     # GatewayWebWrapper(scientist).start(9990)
     scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
-

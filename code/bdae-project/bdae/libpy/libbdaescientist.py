@@ -58,7 +58,7 @@ class PyBDAEScientist:
         :param function: Name of the function to execute
         :type function: str
         :param query: Arguments for the function
-        :type query: str
+        :type query: single type or list of arguments to be unfolded
         :param poll_delay: Delay for polling for result in seconds, default = 0.2
         :type poll_delay: float
         :param callback: Executed when the job has terminated with one argument, the result

@@ -35,12 +35,12 @@ def _crawl_syntax(context, syntax, functions, seq_start, seq_end, par_start, par
             syntax = ""
 
         if tail.startswith(seq_start) or tail.endswith(seq_end):
-            functions = [Sequential(*_crawl_syntax(context, _strip(tail), [], seq_start,
+            functions = [Sequential(*_crawl_syntax(context, _strip_operators(tail), [], seq_start,
                                                    seq_end, par_start, par_end))] + functions
             continue
 
         if tail.startswith(par_start) or tail.endswith(par_end):
-            functions = [Parallel(*_crawl_syntax(context, _strip(tail), [], seq_start,
+            functions = [Parallel(*_crawl_syntax(context, _strip_operators(tail), [], seq_start,
                                                  seq_end, par_start, par_end))] + functions
             continue
 
@@ -107,7 +107,6 @@ class OperationContext:
         self.send_left = False
         self.send_right = False
         self.use_cyclic = False
-        self.__has_multiple_arguments = False
         self.post_process = None
         self.block_formatter = None
 
@@ -122,11 +121,6 @@ class OperationContext:
         self.send_left = ghost_count[0] != 0 if is_tuple else True
         self.send_right = ghost_count[1] != 0 if is_tuple else True
         self.use_cyclic = use_cyclic
-        return self
-
-    def with_multiple_arguments(self, delimiter=','):
-        self.__has_multiple_arguments = True
-        self.delimiter = delimiter
         return self
 
     def with_block_formatting(self, fun_block_formatter):
@@ -163,9 +157,6 @@ class OperationContext:
 
     def execute_post_process(self, args):
         return self.post_process(args)
-
-    def has_multiple_arguments(self):
-        return self.__has_multiple_arguments
 
     def get_functions(self):
         return list(self.functions)

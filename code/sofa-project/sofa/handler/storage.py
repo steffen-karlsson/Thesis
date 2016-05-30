@@ -392,12 +392,7 @@ class StorageHandler(object):
 
         args[BLOCKS] = blocks
         query = process_state['query']
-        if query:
-            if operation_context.has_multiple_arguments():
-                args[QUERY] = str(query).split(operation_context.delimiter)
-            else:
-                args[QUERY] = [query]
-
+        args[QUERY] = [query] if query and not isinstance(query, list) else query
         return args
 
     def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
@@ -682,25 +677,37 @@ def _local_execute(self, functions, args, operation_context_args):
             res = pool.map(_wrapper_local_execute, subargs)
             return _local_execute(self, functions, res, operation_context_args)
 
-        if isfunction(possible_function) or isbuiltin(possible_function):
-            blocks = args[BLOCKS]
-            if operation_context.needs_block_formatting():
-                blocks = operation_context.block_formatter(blocks, fun_counter)
-
-            res = possible_function(blocks, args[QUERY])
-            if not isinstance(res, tuple):
-                res = (res, None)
-
-            return _local_execute(self, functions, list(res), operation_context_args)
-
         # Find keyword function and call it
-        is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys()) if keyword.findall(possible_function)]
+        is_keyword_fun = [idx for idx, keyword in enumerate(KEYWORDS.keys())
+                          if isinstance(possible_function, str) and keyword.findall(possible_function)]
         if is_keyword_fun:
             # Update process state
             process_state['function-count'] = operation_context.get_functions().index(possible_function) + 1
 
             KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)
             raise WillContinueExecuting()
+
+        # Modify and format blocks if needed
+        blocks = args[BLOCKS]
+        query = args[QUERY]
+        if operation_context.needs_block_formatting():
+            blocks = operation_context.block_formatter(blocks, fun_counter)
+
+        # If function is buit-in call it by the wrapper import utils function
+        if isbuiltin(possible_function):
+            res = possible_function(blocks, query)
+        else:
+            # If its regular defined functions, unbox arguments properly
+            if query is None:
+                res = possible_function(blocks)
+            else:
+                res = possible_function(blocks, *query)
+
+        # Append None as next arguments, if none is returned from previous function
+        if not isinstance(res, tuple):
+            res = (res, None)
+
+        return _local_execute(self, functions, list(res), operation_context_args)
 
     except IndexError:
         return args[BLOCKS]

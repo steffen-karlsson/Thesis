@@ -76,8 +76,7 @@ class AVS5MDataset(ImageDataset):
         return Tiles(3)
 
 
-def median_filter(blocks, ignore):
-    # No extra arguments: ignore
+def median_filter(blocks):
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     image = concatenate(blocks)
     median_image = empty(image.shape)
@@ -97,17 +96,15 @@ def median_filter(blocks, ignore):
     return [median_image]
 
 
-def thresholding(blocks, ignore):
-    # No extra arguments: ignore
+def thresholding(blocks):
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     median_image = concatenate(blocks)
     v = mean(median_image[0][Y + M].T[X + M])
     return [less(log(power(median_image - v, 2) + 1), PIXEL_DIST)]
 
 
-def eroding(blocks, ignore):
-     # No extra arguments: ignore
-     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+def eroding(blocks):
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     thresholded_image = concatenate(blocks)
 
     w = int(floor(len(STREL) / 2))
@@ -128,14 +125,11 @@ def eroding(blocks, ignore):
     partial_erode = logical_and(slices[:, :, :], STREL)
     partial_erode = equal(partial_erode, STREL)
 
-    return [npsum(partial_erode,
-                 axis=(-1, -2, -3)
-                 ) == size(STREL)]
+    return [npsum(partial_erode, axis=(-1, -2, -3)) == size(STREL)]
 
 
-def connected_components(blocks, ignore):
-     # No extra arguments: ignore
-     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+def connected_components(blocks):
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     eroded_image = concatenate(blocks)
 
     # Find minimum data type to hold result (fit max-label)
@@ -177,9 +171,8 @@ def connected_components(blocks, ignore):
     return [result[1:-1, 1:-1, 1:-1]]
 
 
-def find_groups(blocks, ignore):
-     # No extra arguments: ignore
-     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
+def find_groups(blocks):
+    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     connected_components = concatenate(blocks)
     return bincount(connected_components.ravel()).argsort()[-NUM_GROUPS - 1:-1][::-1].tolist()
 
@@ -194,4 +187,4 @@ if __name__ == '__main__':
         print "The result is: " + str(res)
 
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    scientist.submit_job("AVS5M dataset", "circle recognition", '', callback=callback)
+    scientist.submit_job("AVS5M dataset", "circle recognition", None, callback=callback)
