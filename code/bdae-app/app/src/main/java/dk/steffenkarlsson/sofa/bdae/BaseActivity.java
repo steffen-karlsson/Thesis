@@ -8,6 +8,8 @@ import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.View;
+import android.widget.ProgressBar;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -23,6 +25,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Nullable
     @Bind(R.id.toolbar)
     protected Toolbar mToolbar;
+
+    @Nullable
+    @Bind(R.id.progress)
+    protected ProgressBar mLoadingSpinner;
 
     private TransitionAnimation mOutTransition;
 
@@ -44,6 +50,11 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (hasLoadingSpinner())
+            mLoadingSpinner.getIndeterminateDrawable().setColorFilter(
+                    getResources().getColor(R.color.colorSpinner),
+                    android.graphics.PorterDuff.Mode.MULTIPLY);
 
         initActionBar();
     }
@@ -72,6 +83,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     @StringRes
     protected abstract int getTitleResource();
 
+    protected boolean hasLoadingSpinner() {
+        return true;
+    }
+
     protected boolean showBackButton() {
         return false;
     }
@@ -88,6 +103,11 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (getSupportActionBar() != null && showActionBar()) {
             getSupportActionBar().setTitle(title);
         }
+    }
+
+    protected void setLoadingSpinnerVisible(boolean visible) {
+        if (hasLoadingSpinner())
+            mLoadingSpinner.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
     }
 
     @Override

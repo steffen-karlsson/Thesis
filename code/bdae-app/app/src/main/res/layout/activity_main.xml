@@ -24,5 +24,7 @@
 
         <include layout="@layout/content_main" />
 
+        <include layout="@layout/loader" />
+
     </FrameLayout>
 </android.support.design.widget.CoordinatorLayout>
