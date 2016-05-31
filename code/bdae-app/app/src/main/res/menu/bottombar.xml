@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/bottombar_dashboard"
+        android:icon="@drawable/ic_dashboard_white"
+        android:title="@string/bottombar_dashboard" />
+
+    <item
+        android:id="@+id/bottombar_data"
+        android:icon="@drawable/ic_data_white"
+        android:title="@string/bottombar_datasets" />
+
+    <item
+        android:id="@+id/bottombar_configuration"
+        android:icon="@drawable/ic_configure_white"
+        android:title="@string/bottombar_configuration" />
+</menu>
