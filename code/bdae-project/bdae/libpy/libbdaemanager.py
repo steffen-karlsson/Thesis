@@ -59,9 +59,9 @@ class PyBDAEManager(PyBDAEScientist):
             if not isgeneratorfunction(map_fun):
                 debug("%s is not an generator i.e. yields" % map_fun.func_name)
 
-        self.__finialize_create(dataset)
+        self.__finalize_create(dataset)
 
-    def __finialize_create(self, context):
+    def __finalize_create(self, context):
         description = context.get_description()
         meta_data = {'description': description if description else ""}
 
@@ -112,7 +112,7 @@ class PyBDAEManager(PyBDAEScientist):
 
         try:
             # A collection is represented as a dataset with a prefixed name internally in the storage system
-            self.__finialize_create(collection)
+            self.__finalize_create(collection)
         except DatasetAlreadyExistsException:
             name = collection.get_name().split(':')[1]
             raise CollectionAlreadyExistsException("Collection with name: '%s' already exists" % name)
