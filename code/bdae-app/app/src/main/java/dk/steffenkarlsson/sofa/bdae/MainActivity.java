@@ -13,8 +13,6 @@ import android.widget.FrameLayout;
 import com.roughike.bottombar.BottomBar;
 import com.roughike.bottombar.OnMenuTabClickListener;
 
-import java.util.HashMap;
-
 import butterknife.Bind;
 import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarConfigureView;
@@ -24,7 +22,7 @@ import dk.steffenkarlsson.sofa.bdae.view.BottomBarDataView;
 /**
  * Created by steffenkarlsson on 5/31/16.
  */
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseConfigurationActivity {
 
     private static final int PAGE_DASHBOARD = 0;
     private static final int PAGE_DATA = 1;
@@ -70,6 +68,11 @@ public class MainActivity extends BaseActivity {
     }
 
     @Override
+    protected boolean requiresConfiguration() {
+        return true;
+    }
+
+    @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
@@ -88,7 +91,8 @@ public class MainActivity extends BaseActivity {
 
     private ViewPager.OnPageChangeListener mOnPageChangeListener = new ViewPager.OnPageChangeListener() {
         @Override
-        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) { }
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        }
 
         @Override
         public void onPageSelected(int position) {
@@ -96,7 +100,8 @@ public class MainActivity extends BaseActivity {
         }
 
         @Override
-        public void onPageScrollStateChanged(int state) { }
+        public void onPageScrollStateChanged(int state) {
+        }
     };
 
     private OnMenuTabClickListener mOnMenuTabClickListener = new OnMenuTabClickListener() {
