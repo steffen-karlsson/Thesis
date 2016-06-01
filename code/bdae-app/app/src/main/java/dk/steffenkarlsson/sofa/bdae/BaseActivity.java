@@ -3,16 +3,20 @@ package dk.steffenkarlsson.sofa.bdae;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
+import android.view.animation.Animation;
 import android.widget.ProgressBar;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
+import dk.steffenkarlsson.sofa.bdae.extra.EventBus;
 import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
 
 /**
@@ -45,6 +49,13 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         setContentView(layoutRes);
         ButterKnife.bind(this);
+        EventBus.getInstance().register(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getInstance().unregister(this);
     }
 
     @Override
@@ -123,22 +134,29 @@ public abstract class BaseActivity extends AppCompatActivity {
         );
     }
 
+    protected void applyInTransition(TransitionAnimation inAnimation) {
+        overridePendingTransition(
+                TransitionAnimation.getAnimation(inAnimation),
+                TransitionAnimation.getAnimation(TransitionAnimation.FADE_OUT)
+        );
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                EventBus.getInstance().post(new TransitionAnimationEndedEvent());
+            }
+        }, 900);
+    }
+
     public void launchActivity(Intent intent, TransitionAnimation transitionAnimation) {
         intent.putExtra(BUNDLE_TRANSITION, transitionAnimation.ordinal());
         startActivity(intent);
-        overridePendingTransition(
-                TransitionAnimation.getAnimation(transitionAnimation),
-                TransitionAnimation.getAnimation(TransitionAnimation.FADE_OUT)
-        );
+        applyInTransition(transitionAnimation);
     }
 
     public void launchActivityForResult(Intent intent, int requestCode, TransitionAnimation transitionAnimation) {
         intent.putExtra(BUNDLE_TRANSITION, transitionAnimation.ordinal());
         startActivityForResult(intent, requestCode);
-        overridePendingTransition(
-                TransitionAnimation.getAnimation(transitionAnimation),
-                TransitionAnimation.getAnimation(TransitionAnimation.FADE_OUT)
-        );
+        applyInTransition(transitionAnimation);
     }
 
     public Intent getActivityIntent(Context context, Class clzz) {
