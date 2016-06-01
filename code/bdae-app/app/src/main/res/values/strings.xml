@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">BDAE</string>
     <string name="app_name_long">Big Data Analysis Engine</string>
+    <string name="shared_preferences_name">@string/app_name_long</string>
 
     <string name="bottombar_dashboard">Dashboard</string>
     <string name="bottombar_datasets">Data</string>
