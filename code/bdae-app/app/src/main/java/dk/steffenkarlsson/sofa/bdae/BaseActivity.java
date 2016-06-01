@@ -10,7 +10,6 @@ import android.support.annotation.StringRes;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
-import android.view.animation.Animation;
 import android.widget.ProgressBar;
 
 import butterknife.Bind;
@@ -40,16 +39,16 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mOutTransition = TransitionAnimation.values()[getIntent().getIntExtra(BUNDLE_TRANSITION, 0)];
-        getIntent().removeExtra(BUNDLE_TRANSITION);
-
         int layoutRes = getLayoutResource();
         if (layoutRes == -1)
             throw new RuntimeException("No layout defined in getLayoutResource");
 
+        EventBus.getInstance().register(this);
         setContentView(layoutRes);
         ButterKnife.bind(this);
-        EventBus.getInstance().register(this);
+
+        mOutTransition = TransitionAnimation.values()[getIntent().getIntExtra(BUNDLE_TRANSITION, 0)];
+        getIntent().removeExtra(BUNDLE_TRANSITION);
     }
 
     @Override
@@ -144,7 +143,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             public void run() {
                 EventBus.getInstance().post(new TransitionAnimationEndedEvent());
             }
-        }, 900);
+        }, 500);
     }
 
     public void launchActivity(Intent intent, TransitionAnimation transitionAnimation) {

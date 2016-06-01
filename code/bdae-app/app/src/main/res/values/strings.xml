@@ -7,4 +7,8 @@
     <string name="bottombar_datasets">Data</string>
     <string name="bottombar_configuration">Configure</string>
     <string name="title_activity_main2">Main2Activity</string>
+
+    <string name="hint_instance_name">Instance name</string>
+    <string name="hint_api_hostname">API hostname</string>
+    <string name="hint_gateway">Gateway identifier</string>
 </resources>
