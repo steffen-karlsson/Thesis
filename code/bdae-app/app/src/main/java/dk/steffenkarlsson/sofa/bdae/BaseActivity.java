@@ -51,7 +51,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        if (hasLoadingSpinner())
+        if (hasLoadingSpinner() && mLoadingSpinner != null)
             mLoadingSpinner.getIndeterminateDrawable().setColorFilter(
                     getResources().getColor(R.color.colorSpinner),
                     android.graphics.PorterDuff.Mode.MULTIPLY);
