@@ -24,7 +24,7 @@ import butterknife.BindView;
 import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
 import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
-import dk.steffenkarlsson.sofa.bdae.extra.EmptyTextWatcher;
+import dk.steffenkarlsson.sofa.bdae.extra.ChangedTextWatcher;
 
 /**
  * Created by steffenkarlsson on 6/1/16.
@@ -60,11 +60,16 @@ public class ConfigurationFlowActivity extends BaseActivity {
         add(false);
     }};
 
-    private EmptyTextWatcher.OnValidateListener mOnValidateListener = new EmptyTextWatcher.OnValidateListener() {
+    private ChangedTextWatcher.OnValidateListener mOnValidateListener = new ChangedTextWatcher.OnValidateListener() {
         @Override
-        public void onValidate(int index, boolean isValid, boolean hasChanged) {
+        public void onValidated(int index, boolean isValid, boolean hasChanged) {
             mValidator.add(index, isValid);
-            validate();
+            ConfigurationFlowActivity.this.validate();
+        }
+
+        @Override
+        public boolean validate(MaterialEditText editText, Editable s) {
+            return ChangedTextWatcher.emptyValidator(editText, s);
         }
     };
 
@@ -74,32 +79,20 @@ public class ConfigurationFlowActivity extends BaseActivity {
 
         mOkay.setColorFilter(getResources().getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
 
-        mInputInstanceName.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 0, mOnValidateListener));
-        mInputGateway.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 2, mOnValidateListener));
-        mInputApiHostname.addTextChangedListener(new TextWatcher() {
+        mInputInstanceName.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, 0, mOnValidateListener));
+        mInputGateway.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, 2, mOnValidateListener));
+        mInputApiHostname.addTextChangedListener(new ChangedTextWatcher(mInputApiHostname, 1, new ChangedTextWatcher.OnValidateListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            public void onValidated(int index, boolean isValid, boolean hasChanged) {
+                mValidator.add(index, isValid);
+                ConfigurationFlowActivity.this.validate();
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            public boolean validate(MaterialEditText editText, Editable s) {
+                return ChangedTextWatcher.ipPortValidator(editText, s);
             }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                boolean validated = false;
-                if (TextUtils.isEmpty(s.toString()))
-                    mInputApiHostname.setError("Required Field");
-                else {
-                    if (!isValidIPPort(s.toString()))
-                        mInputApiHostname.setError("Has to be a valid ip:port");
-                    else
-                        validated = true;
-                }
-                mValidator.add(1, validated);
-                validate();
-            }
-        });
+        }));
     }
 
     @OnClick(R.id.okay)
@@ -181,17 +174,6 @@ public class ConfigurationFlowActivity extends BaseActivity {
         view.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
-    }
-
-    private boolean isValidIPPort(String input) {
-        if (!input.contains(":"))
-            return false;
-
-        String[] ipport = input.split(":");
-        if (ipport.length == 0 || ipport.length == 1)
-            return false;
-
-        return Patterns.IP_ADDRESS.matcher(ipport[0]).matches() && TextUtils.isDigitsOnly(ipport[1]);
     }
 
     private void validate() {
