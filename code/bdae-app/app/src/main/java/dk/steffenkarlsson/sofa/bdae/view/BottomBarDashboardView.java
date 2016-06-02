@@ -31,6 +31,11 @@ public class BottomBarDashboardView extends BasePagerControllerView {
     }
 
     @Override
+    public void setContent() {
+
+    }
+
+    @Override
     protected int getLayoutResource() {
         return R.layout.content_dashboard_view;
     }

@@ -6,6 +6,8 @@ import android.support.annotation.Nullable;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.SparseIntArray;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -13,8 +15,9 @@ import android.widget.FrameLayout;
 import com.roughike.bottombar.BottomBar;
 import com.roughike.bottombar.OnMenuTabClickListener;
 
-import butterknife.Bind;
+import butterknife.BindView;
 import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
+import dk.steffenkarlsson.sofa.bdae.view.BasePagerControllerView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarConfigureView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarDashboardView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarDataView;
@@ -28,10 +31,10 @@ public class MainActivity extends BaseConfigurationActivity {
     private static final int PAGE_DATA = 1;
     private static final int PAGE_CONFIGURE = 2;
 
-    @Bind(R.id.pager)
+    @BindView(R.id.pager)
     protected ViewPager mPager;
 
-    @Bind(R.id.container)
+    @BindView(R.id.container)
     protected FrameLayout mContainer;
 
     private BottomBar mBottomBar;
@@ -64,6 +67,7 @@ public class MainActivity extends BaseConfigurationActivity {
 
         mAdapter = new BottomBarPagerAdapter();
         mPager.setAdapter(mAdapter);
+        mPager.setOffscreenPageLimit(2);
         mPager.addOnPageChangeListener(mOnPageChangeListener);
     }
 
@@ -77,6 +81,32 @@ public class MainActivity extends BaseConfigurationActivity {
         super.onSaveInstanceState(outState);
 
         mBottomBar.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        menu.clear();
+        BasePagerControllerView controllerView = getControllerView(mPager.getCurrentItem());
+        if (controllerView.hasOptionsMenu()) {
+            getMenuInflater().inflate(controllerView.getOptionsMenuRes(), menu);
+            for (int i = 0; i < menu.size(); i++)
+                controllerView.onModifyMenuItem(menu.getItem(i));
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        super.onOptionsItemSelected(item);
+        BasePagerControllerView controllerView = getControllerView(mPager.getCurrentItem());
+        if (controllerView.hasOptionsMenu())
+            controllerView.onOptionsMenuClicked(item.getItemId());
+        return true;
+    }
+
+    private BasePagerControllerView getControllerView(int position) {
+        return (BasePagerControllerView) mViewCache.getView(position);
     }
 
     @Override
@@ -96,6 +126,8 @@ public class MainActivity extends BaseConfigurationActivity {
 
         @Override
         public void onPageSelected(int position) {
+            if (getControllerView(position).hasOptionsMenu())
+                MainActivity.super.supportInvalidateOptionsMenu();
             mBottomBar.setDefaultTabPosition(position);
         }
 
@@ -117,8 +149,14 @@ public class MainActivity extends BaseConfigurationActivity {
     };
 
     private void selectPage(int menuItemId) {
-        if (mAdapter != null)
-            mPager.setCurrentItem(mPositionMapper.get(menuItemId));
+        if (mAdapter != null) {
+            int position = mPositionMapper.get(menuItemId);
+
+            if (getControllerView(position).hasOptionsMenu())
+                MainActivity.super.supportInvalidateOptionsMenu();
+
+            mPager.setCurrentItem(position);
+        }
     }
 
     private class BottomBarPagerAdapter extends PagerAdapter {
@@ -160,6 +198,10 @@ public class MainActivity extends BaseConfigurationActivity {
                     mViewCache.putView(position, view);
 
                 container.addView(view.getRoot());
+
+                if (view instanceof BasePagerControllerView)
+                    ((BasePagerControllerView) view).setContent();
+
                 return view;
             }
             return null;

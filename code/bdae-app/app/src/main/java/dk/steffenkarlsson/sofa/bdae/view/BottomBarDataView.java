@@ -26,6 +26,11 @@ public class BottomBarDataView extends BasePagerControllerView {
     }
 
     @Override
+    public void setContent() {
+
+    }
+
+    @Override
     protected int getLayoutResource() {
         return R.layout.content_data_view;
     }
