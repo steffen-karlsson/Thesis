@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 
@@ -80,7 +81,7 @@ public abstract class BaseActivity extends AppCompatActivity {
                 getSupportActionBar().setHomeButtonEnabled(true);
 
                 if (showBackButton()) {
-                    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                    getSupportActionBar ().setDisplayHomeAsUpEnabled(true);
                 }
             }
         }
@@ -91,6 +92,16 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     @StringRes
     protected abstract int getTitleResource();
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     protected boolean hasLoadingSpinner() {
         return true;
