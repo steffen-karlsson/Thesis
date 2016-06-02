@@ -38,7 +38,7 @@ public class ConfigurationHandler {
     }
 
     public void setup(String apiHostname, String instanceName, String gatewayIdentifier) {
-        if (!TextUtils.isEmpty(apiHostname) || TextUtils.isEmpty(instanceName) || TextUtils.isEmpty(gatewayIdentifier))
+        if (TextUtils.isEmpty(apiHostname) || TextUtils.isEmpty(instanceName) || TextUtils.isEmpty(gatewayIdentifier))
             throw new IllegalArgumentException("One of the three arguments is null or empty");
 
         this.mHasData = true;
@@ -73,6 +73,10 @@ public class ConfigurationHandler {
             return String.format(GATEWAY_PATTERN, instanceName, gatewayIdentifier);
         }
         return "";
+    }
+
+    public void clear() {
+        getSharedPreferences().edit().clear().apply();
     }
 
     private SharedPreferences getSharedPreferences() {
