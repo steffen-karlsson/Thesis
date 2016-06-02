@@ -1,6 +1,5 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
-import android.app.Activity;
 import android.content.Context;
 import android.support.design.widget.FloatingActionButton;
 import android.util.AttributeSet;
@@ -8,7 +7,7 @@ import android.view.View;
 
 import butterknife.BindView;
 import butterknife.OnClick;
-import dk.steffenkarlsson.sofa.bdae.BaseActivity;
+import dk.steffenkarlsson.sofa.bdae.IActivityHandler;
 import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.SubmitJobActivity;
 import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
@@ -35,8 +34,8 @@ public class BottomBarDashboardView extends BasePagerControllerView {
     }
 
     @Override
-    public void setContent(Activity activity) {
-        super.setContent(activity);
+    public void setContent(IActivityHandler handler) {
+        super.setContent(handler);
     }
 
     @Override
@@ -56,9 +55,8 @@ public class BottomBarDashboardView extends BasePagerControllerView {
 
     @OnClick(R.id.fab)
     public void onFabClicked() {
-        BaseActivity parent = (BaseActivity) mActivity;
-        parent.launchActivity(parent.getActivityIntent(
-                mActivity, SubmitJobActivity.class, false),
+        mActivityHandler.launchActivity(mActivityHandler.getActivityIntent(
+                mActivityHandler.getContext(), SubmitJobActivity.class, false),
                 TransitionAnimation.IN_FROM_BOTTOM);
     }
 }

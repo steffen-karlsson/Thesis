@@ -1,12 +1,11 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
-import android.app.Activity;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.View;
 
+import dk.steffenkarlsson.sofa.bdae.IActivityHandler;
 import dk.steffenkarlsson.sofa.bdae.R;
-import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
 
 /**
  * Created by steffenkarlsson on 5/31/16.
@@ -27,8 +26,8 @@ public class BottomBarDataView extends BasePagerControllerView {
     }
 
     @Override
-    public void setContent(Activity activity) {
-
+    public void setContent(IActivityHandler handler) {
+        super.setContent(handler);
     }
 
     @Override

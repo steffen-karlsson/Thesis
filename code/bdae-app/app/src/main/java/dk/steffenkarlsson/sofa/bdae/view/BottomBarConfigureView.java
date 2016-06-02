@@ -13,6 +13,7 @@ import android.view.View;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import butterknife.BindView;
+import dk.steffenkarlsson.sofa.bdae.IActivityHandler;
 import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
 import dk.steffenkarlsson.sofa.bdae.extra.ChangedTextWatcher;
@@ -47,7 +48,7 @@ public class BottomBarConfigureView extends BasePagerControllerView {
         public void onValidated(int index, boolean isValid, boolean hasChanged) {
             if (hasChanged && isValid) {
                 mConfigurationHasChanged = true;
-                ((AppCompatActivity) mActivity).supportInvalidateOptionsMenu();
+                mActivityHandler.refreshOptionsMenu();
             }
         }
 
@@ -63,8 +64,8 @@ public class BottomBarConfigureView extends BasePagerControllerView {
     }
 
     @Override
-    public void setContent(Activity activity) {
-        super.setContent(activity);
+    public void setContent(IActivityHandler handler) {
+        super.setContent(handler);
 
         mInputInstanceName.setText(mHandler.getInstanceName());
         mInputApiHostname.setText(mHandler.getApiHostName());
@@ -109,7 +110,7 @@ public class BottomBarConfigureView extends BasePagerControllerView {
                 mInputInstanceName.getText().toString(),
                 mInputGateway.getText().toString());
         mConfigurationHasChanged = false;
-        ((AppCompatActivity) mActivity).supportInvalidateOptionsMenu();
+        mActivityHandler.refreshOptionsMenu();
     }
 
     @Override

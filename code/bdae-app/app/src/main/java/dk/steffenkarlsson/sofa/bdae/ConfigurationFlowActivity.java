@@ -6,9 +6,6 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.text.Editable;
-import android.text.TextUtils;
-import android.text.TextWatcher;
-import android.util.Patterns;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.InputMethodManager;
@@ -23,8 +20,8 @@ import java.util.ArrayList;
 import butterknife.BindView;
 import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
-import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
 import dk.steffenkarlsson.sofa.bdae.extra.ChangedTextWatcher;
+import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
 
 /**
  * Created by steffenkarlsson on 6/1/16.

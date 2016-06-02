@@ -22,7 +22,7 @@ import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
 /**
  * Created by steffenkarlsson on 5/31/16.
  */
-public abstract class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends AppCompatActivity implements IActivityHandler {
 
     private static final String BUNDLE_TRANSITION = "BUNDLE_TRANSITION";
 
@@ -34,9 +34,13 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private TransitionAnimation mOutTransition;
 
+    protected IActivityHandler mActivityHandler;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        mActivityHandler = this;
 
         int layoutRes = getLayoutResource();
         if (layoutRes == -1)
@@ -125,9 +129,24 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    protected void setLoadingSpinnerVisible(boolean visible) {
+    @Override
+    public void setLoadingSpinnerVisible(boolean visible) {
         if (hasLoadingSpinner())
             mLoadingSpinner.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+    }
+
+    @Override
+    public void setNoDataVisible(boolean visible) {
+    }
+
+    @Override
+    public Context getContext() {
+        return getApplicationContext();
+    }
+
+    @Override
+    public void refreshOptionsMenu() {
+        this.supportInvalidateOptionsMenu();
     }
 
     @Override
@@ -156,6 +175,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         }, 700);
     }
 
+    @Override
     public void launchActivity(Intent intent, TransitionAnimation transitionAnimation) {
         intent.putExtra(BUNDLE_TRANSITION, transitionAnimation.ordinal());
         startActivity(intent);
@@ -168,10 +188,12 @@ public abstract class BaseActivity extends AppCompatActivity {
         applyInTransition(transitionAnimation);
     }
 
+    @Override
     public Intent getActivityIntent(Context context, Class clzz, boolean killOnBackPressed) {
         return getActivityIntent(context, clzz, null, killOnBackPressed);
     }
 
+    @Override
     public Intent getActivityIntent(Context context, Class clzz) {
         return getActivityIntent(context, clzz, null, false);
     }

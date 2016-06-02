@@ -1,12 +1,12 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
-import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.IdRes;
 import android.support.annotation.MenuRes;
 import android.util.AttributeSet;
 import android.view.MenuItem;
 
+import dk.steffenkarlsson.sofa.bdae.IActivityHandler;
 import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
 
 /**
@@ -14,7 +14,7 @@ import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
  */
 public abstract class BasePagerControllerView extends BaseFrameLayout implements ViewCache.ICacheableView {
 
-    protected Activity mActivity;
+    protected IActivityHandler mActivityHandler;
 
     public BasePagerControllerView(Context context) {
         super(context);
@@ -26,11 +26,13 @@ public abstract class BasePagerControllerView extends BaseFrameLayout implements
 
     public abstract boolean hasOptionsMenu();
 
-    public void setContent(Activity activity) {
-        this.mActivity = activity;
+    public void setContent(IActivityHandler handler) {
+        this.mActivityHandler = handler;
     }
 
-    public @MenuRes int getOptionsMenuRes() {
+    public
+    @MenuRes
+    int getOptionsMenuRes() {
         return -1;
     }
 
