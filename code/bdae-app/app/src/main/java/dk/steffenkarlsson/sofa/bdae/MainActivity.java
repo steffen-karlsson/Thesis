@@ -126,8 +126,7 @@ public class MainActivity extends BaseConfigurationActivity {
 
         @Override
         public void onPageSelected(int position) {
-            if (getControllerView(position).hasOptionsMenu())
-                MainActivity.super.supportInvalidateOptionsMenu();
+            MainActivity.super.supportInvalidateOptionsMenu();
             mBottomBar.setDefaultTabPosition(position);
         }
 
@@ -151,10 +150,7 @@ public class MainActivity extends BaseConfigurationActivity {
     private void selectPage(int menuItemId) {
         if (mAdapter != null) {
             int position = mPositionMapper.get(menuItemId);
-
-            if (getControllerView(position).hasOptionsMenu())
-                MainActivity.super.supportInvalidateOptionsMenu();
-
+            MainActivity.super.supportInvalidateOptionsMenu();
             mPager.setCurrentItem(position);
         }
     }
@@ -200,7 +196,7 @@ public class MainActivity extends BaseConfigurationActivity {
                 container.addView(view.getRoot());
 
                 if (view instanceof BasePagerControllerView)
-                    ((BasePagerControllerView) view).setContent();
+                    ((BasePagerControllerView) view).setContent(MainActivity.this);
 
                 return view;
             }

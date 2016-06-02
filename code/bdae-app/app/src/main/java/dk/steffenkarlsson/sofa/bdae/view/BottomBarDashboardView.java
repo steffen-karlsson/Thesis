@@ -1,5 +1,6 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
+import android.app.Activity;
 import android.content.Context;
 import android.support.design.widget.FloatingActionButton;
 import android.util.AttributeSet;
@@ -31,7 +32,7 @@ public class BottomBarDashboardView extends BasePagerControllerView {
     }
 
     @Override
-    public void setContent() {
+    public void setContent(Activity activity) {
 
     }
 

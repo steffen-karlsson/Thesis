@@ -1,5 +1,6 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
+import android.app.Activity;
 import android.content.Context;
 import android.support.annotation.IdRes;
 import android.support.annotation.MenuRes;
@@ -23,7 +24,7 @@ public abstract class BasePagerControllerView extends BaseFrameLayout implements
 
     public abstract boolean hasOptionsMenu();
 
-    public abstract void setContent();
+    public abstract void setContent(Activity activity);
 
     public @MenuRes int getOptionsMenuRes() {
         return -1;
