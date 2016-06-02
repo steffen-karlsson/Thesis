@@ -17,10 +17,13 @@ import com.roughike.bottombar.OnMenuTabClickListener;
 
 import butterknife.BindView;
 import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
+import dk.steffenkarlsson.sofa.bdae.request.InitializeRequest;
 import dk.steffenkarlsson.sofa.bdae.view.BasePagerControllerView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarConfigureView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarDashboardView;
 import dk.steffenkarlsson.sofa.bdae.view.BottomBarDataView;
+import dk.steffenkarlsson.sofa.networking.BaseRequest;
+import dk.steffenkarlsson.sofa.networking.Result;
 
 /**
  * Created by steffenkarlsson on 5/31/16.
@@ -39,6 +42,10 @@ public class MainActivity extends BaseConfigurationActivity {
 
     private BottomBar mBottomBar;
     private BottomBarPagerAdapter mAdapter;
+
+    public enum RequestType {
+        INITIALIZE
+    }
 
     private ViewCache mViewCache = ViewCache.getInstance();
 
@@ -65,10 +72,10 @@ public class MainActivity extends BaseConfigurationActivity {
     protected void onResume() {
         super.onResume();
 
-        mAdapter = new BottomBarPagerAdapter();
-        mPager.setAdapter(mAdapter);
-        mPager.setOffscreenPageLimit(2);
-        mPager.addOnPageChangeListener(mOnPageChangeListener);
+        new InitializeRequest()
+                .withContext(this)
+                .setOnRequestListener(mListener)
+                .run(RequestType.INITIALIZE);
     }
 
     @Override
@@ -83,12 +90,42 @@ public class MainActivity extends BaseConfigurationActivity {
         mBottomBar.onSaveInstanceState(outState);
     }
 
+    private BaseRequest.OnRequestListener mListener = new BaseRequest.OnRequestListener() {
+
+        @Override
+        public void onError(int id, int statusCode) {
+            //TODO: Handle error
+        }
+
+        @Override
+        public void onError(int id, int statusCode, Object error) {
+        }
+
+        @Override
+        public void onSuccess(int id, Result result) {
+            mAdapter = new BottomBarPagerAdapter();
+            mPager.setAdapter(mAdapter);
+            mPager.setOffscreenPageLimit(2);
+            mPager.addOnPageChangeListener(mOnPageChangeListener);
+        }
+
+        @Override
+        public void onProcessing() {
+            mActivityHandler.setLoadingSpinnerVisible(true);
+        }
+    };
+
+    @Override
+    protected boolean hasLoadingSpinner() {
+        return true;
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.clear();
         BasePagerControllerView controllerView = getControllerView(mPager.getCurrentItem());
-        if (controllerView.hasOptionsMenu()) {
+        if (controllerView != null && controllerView.hasOptionsMenu()) {
             getMenuInflater().inflate(controllerView.getOptionsMenuRes(), menu);
             for (int i = 0; i < menu.size(); i++)
                 controllerView.onModifyMenuItem(menu.getItem(i));
@@ -100,7 +137,7 @@ public class MainActivity extends BaseConfigurationActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         super.onOptionsItemSelected(item);
         BasePagerControllerView controllerView = getControllerView(mPager.getCurrentItem());
-        if (controllerView.hasOptionsMenu())
+        if (controllerView != null && controllerView.hasOptionsMenu())
             controllerView.onOptionsMenuClicked(item.getItemId());
         return true;
     }
