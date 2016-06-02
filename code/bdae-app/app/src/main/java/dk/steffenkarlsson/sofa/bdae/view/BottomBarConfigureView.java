@@ -31,6 +31,7 @@ public class BottomBarConfigureView extends BasePagerControllerView {
     @BindView(R.id.inputGateway)
     protected MaterialEditText mInputGateway;
 
+    private ConfigurationHandler mHandler = ConfigurationHandler.getInstance();
     private boolean mConfigurationHasChanged = false;
     private Activity mActivity;
 
@@ -65,11 +66,10 @@ public class BottomBarConfigureView extends BasePagerControllerView {
     @Override
     public void setContent(Activity activity) {
         this.mActivity = activity;
-        ConfigurationHandler handler = ConfigurationHandler.getInstance();
 
-        mInputInstanceName.setText(handler.getInstanceName());
-        mInputApiHostname.setText(handler.getApiHostName());
-        mInputGateway.setText(handler.getGateway(false));
+        mInputInstanceName.setText(mHandler.getInstanceName());
+        mInputApiHostname.setText(mHandler.getApiHostName());
+        mInputGateway.setText(mHandler.getGateway(false));
 
         mInputInstanceName.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, -1, mOnValidateListener));
         mInputGateway.addTextChangedListener(new ChangedTextWatcher(mInputGateway, -1, mOnValidateListener));
@@ -104,6 +104,13 @@ public class BottomBarConfigureView extends BasePagerControllerView {
     @Override
     public void onOptionsMenuClicked(@IdRes int menuId) {
         super.onOptionsMenuClicked(menuId);
+
+        ConfigurationHandler.getInstance().setup(
+                mInputApiHostname.getText().toString(),
+                mInputInstanceName.getText().toString(),
+                mInputGateway.getText().toString());
+        mConfigurationHasChanged = false;
+        ((AppCompatActivity) mActivity).supportInvalidateOptionsMenu();
     }
 
     @Override
@@ -113,6 +120,7 @@ public class BottomBarConfigureView extends BasePagerControllerView {
         menuItem.getIcon().setColorFilter(getResources().getColor(mConfigurationHasChanged
                 ? R.color.white
                 : R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
+        menuItem.setEnabled(mConfigurationHasChanged);
     }
 
     @Override
