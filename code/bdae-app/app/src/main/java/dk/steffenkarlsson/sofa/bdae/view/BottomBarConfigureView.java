@@ -33,7 +33,6 @@ public class BottomBarConfigureView extends BasePagerControllerView {
 
     private ConfigurationHandler mHandler = ConfigurationHandler.getInstance();
     private boolean mConfigurationHasChanged = false;
-    private Activity mActivity;
 
     public BottomBarConfigureView(Context context) {
         super(context);
@@ -65,7 +64,7 @@ public class BottomBarConfigureView extends BasePagerControllerView {
 
     @Override
     public void setContent(Activity activity) {
-        this.mActivity = activity;
+        super.setContent(activity);
 
         mInputInstanceName.setText(mHandler.getInstanceName());
         mInputApiHostname.setText(mHandler.getApiHostName());

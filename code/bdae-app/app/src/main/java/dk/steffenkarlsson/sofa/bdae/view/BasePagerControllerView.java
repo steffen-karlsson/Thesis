@@ -14,6 +14,8 @@ import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
  */
 public abstract class BasePagerControllerView extends BaseFrameLayout implements ViewCache.ICacheableView {
 
+    protected Activity mActivity;
+
     public BasePagerControllerView(Context context) {
         super(context);
     }
@@ -24,7 +26,9 @@ public abstract class BasePagerControllerView extends BaseFrameLayout implements
 
     public abstract boolean hasOptionsMenu();
 
-    public abstract void setContent(Activity activity);
+    public void setContent(Activity activity) {
+        this.mActivity = activity;
+    }
 
     public @MenuRes int getOptionsMenuRes() {
         return -1;

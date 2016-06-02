@@ -63,7 +63,7 @@ public class ConfigurationFlowActivity extends BaseActivity {
     private ChangedTextWatcher.OnValidateListener mOnValidateListener = new ChangedTextWatcher.OnValidateListener() {
         @Override
         public void onValidated(int index, boolean isValid, boolean hasChanged) {
-            mValidator.add(index, isValid);
+            mValidator.set(index, isValid);
             ConfigurationFlowActivity.this.validate();
         }
 
@@ -80,11 +80,11 @@ public class ConfigurationFlowActivity extends BaseActivity {
         mOkay.setColorFilter(getResources().getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
 
         mInputInstanceName.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, 0, mOnValidateListener));
-        mInputGateway.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, 2, mOnValidateListener));
+        mInputGateway.addTextChangedListener(new ChangedTextWatcher(mInputGateway, 2, mOnValidateListener));
         mInputApiHostname.addTextChangedListener(new ChangedTextWatcher(mInputApiHostname, 1, new ChangedTextWatcher.OnValidateListener() {
             @Override
             public void onValidated(int index, boolean isValid, boolean hasChanged) {
-                mValidator.add(index, isValid);
+                mValidator.set(index, isValid);
                 ConfigurationFlowActivity.this.validate();
             }
 
@@ -177,11 +177,11 @@ public class ConfigurationFlowActivity extends BaseActivity {
     }
 
     private void validate() {
-        boolean validated = mValidator.contains(false);
-        mOkay.setColorFilter(validated
-                ? getResources().getColor(R.color.white)
-                : getResources().getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
-        mOkay.setEnabled(validated);
+        boolean notValidated = mValidator.contains(false);
+        mOkay.setColorFilter(getResources().getColor(notValidated
+                ? R.color.colorPrimaryDark
+                : R.color.white), PorterDuff.Mode.SRC_ATOP);
+        mOkay.setEnabled(!notValidated);
     }
 
     @Override
