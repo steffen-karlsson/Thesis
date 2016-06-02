@@ -1,19 +1,38 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.support.annotation.IdRes;
+import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
 import android.util.AttributeSet;
 import android.view.MenuItem;
 import android.view.View;
 
+import com.rengwuxian.materialedittext.MaterialEditText;
+
+import butterknife.BindView;
 import dk.steffenkarlsson.sofa.bdae.R;
-import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
+import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
+import dk.steffenkarlsson.sofa.bdae.extra.ChangedTextWatcher;
 
 /**
  * Created by steffenkarlsson on 5/31/16.
  */
 public class BottomBarConfigureView extends BasePagerControllerView {
+
+    @BindView(R.id.inputInstanceName)
+    protected MaterialEditText mInputInstanceName;
+
+    @BindView(R.id.inputApiHostname)
+    protected MaterialEditText mInputApiHostname;
+
+    @BindView(R.id.inputGateway)
+    protected MaterialEditText mInputGateway;
+
+    private boolean mConfigurationHasChanged = false;
+    private Activity mActivity;
 
     public BottomBarConfigureView(Context context) {
         super(context);
@@ -23,7 +42,20 @@ public class BottomBarConfigureView extends BasePagerControllerView {
         super(context, attrs);
     }
 
-    private boolean mConfigurationHasChanged = false;
+    private ChangedTextWatcher.OnValidateListener mOnValidateListener = new ChangedTextWatcher.OnValidateListener() {
+        @Override
+        public void onValidated(int index, boolean isValid, boolean hasChanged) {
+            if (hasChanged && isValid) {
+                mConfigurationHasChanged = true;
+                ((AppCompatActivity) mActivity).supportInvalidateOptionsMenu();
+            }
+        }
+
+        @Override
+        public boolean validate(MaterialEditText editText, Editable s) {
+            return ChangedTextWatcher.emptyValidator(editText, s);
+        }
+    };
 
     @Override
     public boolean hasOptionsMenu() {
@@ -31,8 +63,27 @@ public class BottomBarConfigureView extends BasePagerControllerView {
     }
 
     @Override
-    public void setContent() {
+    public void setContent(Activity activity) {
+        this.mActivity = activity;
+        ConfigurationHandler handler = ConfigurationHandler.getInstance();
 
+        mInputInstanceName.setText(handler.getInstanceName());
+        mInputApiHostname.setText(handler.getApiHostName());
+        mInputGateway.setText(handler.getGateway(false));
+
+        mInputInstanceName.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, -1, mOnValidateListener));
+        mInputGateway.addTextChangedListener(new ChangedTextWatcher(mInputGateway, -1, mOnValidateListener));
+        mInputApiHostname.addTextChangedListener(new ChangedTextWatcher(mInputApiHostname, 1, new ChangedTextWatcher.OnValidateListener() {
+            @Override
+            public void onValidated(int index, boolean isValid, boolean hasChanged) {
+                mOnValidateListener.onValidated(index, isValid, hasChanged);
+            }
+
+            @Override
+            public boolean validate(MaterialEditText editText, Editable s) {
+                return ChangedTextWatcher.ipPortValidator(editText, s);
+            }
+        }));
     }
 
     @Override
