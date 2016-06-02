@@ -10,8 +10,6 @@ import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
  */
 public abstract class BaseConfigurationActivity extends BaseActivity {
 
-    public static final int REQ_CONFIGURATION = 9999;
-
     private final Handler mHandler = new Handler();
     private boolean mIsOverlayVisible = false;
 
@@ -34,9 +32,9 @@ public abstract class BaseConfigurationActivity extends BaseActivity {
         public void run() {
             if (!mIsOverlayVisible) {
                 mIsOverlayVisible = true;
-                BaseConfigurationActivity.super.launchActivityForResult(getActivityIntent(
-                        getApplicationContext(), ConfigurationFlowActivity.class),
-                        REQ_CONFIGURATION, TransitionAnimation.IN_FROM_BOTTOM);
+                BaseConfigurationActivity.super.launchActivity(getActivityIntent(
+                        getApplicationContext(), ConfigurationFlowActivity.class, true),
+                        TransitionAnimation.IN_FROM_BOTTOM);
             }
         }
     };

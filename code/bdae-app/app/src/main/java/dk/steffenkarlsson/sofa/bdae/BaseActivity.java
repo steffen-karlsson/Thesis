@@ -25,12 +25,10 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private static final String BUNDLE_TRANSITION = "BUNDLE_TRANSITION";
 
-    @Nullable
-    @Bind(R.id.toolbar)
+    @Nullable @Bind(R.id.toolbar)
     protected Toolbar mToolbar;
 
-    @Nullable
-    @Bind(R.id.progress)
+    @Nullable @Bind(R.id.progress)
     protected ProgressBar mLoadingSpinner;
 
     private TransitionAnimation mOutTransition;
@@ -43,9 +41,9 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (layoutRes == -1)
             throw new RuntimeException("No layout defined in getLayoutResource");
 
-        EventBus.getInstance().register(this);
         setContentView(layoutRes);
         ButterKnife.bind(this);
+        EventBus.getInstance().register(this);
 
         mOutTransition = TransitionAnimation.values()[getIntent().getIntExtra(BUNDLE_TRANSITION, 0)];
         getIntent().removeExtra(BUNDLE_TRANSITION);
@@ -143,7 +141,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             public void run() {
                 EventBus.getInstance().post(new TransitionAnimationEndedEvent());
             }
-        }, 500);
+        }, 700);
     }
 
     public void launchActivity(Intent intent, TransitionAnimation transitionAnimation) {
@@ -158,15 +156,24 @@ public abstract class BaseActivity extends AppCompatActivity {
         applyInTransition(transitionAnimation);
     }
 
-    public Intent getActivityIntent(Context context, Class clzz) {
-        return getActivityIntent(context, clzz, null);
+    public Intent getActivityIntent(Context context, Class clzz, boolean killOnBackPressed) {
+        return getActivityIntent(context, clzz, null, killOnBackPressed);
     }
 
-    public Intent getActivityIntent(Context context, Class clzz, Bundle extras) {
+    public Intent getActivityIntent(Context context, Class clzz) {
+        return getActivityIntent(context, clzz, null, false);
+    }
+
+    public Intent getActivityIntent(Context context, Class clzz, Bundle extras, boolean killOnBackPressed) {
         Intent intent = new Intent(context, clzz);
         if (extras != null)
             intent.putExtras(extras);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        if (killOnBackPressed)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        else
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+
         return intent;
     }
 }
