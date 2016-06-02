@@ -66,9 +66,12 @@ public class ConfigurationHandler {
         return "";
     }
 
-    public String getGateway() {
+    public String getGateway(boolean useFullName) {
         if (hasData()) {
             String gatewayIdentifier = getSharedPreferences().getString(KEY_GATEWAY_IDENTIFIER, "");
+            if (!useFullName)
+                return gatewayIdentifier;
+
             String instanceName = getInstanceName();
             return String.format(GATEWAY_PATTERN, instanceName, gatewayIdentifier);
         }
