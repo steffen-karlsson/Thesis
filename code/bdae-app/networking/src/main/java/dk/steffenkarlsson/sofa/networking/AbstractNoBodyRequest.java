@@ -15,8 +15,7 @@ public abstract class AbstractNoBodyRequest<T> extends BaseRequest<T> {
         T result = parseHttpResponseBody(body);
         if (result == null) {
             throw new ParserException();
-        }
-        else {
+        } else {
             return new Result<>(statusCode, result);
         }
     }

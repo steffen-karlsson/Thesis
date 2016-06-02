@@ -25,11 +25,12 @@ import java.io.IOException;
 @SuppressWarnings("ALL")
 public abstract class BaseRequest<T> {
 
-    private static final String TAG = "BaseRequest";
+    private static final String TAG = "Networking >>>";
     private static String mAuthentication;
     private static Class<?> _clazz;
 
     protected final MediaType json = MediaType.parse("application/json; charset=utf-8");
+    protected final MediaType text = MediaType.parse("application/text; charset=utf-8");
 
     public interface OnRequestListener {
         void onError(int id, int statusCode);
@@ -110,19 +111,28 @@ public abstract class BaseRequest<T> {
     };
 
     private void handleResponse(Response response) throws ParserException {
-        int statusCode = response.code();
+        final int statusCode = response.code();
         try {
             String res = response.body().string();
-            Log.d("LTN", "Response: " + res);
+            Log.d(TAG, "Response: " + res);
 
             if (response.isSuccessful()) {
-                final Result<T> result = handleResponse(statusCode, res);
-                postToMain(new Runnable() {
-                    @Override
-                    public void run() {
-                        mOnRequestListener.onSuccess(mRequestId, result);
-                    }
-                });
+                if (statusCode == 204) {
+                    postToMain(new Runnable() {
+                        @Override
+                        public void run() {
+                            mOnRequestListener.onSuccess(mRequestId, new Result(statusCode, null));
+                        }
+                    });
+                } else {
+                    final Result<T> result = handleResponse(statusCode, res);
+                    postToMain(new Runnable() {
+                        @Override
+                        public void run() {
+                            mOnRequestListener.onSuccess(mRequestId, result);
+                        }
+                    });
+                }
 
             } else {
                 if (mOnRequestListener != null) {
@@ -143,7 +153,7 @@ public abstract class BaseRequest<T> {
     public abstract Result<T> handleResponse(int statusCode, String body) throws ParserException;
 
     protected Request buildRequest() {
-        Log.d("LTN", "URL: " + mUrl);
+        Log.d(TAG, "URL: " + mUrl);
         Request.Builder builder = new Request.Builder();
         builder.url(mUrl);
         builder.addHeader("Content-Type", "application/json");

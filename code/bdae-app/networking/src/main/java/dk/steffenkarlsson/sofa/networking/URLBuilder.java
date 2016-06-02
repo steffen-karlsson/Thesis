@@ -30,11 +30,12 @@ public class URLBuilder {
     }
 
     public String build(String baseUrl) {
-        Uri.Builder builder = Uri.parse(baseUrl + mSubdomain).buildUpon();
+        String partOne = Uri.parse(baseUrl + mSubdomain).buildUpon().build().toString();
+        Uri.Builder builder = Uri.parse("").buildUpon();
         for (Pair<String, String> parameter : mParameters)
             builder.appendQueryParameter(parameter.first, parameter.second);
 
-        return builder.build().toString();
+        return String.format("%s%s",partOne, builder.build().toString());
     }
 
 }

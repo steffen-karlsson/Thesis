@@ -18,7 +18,7 @@ public abstract class PostRequest<T> extends AbstractBodyRequest<T> {
     @Override
     protected Request finalizeRequest(Request.Builder builder) {
         RequestBody data = getData();
-        Log.d("LTN", "Request Body: " + data.toString());
+        Log.d("Networking", "Request Body: " + data.toString());
         builder.post(data);
         return builder.build();
     }
