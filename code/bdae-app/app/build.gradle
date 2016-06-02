@@ -46,4 +46,5 @@ dependencies {
     compile 'com.rengwuxian.materialedittext:library:2.1.4'
     compile 'com.roughike:bottom-bar:1.3.4'
     compile 'com.squareup:otto:1.3.8'
+    compile project(':networking')
 }
