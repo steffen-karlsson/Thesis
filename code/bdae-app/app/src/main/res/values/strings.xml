@@ -12,4 +12,6 @@
     <string name="hint_api_hostname">API hostname</string>
     <string name="hint_gateway">Gateway identifier</string>
     <string name="template_hint_ip_port">0.0.0.0:9990</string>
+
+    <string name="actionbar_accept">Accept</string>
 </resources>
