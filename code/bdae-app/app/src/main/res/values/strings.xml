@@ -14,4 +14,6 @@
     <string name="template_hint_ip_port">0.0.0.0:9990</string>
 
     <string name="actionbar_accept">Accept</string>
+    <string name="actionbar_submit_job">New job</string>
+    <string name="new_job_submit">Submit</string>
 </resources>

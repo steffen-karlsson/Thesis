@@ -7,8 +7,11 @@ import android.util.AttributeSet;
 import android.view.View;
 
 import butterknife.BindView;
+import butterknife.OnClick;
+import dk.steffenkarlsson.sofa.bdae.BaseActivity;
 import dk.steffenkarlsson.sofa.bdae.R;
-import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
+import dk.steffenkarlsson.sofa.bdae.SubmitJobActivity;
+import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
 
 /**
  * Created by steffenkarlsson on 5/31/16.
@@ -33,7 +36,7 @@ public class BottomBarDashboardView extends BasePagerControllerView {
 
     @Override
     public void setContent(Activity activity) {
-
+        super.setContent(activity);
     }
 
     @Override
@@ -49,5 +52,13 @@ public class BottomBarDashboardView extends BasePagerControllerView {
     @Override
     public View getRoot() {
         return this;
+    }
+
+    @OnClick(R.id.fab)
+    public void onFabClicked() {
+        BaseActivity parent = (BaseActivity) mActivity;
+        parent.launchActivity(parent.getActivityIntent(
+                mActivity, SubmitJobActivity.class, false),
+                TransitionAnimation.IN_FROM_BOTTOM);
     }
 }
