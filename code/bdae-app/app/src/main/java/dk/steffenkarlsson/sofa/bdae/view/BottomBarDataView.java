@@ -10,7 +10,7 @@ import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
 /**
  * Created by steffenkarlsson on 5/31/16.
  */
-public class BottomBarDataView extends BaseFrameLayout implements ViewCache.ICacheableView {
+public class BottomBarDataView extends BasePagerControllerView {
 
     public BottomBarDataView(Context context) {
         super(context);
@@ -18,6 +18,11 @@ public class BottomBarDataView extends BaseFrameLayout implements ViewCache.ICac
 
     public BottomBarDataView(Context context, AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    public boolean hasOptionsMenu() {
+        return false;
     }
 
     @Override

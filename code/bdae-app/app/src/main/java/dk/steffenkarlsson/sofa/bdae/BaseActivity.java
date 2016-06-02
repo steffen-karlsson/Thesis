@@ -12,7 +12,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.ProgressBar;
 
-import butterknife.Bind;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
 import dk.steffenkarlsson.sofa.bdae.extra.EventBus;
@@ -25,10 +25,10 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private static final String BUNDLE_TRANSITION = "BUNDLE_TRANSITION";
 
-    @Nullable @Bind(R.id.toolbar)
+    @Nullable @BindView(R.id.toolbar)
     protected Toolbar mToolbar;
 
-    @Nullable @Bind(R.id.progress)
+    @Nullable @BindView(R.id.progress)
     protected ProgressBar mLoadingSpinner;
 
     private TransitionAnimation mOutTransition;
@@ -42,6 +42,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             throw new RuntimeException("No layout defined in getLayoutResource");
 
         setContentView(layoutRes);
+        ButterKnife.setDebug(true);
         ButterKnife.bind(this);
         EventBus.getInstance().register(this);
 

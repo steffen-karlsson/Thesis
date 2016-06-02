@@ -20,7 +20,7 @@ import com.squareup.otto.Subscribe;
 
 import java.util.ArrayList;
 
-import butterknife.Bind;
+import butterknife.BindView;
 import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
 import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
@@ -32,25 +32,25 @@ public class ConfigurationFlowActivity extends BaseActivity {
 
     private static final int TOTAL_DURATION = 500;
 
-    @Bind(R.id.headerContainer)
+    @BindView(R.id.headerContainer)
     protected LinearLayout mHeaderContainer;
 
-    @Bind(R.id.inputContainer)
+    @BindView(R.id.inputContainer)
     protected LinearLayout mInputContainer;
 
-    @Bind(R.id.logo)
+    @BindView(R.id.logo)
     protected ImageView mLogo;
 
-    @Bind(R.id.okay)
+    @BindView(R.id.okay)
     protected ImageView mOkay;
 
-    @Bind(R.id.inputInstanceName)
+    @BindView(R.id.inputInstanceName)
     protected MaterialEditText mInputInstanceName;
 
-    @Bind(R.id.inputApiHostname)
+    @BindView(R.id.inputApiHostname)
     protected MaterialEditText mInputApiHostname;
 
-    @Bind(R.id.inputGateway)
+    @BindView(R.id.inputGateway)
     protected MaterialEditText mInputGateway;
 
     private ArrayList<Boolean> mValidator = new ArrayList<Boolean>(3) {{

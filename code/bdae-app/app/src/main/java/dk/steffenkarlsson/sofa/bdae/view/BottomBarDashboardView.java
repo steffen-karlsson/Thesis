@@ -5,16 +5,16 @@ import android.support.design.widget.FloatingActionButton;
 import android.util.AttributeSet;
 import android.view.View;
 
-import butterknife.Bind;
+import butterknife.BindView;
 import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.extra.ViewCache;
 
 /**
  * Created by steffenkarlsson on 5/31/16.
  */
-public class BottomBarDashboardView extends BaseFrameLayout implements ViewCache.ICacheableView {
+public class BottomBarDashboardView extends BasePagerControllerView {
 
-    @Bind(R.id.fab)
+    @BindView(R.id.fab)
     protected FloatingActionButton mAddNewJob;
 
     public BottomBarDashboardView(Context context) {
@@ -23,6 +23,11 @@ public class BottomBarDashboardView extends BaseFrameLayout implements ViewCache
 
     public BottomBarDashboardView(Context context, AttributeSet attrs) {
         super(context, attrs);
+    }
+
+    @Override
+    public boolean hasOptionsMenu() {
+        return false;
     }
 
     @Override
