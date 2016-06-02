@@ -1,5 +1,6 @@
 package dk.steffenkarlsson.sofa.bdae;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -67,7 +68,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IActivit
 
         if (hasLoadingSpinner() && mLoadingSpinner != null)
             mLoadingSpinner.getIndeterminateDrawable().setColorFilter(
-                    getResources().getColor(R.color.colorSpinner),
+                    getResources().getColor(R.color.colorPrimaryDark),
                     android.graphics.PorterDuff.Mode.MULTIPLY);
 
         initActionBar();
@@ -142,6 +143,11 @@ public abstract class BaseActivity extends AppCompatActivity implements IActivit
     @Override
     public Context getContext() {
         return getApplicationContext();
+    }
+
+    @Override
+    public Activity getActivity() {
+        return this;
     }
 
     @Override
