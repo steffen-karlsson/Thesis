@@ -24,6 +24,7 @@ import butterknife.BindView;
 import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
 import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
+import dk.steffenkarlsson.sofa.bdae.extra.EmptyTextWatcher;
 
 /**
  * Created by steffenkarlsson on 6/1/16.
@@ -59,34 +60,13 @@ public class ConfigurationFlowActivity extends BaseActivity {
         add(false);
     }};
 
-    private class EmptyTextWatcher implements TextWatcher {
-
-        private final MaterialEditText mEditText;
-        private final int mIndex;
-
-        public EmptyTextWatcher(MaterialEditText editText, int index) {
-            this.mEditText = editText;
-            this.mIndex = index;
-        }
-
+    private EmptyTextWatcher.OnValidateListener mOnValidateListener = new EmptyTextWatcher.OnValidateListener() {
         @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {
-        }
-
-        @Override
-        public void afterTextChanged(Editable s) {
-            boolean isEmpty = TextUtils.isEmpty(s.toString());
-            mValidator.add(mIndex, isEmpty);
-            if (isEmpty)
-                mEditText.setError("Required Field");
-
+        public void onValidate(int index, boolean isValid, boolean hasChanged) {
+            mValidator.add(index, isValid);
             validate();
         }
-    }
+    };
 
     @Override
     protected void onResume() {
@@ -94,8 +74,8 @@ public class ConfigurationFlowActivity extends BaseActivity {
 
         mOkay.setColorFilter(getResources().getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
 
-        mInputInstanceName.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 0));
-        mInputGateway.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 2));
+        mInputInstanceName.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 0, mOnValidateListener));
+        mInputGateway.addTextChangedListener(new EmptyTextWatcher(mInputInstanceName, 2, mOnValidateListener));
         mInputApiHostname.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
