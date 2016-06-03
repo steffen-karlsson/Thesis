@@ -1,8 +1,18 @@
 package dk.steffenkarlsson.sofa.bdae.view;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.view.LayoutInflaterCompat;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.view.ContextThemeWrapper;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.util.AttributeSet;
+import android.view.LayoutInflater;
+import android.webkit.WebView;
+import android.widget.TextView;
 
 import java.util.List;
 
@@ -14,6 +24,7 @@ import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.SubmitJobActivity;
 import dk.steffenkarlsson.sofa.bdae.entity.Job;
 import dk.steffenkarlsson.sofa.bdae.extra.CustomRequestListener;
+import dk.steffenkarlsson.sofa.bdae.extra.DataTypeHelper;
 import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
 import dk.steffenkarlsson.sofa.bdae.recycler.GenericRecyclerViewModel;
 import dk.steffenkarlsson.sofa.bdae.recycler.SubmittedJobRecyclerView;
@@ -57,11 +68,49 @@ public class BottomBarDashboardView extends BottomPagerControllerRecyclerView {
                 for (Job job : jobs) {
                     job.setOnClickListener(new SubmittedJobRecyclerView.OnClickListener() {
                         @Override
-                        public void onCellClick(String function, String result, String dataType) {
-                            mActivityHandler.launchActivity(mActivityHandler.getActivityIntent(
-                                    mActivityHandler.getContext(), JobResultActivity.class,
-                                    JobResultActivity.getBundleArgs(function, result, dataType), false),
-                                    TransitionAnimation.IN_FROM_RIGHT);
+                        public void onCellClick(final String function, final String result, final String dataType) {
+                            SpannableString title = new SpannableString(function);
+                            title.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorPrimary)), 0, function.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+
+                            AlertDialog alertDialog = new AlertDialog.Builder(mActivityHandler.getActivity())
+                                    .setTitle(title)
+                                    .create();
+
+                            alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE,
+                                    getResources().getString(R.string.close), new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                        }
+                                    });
+
+                            if (JobResultActivity.isSupported(dataType)) {
+                                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL,
+                                        getResources().getString(R.string.open_fullscreen), new DialogInterface.OnClickListener() {
+                                            @Override
+                                            public void onClick(DialogInterface dialog, int which) {
+                                                mActivityHandler.launchActivity(mActivityHandler.getActivityIntent(
+                                                        mActivityHandler.getContext(),
+                                                        JobResultActivity.class,
+                                                        JobResultActivity.getBundleArgs(function, result, dataType),
+                                                        false), TransitionAnimation.IN_FROM_RIGHT);
+                                                dialog.dismiss();
+                                            }
+                                        });
+
+                                WebView resultView = new WebView(getContext());
+                                resultView.getSettings().setJavaScriptEnabled(true);
+                                resultView.getSettings().setLoadWithOverviewMode(true);
+                                resultView.getSettings().setUseWideViewPort(true);
+                                resultView.loadDataWithBaseURL("", DataTypeHelper.getHTML(
+                                        mActivityHandler.getActivity(), result, dataType), "text/html", "UTF-8", "");
+
+                                alertDialog.setView(resultView);
+                            } else {
+                                alertDialog.setMessage(getResources().getString(R.string.job_result, result));
+                            }
+
+                            alertDialog.show();
                         }
 
                         @Override

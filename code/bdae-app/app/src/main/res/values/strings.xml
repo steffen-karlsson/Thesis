@@ -21,4 +21,7 @@
     <string name="job_done">● DONE</string>
     <string name="job_no_parameters">No parameters required</string>
     <string name="job_no_jobs">No jobs available\n</string>
+    <string name="job_result">The result for the job is: %s</string>
+    <string name="close">Close</string>
+    <string name="open_fullscreen">Open in fullscreen</string>
 </resources>
