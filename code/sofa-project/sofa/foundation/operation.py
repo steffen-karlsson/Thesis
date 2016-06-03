@@ -2,6 +2,39 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from re import finditer
+from base64 import b64encode
+from ujson import dumps as udumps
+
+
+class ExpectedReturnType(object):
+    Text, Number, Image, NumpyArray = range(4)
+
+    types = {
+        Text: 'txt',
+        Number: 'num',
+        Image: 'img',
+        NumpyArray: 'numpy'
+    }
+
+    representation = {
+        Text: lambda s: s,
+        Number: lambda d: str(d),
+        Image: lambda i: ExpectedReturnType._img_representation(i),
+        NumpyArray: lambda a: udumps(a.tolist())
+    }
+
+    @staticmethod
+    def _img_representation(i):
+        with open(i, "rb") as f:
+            return 'data:image/png;base64,' + b64encode(f.read())
+
+    @staticmethod
+    def as_string(return_type):
+        return ExpectedReturnType.types[return_type]
+
+    @staticmethod
+    def get_representation(return_type, data):
+        return ExpectedReturnType.representation[return_type](data)
 
 
 def _strip_operators(s):
@@ -109,6 +142,7 @@ class OperationContext:
         self.use_cyclic = False
         self.post_process = None
         self.block_formatter = None
+        self.return_type = ExpectedReturnType.Text
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
         is_tuple = isinstance(ghost_count, tuple)
@@ -121,6 +155,10 @@ class OperationContext:
         self.send_left = ghost_count[0] != 0 if is_tuple else True
         self.send_right = ghost_count[1] != 0 if is_tuple else True
         self.use_cyclic = use_cyclic
+        return self
+
+    def with_expected_return_type(self, return_type):
+        self.return_type = return_type
         return self
 
     def with_block_formatting(self, fun_block_formatter):
@@ -160,3 +198,9 @@ class OperationContext:
 
     def get_functions(self):
         return list(self.functions)
+
+    def get_return_type(self):
+        return ExpectedReturnType.as_string(self.return_type)
+
+    def get_data_return_representation(self, data):
+        return ExpectedReturnType.get_representation(self.return_type, data)

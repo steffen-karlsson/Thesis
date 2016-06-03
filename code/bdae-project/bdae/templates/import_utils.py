@@ -14,6 +14,7 @@ def map_function_binder(new_name, py_fun):
                 yield py_fun(block, *args)
 
     _wrapped_py_fun.__name__ = new_name
+    _wrapped_py_fun.__doc__ = "wrapped"
     return _wrapped_py_fun
 
 
@@ -25,6 +26,7 @@ def reduce_function_binder(new_name, py_fun):
         return py_fun(blocks, *args)
 
     _wrapped_py_fun.__name__ = new_name
+    _wrapped_py_fun.__doc__ = "wrapped"
     return _wrapped_py_fun
 
 

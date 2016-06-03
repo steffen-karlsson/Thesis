@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">BDAE</string>
+    <string name="app_name_long">Big Data Analysis Engine</string>
+    <string name="shared_preferences_name">@string/app_name_long</string>
+
+    <string name="bottombar_dashboard">Dashboard</string>
+    <string name="bottombar_datasets">Data</string>
+    <string name="bottombar_configuration">Configure</string>
+    <string name="title_activity_main2">Main2Activity</string>
+
+    <string name="hint_instance_name">Instance name</string>
+    <string name="hint_api_hostname">API hostname</string>
+    <string name="hint_gateway">Gateway identifier</string>
+    <string name="template_hint_ip_port">0.0.0.0:9990</string>
+
+    <string name="actionbar_accept">Accept</string>
+    <string name="actionbar_submit_job">New job</string>
+    <string name="new_job_submit">Submit</string>
+
+    <string name="job_processing">● PROCESSING</string>
+    <string name="job_done">● DONE</string>
+    <string name="job_no_parameters">No parameters required</string>
+    <string name="job_no_jobs">No jobs available\n</string>
+    <string name="job_result">The result for the job is: %s</string>
+    <string name="close">Close</string>
+    <string name="open_fullscreen">Open in fullscreen</string>
+</resources>

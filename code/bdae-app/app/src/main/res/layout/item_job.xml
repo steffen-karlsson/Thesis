@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="10dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <android.support.v7.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardElevation="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/white"
+                android:orientation="horizontal"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                        android:id="@+id/name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/colorTextDark"
+                        android:textSize="20sp"
+                        app:fontType="light"
+                        tools:text="Reconstruction" />
+
+                    <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                        android:id="@+id/identifier"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:paddingTop="6dp"
+                        android:textColor="@color/colorPrimaryFaded"
+                        android:textSize="12sp"
+                        app:fontType="medium"
+                        tools:text="4ED67HTX" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/data_type"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:src="@drawable/ic_image_white" />
+            </LinearLayout>
+
+        </android.support.v7.widget.CardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/colorPrimaryFadedBackground"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                android:id="@+id/parameters"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center_vertical"
+                android:textColor="@color/colorPrimaryDark"
+                android:textSize="16sp"
+                android:lineSpacingExtra="3dp"
+                app:fontType="medium"
+                tools:text="64, voxels.bin, transformation.bin" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                    android:id="@+id/dataset_name"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp"
+                    android:textColor="@color/colorPrimaryDark"
+                    android:textSize="12sp"
+                    app:fontType="regular"
+                    tools:text="FDK - CT" />
+
+                <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                    android:id="@+id/status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:paddingTop="6dp"
+                    android:textColor="@color/colorProcessing"
+                    android:textSize="12sp"
+                    app:fontType="regular"
+                    tools:text="@string/job_processing" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+    </LinearLayout>
+
+</android.support.v7.widget.CardView>

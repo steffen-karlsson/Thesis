@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#009688</color>
+    <color name="colorPrimaryDark">#00796b</color>
+    <color name="colorPrimaryFaded">#769c99</color>
+    <color name="colorPrimaryFadedBackground">#F4FAFA</color>
+    <color name="colorImageTint">#D0E5E5</color>
+    <color name="colorAccent">#fe7e28</color>
+    <color name="colorSpinner">#BDBDBD</color>
+    <color name="colorTextNormal">#EBEDEE</color>
+    <color name="colorTextMedium">#D7D2CE</color>
+    <color name="colorTextDark">#464646</color>
+    <color name="colorDivider">#F2F2F2</color>
+    <color name="colorDone">#42C870</color>
+    <color name="colorProcessing">#E49C16</color>
+    <color name="colorBackground">#EFEFEF</color>
+</resources>

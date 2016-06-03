@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingTop="30dp"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:orientation="vertical">
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/inputInstanceName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:textSize="18sp"
+        app:met_floatingLabel="normal"
+        app:met_floatingLabelAlwaysShown="true"
+        app:met_floatingLabelText="@string/hint_instance_name"
+        app:met_iconLeft="@drawable/ic_instance_name"
+        app:met_iconPadding="6dp"
+        app:met_maxCharacters="25"
+        app:met_primaryColor="@color/colorPrimaryDark"
+        app:met_textColor="@color/colorPrimaryDark" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/inputApiHostname"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/template_hint_ip_port"
+        android:paddingBottom="10dp"
+        android:paddingTop="10dp"
+        android:singleLine="true"
+        android:textSize="18sp"
+        app:met_floatingLabel="normal"
+        app:met_floatingLabelAlwaysShown="true"
+        app:met_floatingLabelText="@string/hint_api_hostname"
+        app:met_iconLeft="@drawable/ic_api_hostname"
+        app:met_iconPadding="6dp"
+        app:met_maxCharacters="22"
+        app:met_primaryColor="@color/colorPrimaryDark"
+        app:met_textColor="@color/colorPrimaryDark" />
+
+    <com.rengwuxian.materialedittext.MaterialEditText
+        android:id="@+id/inputGateway"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:singleLine="true"
+        android:textSize="18sp"
+        app:met_floatingLabel="normal"
+        app:met_floatingLabelAlwaysShown="true"
+        app:met_floatingLabelText="@string/hint_gateway"
+        app:met_iconLeft="@drawable/ic_gateway"
+        app:met_iconPadding="6dp"
+        app:met_primaryColor="@color/colorPrimaryDark"
+        app:met_textColor="@color/colorPrimaryDark" />
+
+</LinearLayout>

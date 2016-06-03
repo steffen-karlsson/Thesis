@@ -28,6 +28,7 @@ RESULT = 0
 REQUEST_COUNT = 1
 ROOT_IS_WORKING = 2
 GATEWAY = 3
+STATE = 4
 
 BLOCKS = 0
 QUERY = 1
@@ -301,7 +302,13 @@ class StorageHandler(Dispatcher):
         all_others = self.get_num_storage_nodes(True)
 
         def __self_datasets():
-            return [uloads(self.get_meta_from_identifier(int(key)))['name'] for key in self.__FLAG.iterkeys()]
+            datasets = []
+            for key in self.__FLAG.iterkeys():
+                meta_data = uloads(self.get_meta_from_identifier(int(key)))
+                datasets.append({'name': meta_data['name'],
+                                 'description': meta_data['description'],
+                                 'operations': meta_data['operations']})
+            return datasets
 
         if not is_internal_call and all_others > 1:
             # Broadcast storm to all nodes
@@ -311,6 +318,37 @@ class StorageHandler(Dispatcher):
         else:
             # Calculate self
             return __self_datasets()
+
+    def get_submitted_jobs(self, is_internal_call=False):
+        all_others = self.get_num_storage_nodes(True)
+
+        def __self_jobs():
+            functions = []
+            for key in self.__srcs.keys():
+                for fidentifier in self.__srcs.get(key).keys():
+                    data = self.__srcs.get(key)[fidentifier]
+                    state = data[STATE]
+                    query = state['query']
+                    function = {
+                        'name': state['function-name'],
+                        'identifier': state['fidentifier'],
+                        'dataset_name': state['dataset-name'],
+                        'result': data[RESULT] if not data[ROOT_IS_WORKING] else '',
+                        'status': 0 if data[ROOT_IS_WORKING] else 1,
+                        'parameters': [query] if not isinstance(state['query'], list) else [str(q) for q in query],
+                        'data_type': state['data-type'],
+                    }
+                    functions.append(function)
+            return functions
+
+        if not is_internal_call and all_others > 1:
+            # Broadcast storm to all nodes
+            info("Pool get_submitted_jobs")
+            other_jobs = ThreadPool(all_others).map(_wrapper_get_submitted_jobs, self.__storage_nodes)
+            return sum(__self_jobs() + other_jobs, [])
+        else:
+            # Calculate self
+            return __self_jobs()
 
     def __get_raw_blocks(self, didentifier):
         is_root = str(didentifier) in self.__FLAG
@@ -374,8 +412,21 @@ class StorageHandler(Dispatcher):
         return args
 
     @dispatch
-    def submit_job(self, didentifier, fidentifier, function_name, query, gateway):
-        has_result = self.__srcs.contains(didentifier) and fidentifier in self.__srcs.get(didentifier)
+    def submit_job(self, didentifier, process_state, gateway):
+        fidentifier = process_state['fidentifier']
+
+        has_result = self.__srcs.contains(didentifier) \
+                     and fidentifier in self.__srcs.get(didentifier) \
+                     and self.__srcs.get(didentifier)[fidentifier][RESULT]
+
+        process_state.update({
+            'iteration-count': 0,
+            'function-count': 0,
+            'partial-value': 0,
+            'block-state': 'raw',
+            'processing': False if has_result else True,
+        })
+
         if has_result:
             data = self.__srcs.get(didentifier)[fidentifier]
             if data[ROOT_IS_WORKING]:
@@ -389,10 +440,10 @@ class StorageHandler(Dispatcher):
 
         # Update is working state before anything else
         all_nodes = self.get_num_storage_nodes(True)  # Plus one for self
-        self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway]
+        self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway, process_state]
 
         root = self.__config.node
-        common = (didentifier, fidentifier, function_name, root, query)
+        common = (didentifier, process_state, root)
         if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool wrapper initialize job")
@@ -412,7 +463,10 @@ class StorageHandler(Dispatcher):
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
-    def initialize_job(self, didentifier, fidentifier, function_name, root, query):
+    def initialize_job(self, didentifier, process_state, root):
+        function_name = process_state['function-name']
+        fidentifier = process_state['fidentifier']
+
         info("Initialize execution at " + str(self.__config.node) + " for function " + function_name)
 
         self.__tb = TreeBarrier(self.__config.node,
@@ -428,22 +482,11 @@ class StorageHandler(Dispatcher):
             return
         operation_context, meta_data = res
 
+        # Set return type
+        process_state['data-type'] = operation_context.get_return_type()
+
         def done_callback_handler(is_ready, left, right):
             # left and right is tuples with node reference and data to send
-
-            # See if its first iteration or the cache has the value
-            has_result = self.__srcs.contains(didentifier) \
-                         and fidentifier in self.__srcs.get(didentifier) \
-                         and self.__srcs.get(didentifier)[fidentifier][RESULT]
-
-            process_state = {'function-name': function_name,
-                             'iteration-count': 0,
-                             'function-count': 0,
-                             'partial-value': 0,
-                             'block-state': 'raw',
-                             'processing': False if has_result else True,
-                             'query': query}
-
             if is_ready:
                 # There is no need for ghosts
                 if is_local_transfer:
@@ -541,8 +584,11 @@ class StorageHandler(Dispatcher):
             if operation_context.has_post_processing_step():
                 res = operation_context.execute_post_process(res)
 
+            # Formatting it to expected return representation
+            res = operation_context.get_data_return_representation(res)
+
             info("Finishing with result: " + str(res))
-            self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY]]
+            self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY], process_state]
             self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
             pass
 
@@ -623,6 +669,10 @@ def _wrapper_get_datasets(arg):
     return arg.get_datasets(is_internal_call=True)
 
 
+def _wrapper_get_submitted_jobs(arg):
+    return arg.get_submitted_jobs(is_internal_call=True)
+
+
 def _wrapper_local_execute(args):
     return _local_execute(*args)
 
@@ -666,7 +716,7 @@ def _local_execute(self, functions, args, operation_context_args):
             blocks = operation_context.block_formatter(blocks, fun_counter)
 
         # If function is buit-in call it by the wrapper import utils function
-        if isbuiltin(possible_function):
+        if isbuiltin(possible_function) or possible_function.__doc__ == 'wrapped':
             res = possible_function(blocks, query)
         else:
             # If its regular defined functions, unbox arguments properly

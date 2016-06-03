@@ -184,6 +184,9 @@ class GatewayHandler(object):
     def get_datasets(self):
         return self.__get_storage_node().get_datasets()
 
+    def get_submitted_jobs(self):
+        return self.__get_storage_node().get_submitted_jobs()
+
     def get_description(self, name):
         return self.__get_property(name, 'description')
 
@@ -196,8 +199,13 @@ class GatewayHandler(object):
             # We already have the value
             return
 
+        process_state = {'function-name': function,
+                         'fidentifier': fidentifier,
+                         'dataset-name': name,
+                         'query': query}
+
         result_cache[fidentifier] = (STATUS_PROCESSING, None)
-        self.__get_storage_node().submit_job(didentifier, fidentifier, function, query, self.__config.node)
+        self.__get_storage_node().submit_job(didentifier, process_state, self.__config.node)
 
     def poll_for_result(self, name, function, query):
         didentifier = self.__find_identifier(self.__virtualize_name(name))
