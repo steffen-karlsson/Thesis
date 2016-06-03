@@ -9,4 +9,6 @@
             <enum name="black" value="4" />
         </attr>
     </declare-styleable>
+
+    <bool name="isTablet">false</bool>
 </resources>

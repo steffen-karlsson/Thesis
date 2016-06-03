@@ -22,8 +22,7 @@ public class RequestUtils {
     public static <T> T parse(Type classType, String body) throws ParserException {
         try {
             return mGson.fromJson(body, classType);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ParserException(e.getMessage());
         }
     }
