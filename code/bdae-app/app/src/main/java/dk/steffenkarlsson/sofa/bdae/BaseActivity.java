@@ -120,11 +120,13 @@ public abstract class BaseActivity extends AppCompatActivity implements IActivit
         return true;
     }
 
-    protected void setActionbarTitle(int titleResId) {
+    @Override
+    public void setActionbarTitle(int titleResId) {
         setActionbarTitle(getString(titleResId));
     }
 
-    protected void setActionbarTitle(String title) {
+    @Override
+    public void setActionbarTitle(String title) {
         if (getSupportActionBar() != null && showActionBar()) {
             getSupportActionBar().setTitle(title);
         }
@@ -204,6 +206,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IActivit
         return getActivityIntent(context, clzz, null, false);
     }
 
+    @Override
     public Intent getActivityIntent(Context context, Class clzz, Bundle extras, boolean killOnBackPressed) {
         Intent intent = new Intent(context, clzz);
         if (extras != null)

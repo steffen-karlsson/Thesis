@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.PorterDuff;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -16,6 +17,11 @@ import dk.steffenkarlsson.sofa.bdae.entity.Job;
  * Created by steffenkarlsson on 6/3/16.
  */
 public class SubmittedJobRecyclerView extends BaseRecyclerView<Job> {
+
+    public static interface OnClickListener {
+        void onCellClick(String function, String result, String dataType);
+        void onArgumentsClick();
+    }
 
     @BindView(R.id.name)
     protected TextView mName;
@@ -47,20 +53,36 @@ public class SubmittedJobRecyclerView extends BaseRecyclerView<Job> {
     protected void setTabletContent(Job data, boolean isGridLayoutManager) { }
 
     @Override
-    protected void setPhoneContent(Job data) {
+    protected void setPhoneContent(final Job data) {
+        if (data.hasResult() && data.getOnClickListener() != null)
+            setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    data.getOnClickListener().onCellClick(data.getName(), data.getResult(), data.getDataType());
+                }
+            });
+
         mName.setText(data.getName());
         mIdentifier.setText(data.getIdentifier());
         mDatasetName.setText(data.getDatasetName());
         if (data.getParameters().isEmpty())
             mParameters.setText(R.string.job_no_parameters);
-        else
+        else {
             mParameters.setText(TextUtils.join(",", data.getParameters()));
+            if (data.getOnClickListener() != null)
+                mParameters.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        data.getOnClickListener().onArgumentsClick();
+                    }
+                });
+        }
 
         switch (data.getStatus()) {
             case Done:
                 mDataTypeIcon.setVisibility(VISIBLE);
                 switch (data.getDataType()) {
-                    case "image":
+                    case "img":
                         mDataTypeIcon.setImageResource(R.drawable.ic_image_white);
                         break;
                     default:

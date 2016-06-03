@@ -9,6 +9,7 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.IActivityHandler;
+import dk.steffenkarlsson.sofa.bdae.JobResultActivity;
 import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.SubmitJobActivity;
 import dk.steffenkarlsson.sofa.bdae.entity.Job;
@@ -54,6 +55,20 @@ public class BottomBarDashboardView extends BottomPagerControllerRecyclerView {
                 List<Job> jobs = (List<Job>) result.response;
 
                 for (Job job : jobs) {
+                    job.setOnClickListener(new SubmittedJobRecyclerView.OnClickListener() {
+                        @Override
+                        public void onCellClick(String function, String result, String dataType) {
+                            mActivityHandler.launchActivity(mActivityHandler.getActivityIntent(
+                                    mActivityHandler.getContext(), JobResultActivity.class,
+                                    JobResultActivity.getBundleArgs(function, result, dataType), false),
+                                    TransitionAnimation.IN_FROM_RIGHT);
+                        }
+
+                        @Override
+                        public void onArgumentsClick() {
+
+                        }
+                    });
                     mAdapter.add(new GenericRecyclerViewModel(job, SubmittedJobRecyclerView.class));
                 }
 

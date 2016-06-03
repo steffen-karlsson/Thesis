@@ -1,9 +1,13 @@
 package dk.steffenkarlsson.sofa.bdae.entity;
 
+import android.text.TextUtils;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import dk.steffenkarlsson.sofa.bdae.recycler.SubmittedJobRecyclerView;
 
 /**
  * Created by steffenkarlsson on 6/3/16.
@@ -32,6 +36,11 @@ public class Job {
     @SerializedName("data_type")
     protected String mDataType;
 
+    @SerializedName("result")
+    protected String mResult;
+
+    private SubmittedJobRecyclerView.OnClickListener mOnClickListener;
+
     public String getName() {
         return mName;
     }
@@ -54,5 +63,21 @@ public class Job {
 
     public Status getStatus() {
         return Status.values()[mStatus];
+    }
+
+    public boolean hasResult() {
+        return !TextUtils.isEmpty(mResult);
+    }
+
+    public String getResult() {
+        return mResult;
+    }
+
+    public SubmittedJobRecyclerView.OnClickListener getOnClickListener() {
+        return mOnClickListener;
+    }
+
+    public void setOnClickListener(SubmittedJobRecyclerView.OnClickListener onClickListener) {
+        this.mOnClickListener = onClickListener;
     }
 }
