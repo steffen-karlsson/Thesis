@@ -2,6 +2,7 @@ package dk.steffenkarlsson.sofa.bdae.entity;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,6 +19,16 @@ public class Dataset {
     @SerializedName("operations")
     protected List<String> mOperations;
 
+    protected transient boolean mIsEven;
+
+    public boolean isEven() {
+        return mIsEven;
+    }
+
+    public void setEven(boolean isEven) {
+        this.mIsEven = isEven;
+    }
+
     public String getName() {
         return mName;
     }
@@ -26,7 +37,18 @@ public class Dataset {
         return mDescription;
     }
 
-    public List<String> getOperations() {
-        return mOperations;
+    public List<String> getOperations(boolean withNewLine) {
+        if (mOperations == null)
+            return new ArrayList<>();
+
+        if (!withNewLine)
+            return mOperations;
+
+        ArrayList<String> modifiedOperations = new ArrayList<>();
+        modifiedOperations.add("");
+        for (String operation : mOperations)
+            modifiedOperations.add(String.format("%s\n", operation));
+
+        return modifiedOperations;
     }
 }
