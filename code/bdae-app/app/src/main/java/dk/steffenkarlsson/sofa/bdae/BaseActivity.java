@@ -135,7 +135,7 @@ public abstract class BaseActivity extends AppCompatActivity implements IActivit
     @Override
     public void setLoadingSpinnerVisible(boolean visible) {
         if (hasLoadingSpinner())
-            mLoadingSpinner.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+            ((View) mLoadingSpinner.getParent()).setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
     }
 
     @Override
