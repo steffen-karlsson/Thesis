@@ -31,4 +31,12 @@ public class URLUtils {
     public static String getDatasetsUrl() {
         return build(instanceBuilder("get_datasets"));
     }
+
+    public static String getCollectionsUrl() {
+        return build(instanceBuilder("get_collections"));
+    }
+
+    public static String getSubmittedJobsUrl() {
+        return build(instanceBuilder("get_submitted_jobs"));
+    }
 }
