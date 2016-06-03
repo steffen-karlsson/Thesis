@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="10dp"
-    android:orientation="vertical"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -13,48 +12,55 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <LinearLayout
+        <android.support.v7.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/white"
-            android:orientation="horizontal"
-            android:padding="12dp">
+            app:cardElevation="1dp">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_weight="1"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:background="@color/white"
+                android:orientation="horizontal"
+                android:padding="12dp">
 
-                <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
-                    android:id="@+id/name"
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:textColor="@color/colorTextDark"
-                    android:textSize="20sp"
-                    app:fontType="light"
-                    tools:text="Reconstruction" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
-                    android:id="@+id/identifier"
-                    android:layout_width="match_parent"
+                    <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                        android:id="@+id/name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/colorTextDark"
+                        android:textSize="20sp"
+                        app:fontType="light"
+                        tools:text="Reconstruction" />
+
+                    <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                        android:id="@+id/identifier"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:paddingTop="6dp"
+                        android:textColor="@color/colorPrimaryFaded"
+                        android:textSize="12sp"
+                        app:fontType="medium"
+                        tools:text="4ED67HTX" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/data_type"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:paddingTop="6dp"
-                    android:textColor="@color/colorPrimaryFaded"
-                    android:textSize="12sp"
-                    app:fontType="medium"
-                    tools:text="4ED67HTX" />
-
+                    tools:src="@drawable/ic_image_white" />
             </LinearLayout>
 
-            <ImageView
-                android:id="@+id/data_type"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:src="@drawable/ic_image_white"/>
-        </LinearLayout>
+        </android.support.v7.widget.CardView>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -69,9 +75,9 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:gravity="center_vertical"
+                android:singleLine="true"
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="16sp"
-                android:singleLine="true"
                 app:fontType="medium"
                 tools:text="64, voxels.bin, transformation.bin" />
 
