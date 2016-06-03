@@ -20,3 +20,6 @@ class CacheSystem:
 
     def contains(self, key):
         return key in self.__data
+
+    def keys(self):
+        return self.__data.keys()

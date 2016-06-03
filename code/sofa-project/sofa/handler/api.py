@@ -28,17 +28,22 @@ class _StorageApi(object):
         return secure_send((update_type, key, value), partial(self._api.update_meta_key, identifier))
 
     def get_datasets(self, is_internal_call=False):
+        self._validate_api()
         # TODO: secure return
         return self._api.get_datasets(is_internal_call)
+
+    def get_submitted_jobs(self, is_internal_call=False):
+        self._validate_api()
+        return self._api.get_submitted_jobs(is_internal_call)
 
     def get_meta_from_identifier(self, identifier):
         self._validate_api()
         # TODO: secure return
         return self._api.get_meta_from_identifier(identifier)
 
-    def submit_job(self, didentifier, fidentifier, function, query, gateway):
+    def submit_job(self, didentifier, process_state, gateway):
         self._validate_api()
-        async(self._api).submit_job(didentifier, fidentifier, function, query, gateway)
+        async(self._api).submit_job(didentifier, process_state, gateway)
 
     def delete(self, identifier):
         self._validate_api()
@@ -94,6 +99,9 @@ class GatewayApi(object):
 
     def get_datasets(self):
         return self._api.get_datasets()
+
+    def get_submitted_jobs(self):
+        return self._api.get_submitted_jobs()
 
     @staticmethod
     def _set_dataset_by_function(name, package, extra_meta_data, funcion):
