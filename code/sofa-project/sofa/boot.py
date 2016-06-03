@@ -5,7 +5,7 @@ from logging import error, info
 from sys import argv
 from signal import signal, SIGTERM, SIGINT
 
-from Pyro4 import Daemon, locateNS
+from Pyro4 import Daemon, locateNS, config
 
 from sofa.handler.gateway import GatewayHandler
 from sofa.handler.storage import StorageHandler
@@ -45,6 +45,8 @@ if __name__ == "__main__":
     if instance is None:
         error("Node with type: %s is not supported" % config.node.type)
         exit(1)
+
+    config.SERVERTYPE = "thread"
 
     DAEMON = Daemon(port=config.port)
 

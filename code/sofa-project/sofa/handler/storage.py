@@ -11,6 +11,7 @@ from itertools import izip_longest
 from inspect import isfunction, isbuiltin
 from re import compile
 from collections import Iterable
+from os.path import basename, isfile
 
 from numpy import ndarray
 
@@ -328,14 +329,18 @@ class StorageHandler(Dispatcher):
                 for fidentifier in self.__srcs.get(key).keys():
                     data = self.__srcs.get(key)[fidentifier]
                     state = data[STATE]
+
                     query = state['query']
+                    parameters = [query] if not isinstance(query, list) else [str(q) for q in query]
+                    parameters = [basename(path) if isfile(path) else path for path in parameters]
+
                     function = {
                         'name': state['function-name'],
                         'identifier': state['fidentifier'],
                         'dataset_name': state['dataset-name'],
                         'result': data[RESULT] if not data[ROOT_IS_WORKING] else '',
                         'status': 0 if data[ROOT_IS_WORKING] else 1,
-                        'parameters': [query] if not isinstance(state['query'], list) else [str(q) for q in query],
+                        'parameters': parameters,
                         'data_type': state['data-type'],
                     }
                     functions.append(function)
