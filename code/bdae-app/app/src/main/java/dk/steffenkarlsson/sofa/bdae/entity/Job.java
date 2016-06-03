@@ -53,8 +53,20 @@ public class Job {
         return mDatasetName;
     }
 
-    public List<String> getParameters() {
-        return mParameters == null ? new ArrayList<String>() : mParameters;
+    public List<String> getParameters(boolean withNewLine) {
+        if (mParameters == null)
+            return new ArrayList<>();
+
+        if (!withNewLine)
+            return mParameters;
+
+        ArrayList<String> modifiedParameters = new ArrayList<>();
+        modifiedParameters.add("");
+        for (int i = 0; i < mParameters.size(); i++) {
+            String operation = mParameters.get(i);
+            modifiedParameters.add(String.format("%s" + (i != mParameters.size() - 1 ? "\n" : ""), operation));
+        }
+        return modifiedParameters;
     }
 
     public String getDataType() {

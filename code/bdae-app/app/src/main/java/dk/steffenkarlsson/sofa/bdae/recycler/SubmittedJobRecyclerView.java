@@ -20,7 +20,6 @@ public class SubmittedJobRecyclerView extends BaseRecyclerView<Job> {
 
     public static interface OnClickListener {
         void onCellClick(String function, String result, String dataType);
-        void onArgumentsClick();
     }
 
     @BindView(R.id.name)
@@ -65,17 +64,10 @@ public class SubmittedJobRecyclerView extends BaseRecyclerView<Job> {
         mName.setText(data.getName());
         mIdentifier.setText(data.getIdentifier());
         mDatasetName.setText(data.getDatasetName());
-        if (data.getParameters().isEmpty())
+        if (data.getParameters(false).isEmpty())
             mParameters.setText(R.string.job_no_parameters);
         else {
-            mParameters.setText(TextUtils.join(",", data.getParameters()));
-            if (data.getOnClickListener() != null)
-                mParameters.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        data.getOnClickListener().onArgumentsClick();
-                    }
-                });
+            mParameters.setText(TextUtils.join("● ", data.getParameters(true)));
         }
 
         switch (data.getStatus()) {

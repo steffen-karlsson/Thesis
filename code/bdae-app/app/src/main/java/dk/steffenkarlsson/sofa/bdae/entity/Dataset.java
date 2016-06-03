@@ -46,9 +46,10 @@ public class Dataset {
 
         ArrayList<String> modifiedOperations = new ArrayList<>();
         modifiedOperations.add("");
-        for (String operation : mOperations)
-            modifiedOperations.add(String.format("%s\n", operation));
-
+        for (int i = 0; i < mOperations.size(); i++) {
+            String operation = mOperations.get(i);
+            modifiedOperations.add(String.format("%s" + (i != mOperations.size() - 1 ? "\n" : ""), operation));
+        }
         return modifiedOperations;
     }
 }

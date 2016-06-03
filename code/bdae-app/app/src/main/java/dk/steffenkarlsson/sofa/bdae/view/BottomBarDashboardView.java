@@ -24,8 +24,10 @@ import dk.steffenkarlsson.sofa.bdae.R;
 import dk.steffenkarlsson.sofa.bdae.SubmitJobActivity;
 import dk.steffenkarlsson.sofa.bdae.entity.Job;
 import dk.steffenkarlsson.sofa.bdae.extra.CustomRequestListener;
+import dk.steffenkarlsson.sofa.bdae.extra.CustomTypefaceSpan;
 import dk.steffenkarlsson.sofa.bdae.extra.DataTypeHelper;
 import dk.steffenkarlsson.sofa.bdae.extra.TransitionAnimation;
+import dk.steffenkarlsson.sofa.bdae.extra.Typefaces;
 import dk.steffenkarlsson.sofa.bdae.recycler.GenericRecyclerViewModel;
 import dk.steffenkarlsson.sofa.bdae.recycler.SubmittedJobRecyclerView;
 import dk.steffenkarlsson.sofa.bdae.request.GetSubmittedJobsRequest;
@@ -107,15 +109,16 @@ public class BottomBarDashboardView extends BottomPagerControllerRecyclerView {
 
                                 alertDialog.setView(resultView);
                             } else {
-                                alertDialog.setMessage(getResources().getString(R.string.job_result, result));
+                                String jobText = getResources().getString(R.string.job_result, result);
+                                SpannableString message = new SpannableString(jobText);
+                                message.setSpan(new ForegroundColorSpan(getResources().getColor(R.color.colorTextDark)),
+                                        0, jobText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                message.setSpan(new CustomTypefaceSpan(Typefaces.getInstance().get(getContext(), Typefaces.LIGHT)),
+                                        0, jobText.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                alertDialog.setMessage(message);
                             }
 
                             alertDialog.show();
-                        }
-
-                        @Override
-                        public void onArgumentsClick() {
-
                         }
                     });
                     mAdapter.add(new GenericRecyclerViewModel(job, SubmittedJobRecyclerView.class));

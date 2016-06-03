@@ -75,9 +75,9 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
                 android:gravity="center_vertical"
-                android:singleLine="true"
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="16sp"
+                android:lineSpacingExtra="3dp"
                 app:fontType="medium"
                 tools:text="64, voxels.bin, transformation.bin" />
 

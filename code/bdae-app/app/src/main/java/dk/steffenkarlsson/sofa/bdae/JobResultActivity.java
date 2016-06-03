@@ -38,6 +38,7 @@ public class JobResultActivity extends BaseConfigurationActivity {
         mResultView.getSettings().setLoadWithOverviewMode(true);
         mResultView.getSettings().setUseWideViewPort(true);
         mResultView.getSettings().setBuiltInZoomControls(true);
+        mResultView.getSettings().setDisplayZoomControls(false);
         mResultView.loadDataWithBaseURL("", DataTypeHelper.getHTML(
                 getActivity(),
                 getIntent().getStringExtra(KEY_RESULT),
