@@ -22,6 +22,7 @@ import butterknife.OnClick;
 import dk.steffenkarlsson.sofa.bdae.event.TransitionAnimationEndedEvent;
 import dk.steffenkarlsson.sofa.bdae.extra.ChangedTextWatcher;
 import dk.steffenkarlsson.sofa.bdae.extra.ConfigurationHandler;
+import dk.steffenkarlsson.sofa.bdae.extra.KeyboardHelper;
 
 /**
  * Created by steffenkarlsson on 6/1/16.
@@ -125,7 +126,7 @@ public class ConfigurationFlowActivity extends BaseActivity {
 
                             @Override
                             public void onAnimationEnd(Animator animation) {
-                                showKeyboardForView(mInputInstanceName);
+                                KeyboardHelper.showKeyboardForView(getContext(), mInputInstanceName);
                             }
 
                             @Override
@@ -165,12 +166,6 @@ public class ConfigurationFlowActivity extends BaseActivity {
 
                     }
                 }).start();
-    }
-
-    private void showKeyboardForView(View view) {
-        view.requestFocus();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
     }
 
     private void validate() {
