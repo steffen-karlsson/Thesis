@@ -4,16 +4,82 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorBackground"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
     tools:context="dk.steffenkarlsson.sofa.bdae.SubmitJobActivity">
 
-    <include layout="@layout/default_toolbar"/>
+    <include layout="@layout/default_toolbar" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:paddingTop="30dp">
+
+        <fr.ganfra.materialspinner.MaterialSpinner
+            android:id="@+id/datasetDropdown"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            app:ms_alignLabels="false"
+            app:ms_arrowColor="@color/colorPrimaryFaded"
+            app:ms_arrowSize="16dp"
+            app:ms_baseColor="@color/colorBaseSpinner"
+            app:ms_enableErrorLabel="false"
+            app:ms_enableFloatingLabel="true"
+            app:ms_floatingLabelColor="@color/colorPrimaryFaded"
+            app:ms_floatingLabelText="@string/hint_dataset"
+            app:ms_highlightColor="@color/colorPrimaryDark"
+            app:ms_hint="@string/hint_dataset"
+            app:ms_hintColor="@color/colorPrimaryFaded"
+            app:ms_multiline="false"
+            app:ms_thickness="0.5dp"
+            app:ms_typeface="Roboto-Regular.ttf" />
+
+        <fr.ganfra.materialspinner.MaterialSpinner
+            android:id="@+id/operationDropdown"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="30dp"
+            app:ms_alignLabels="false"
+            app:ms_arrowColor="@color/colorPrimaryFaded"
+            app:ms_arrowSize="16dp"
+            app:ms_baseColor="@color/colorBaseSpinner"
+            app:ms_enableErrorLabel="false"
+            app:ms_enableFloatingLabel="true"
+            app:ms_floatingLabelColor="@color/colorPrimaryFaded"
+            app:ms_floatingLabelText="@string/hint_operation"
+            app:ms_highlightColor="@color/colorPrimaryDark"
+            app:ms_hint="@string/hint_operation"
+            app:ms_hintColor="@color/colorPrimaryFaded"
+            app:ms_multiline="false"
+            app:ms_thickness="0.5dp"
+            app:ms_typeface="Roboto-Regular.ttf"
+            android:visibility="invisible"
+            tools:visibility="visible" />
+
+        <LinearLayout
+            android:id="@+id/argumentWrapper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="30dp"
+            android:visibility="invisible"
+            tools:visibility="visible">
+
+            <dk.steffenkarlsson.sofa.bdae.extra.RobotoTextView
+                android:id="@+id/argumentTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/hint_argument"
+                android:textColor="@color/colorPrimaryFaded"
+                android:paddingBottom="14dp"
+                app:fontType="regular" />
+
+        </LinearLayout>
+
 
     </LinearLayout>
 
@@ -22,9 +88,10 @@
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:background="@color/colorPrimaryDark"
-        android:text="@string/new_job_submit"
-        android:textColor="@color/white"
         android:gravity="center"
+        android:text="@string/new_job_submit"
+        android:textColor="@color/colorPrimaryFaded"
         android:textSize="18sp"
-        app:fontType="medium"/>
+        app:fontType="medium" />
+
 </LinearLayout>

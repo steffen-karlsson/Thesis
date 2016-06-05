@@ -11,6 +11,10 @@
     <string name="hint_instance_name">Instance name</string>
     <string name="hint_api_hostname">API hostname</string>
     <string name="hint_gateway">Gateway identifier</string>
+    <string name="hint_dataset">Name of the dataset</string>
+    <string name="hint_operation">Operation to execute</string>
+    <string name="hint_arguments">Arguments</string>
+    <string name="hint_argument">Argument</string>
     <string name="template_hint_ip_port">0.0.0.0:9990</string>
 
     <string name="actionbar_accept">Accept</string>
@@ -22,6 +26,8 @@
     <string name="job_no_parameters">No parameters required</string>
     <string name="job_no_jobs">No jobs available\n</string>
     <string name="job_result">The result for the job is: %s</string>
+    <string name="job_submitted">Job has been submitted</string>
+
     <string name="close">Close</string>
     <string name="open_fullscreen">Open in fullscreen</string>
 </resources>
