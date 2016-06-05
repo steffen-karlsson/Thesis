@@ -61,7 +61,6 @@ public class Job {
             return mParameters;
 
         ArrayList<String> modifiedParameters = new ArrayList<>();
-        modifiedParameters.add("");
         for (int i = 0; i < mParameters.size(); i++) {
             String operation = mParameters.get(i);
             modifiedParameters.add(String.format("%s" + (i != mParameters.size() - 1 ? "\n" : ""), operation));

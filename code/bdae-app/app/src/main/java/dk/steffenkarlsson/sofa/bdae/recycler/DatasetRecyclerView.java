@@ -45,10 +45,10 @@ public class DatasetRecyclerView extends BaseRecyclerView<Dataset> {
                 : R.color.white));
         mName.setText(data.getName());
         mDescription.setText(data.getDescription());
-        if (data.getOperations(false).isEmpty())
+        if (data.getOperationNames(false).isEmpty())
             mJobs.setText(R.string.job_no_jobs);
         else
-            mJobs.setText(TextUtils.join("● ", data.getOperations(true)));
+            mJobs.setText(TextUtils.join("● ", data.getOperationNames(true)));
     }
 
     @Override
