@@ -39,4 +39,8 @@ public class URLUtils {
     public static String getSubmittedJobsUrl() {
         return build(instanceBuilder("get_submitted_jobs"));
     }
+
+    public static String getSubmitNewJobsUrl() {
+        return build(instanceBuilder("submit_new_job"));
+    }
 }
