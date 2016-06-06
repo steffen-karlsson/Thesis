@@ -75,6 +75,7 @@ public class ConfigurationFlowActivity extends BaseActivity {
     protected void onResume() {
         super.onResume();
 
+        mOkay.setEnabled(false);
         mOkay.setColorFilter(getResources().getColor(R.color.colorPrimaryDark), PorterDuff.Mode.SRC_ATOP);
 
         mInputInstanceName.addTextChangedListener(new ChangedTextWatcher(mInputInstanceName, 0, mOnValidateListener));

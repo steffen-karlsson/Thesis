@@ -42,6 +42,9 @@ public class Dataset {
             return new ArrayList<>();
 
         ArrayList<String> modifiedOperations = new ArrayList<>();
+        if (withNewLine)
+            modifiedOperations.add("");
+
         for (int i = 0; i < mOperations.size(); i++) {
             String operation = mOperations.get(i).getName();
             if (withNewLine)
