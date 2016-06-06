@@ -1,7 +1,7 @@
 # Created by Steffen Karlsson on 06-02-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from ujson import dumps as udumps
+from ujson import dumps as udumps, loads as uloads
 from argparse import ArgumentParser
 
 from Pyro4.errors import NamingError
@@ -66,6 +66,21 @@ class _SubmittedJobsHandler(RequestHandler):
             finalize_data(self, jobs)
 
 
+class _SubmitNewJobHandler(RequestHandler):
+    SUPPORTED_METHODS = {'POST'}
+
+    def post(self, *args, **kwargs):
+        parameters = uloads(self.request.body)
+        if "dataset_name" in parameters and "operation_name" in parameters and "query" in parameters:
+            self.set_status(201)
+            self.finish()
+
+            API.submit_job(parameters['dataset_name'], parameters["operation_name"], parameters["query"])
+        else:
+            self.set_status(400)
+            self.finish()
+
+
 class _InitializeHandler(RequestHandler):
     SUPPORTED_METHODS = {'PUT'}
 
@@ -93,7 +108,7 @@ class APIServer(Application):
             (r'/api/(\w*)/get_datasets', _DatasetHandler),
             (r'/api/(\w*)/get_collections', _CollectionHandler),
             (r'/api/(\w*)/get_submitted_jobs', _SubmittedJobsHandler),
-
+            (r'/api/(\w*)/submit_new_job', _SubmitNewJobHandler)
         ]
 
         Application.__init__(self, routes)
