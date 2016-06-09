@@ -143,6 +143,7 @@ class OperationContext:
         self.post_process = None
         self.block_formatter = None
         self.return_type = ExpectedReturnType.Text
+        self.num_arguments = 1
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
         is_tuple = isinstance(ghost_count, tuple)
@@ -168,6 +169,13 @@ class OperationContext:
     def with_post_processing(self, fun_post_process_step):
         self.post_process = fun_post_process_step
         return self
+
+    def with_multiple_arguments(self, num_arguments):
+        self.num_arguments = num_arguments
+        return self
+
+    def get_num_arguments(self):
+        return self.num_arguments
 
     def get_ghost_count_left(self):
         return self.__get_ghost(0)
