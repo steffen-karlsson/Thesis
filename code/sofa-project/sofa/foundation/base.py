@@ -9,6 +9,7 @@ from abc import abstractmethod, ABCMeta
 from sofa.handler.storage import KEYWORDS
 from strategy import RoundRobin
 
+
 class SofaBaseObject:
     """
     Abstract and not initializable class to define the context of a fundamental base sofa object
@@ -67,6 +68,14 @@ class SofaBaseObject:
         :return: :class:`.RoundRobin`, :class:`.Tiles` or :class:`.Linear`
         """
         return RoundRobin()
+
+    def get_replication_factor(self):
+        """
+        Defines the amount of times to dataset is replicated.
+
+        :return: int
+        """
+        return 1
 
     def verify_function(self, function_name):
         """

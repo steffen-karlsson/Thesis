@@ -19,9 +19,9 @@ class _StorageApi(object):
         self._validate_api()
         return secure_send((meta_data, is_update), partial(self._api.create, identifier))
 
-    def append(self, identifier, block, create_new_stride):
+    def append(self, identifier, block, create_new_stride, replica_index=0):
         self._validate_api()
-        return secure_send((identifier, block, create_new_stride), self._api.append)
+        return secure_send((identifier, block, create_new_stride, replica_index), self._api.append)
 
     def update_meta_key(self, identifier, update_type, key, value):
         self._validate_api()

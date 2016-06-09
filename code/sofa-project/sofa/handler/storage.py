@@ -34,6 +34,8 @@ STATE = 4
 BLOCKS = 0
 QUERY = 1
 
+PRIMARY_REPLICA = 0
+
 
 def _forward_and_extract(fun, max_num_args):
     # Forwards to the right function (fun) with possible extracted arguments based on the pattern
@@ -72,7 +74,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
         # left and right is tuples with node reference and data to send
         l_neighbor, right_ghost = left
         r_neighbor, left_ghost = right
-        fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, (None, process_state))
+        fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, None, process_state)
 
         # Ghost is required
         if is_local_transfer:
@@ -87,7 +89,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
                 r_neighbor.send_ghost(left_ghost, None, *fun_args)
 
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
-                          is_local_transfer=is_local_transfer, self_data=args[BLOCKS])
+                          self_data=args[BLOCKS], is_local_transfer=is_local_transfer)
 
 
 class WillContinueExecuting(Exception):
@@ -112,17 +114,32 @@ class StorageHandler(Dispatcher):
         self.__tb = None
         self.__srcs = CacheSystem(defaultdict, args=dict)  # Storage Result Cache System
         self.__dgcs = CacheSystem(defaultdict, args=dict)  # Dataset Ghosts Cache System
-        self.__RAW = open("sofa_raw.db", writeback=True)
-        self.__FLAG = open("sofa_flag.db", writeback=True)
+
         if 'storage' in others:
             self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri in others['storage']]
         else:
             self.__storage_nodes = []
+
         self.__num_storage_nodes = len(self.__storage_nodes)
         self.__neighbors = self.__get_neighbors()
-
         space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
         super(StorageHandler, self).__init__(self.__config.node_idx, space_size)
+
+        self.__DISK = {}
+        self.__FLAG = open("sofa_flag.db", writeback=True)
+        # Create primary replica
+        self.__create_replica(PRIMARY_REPLICA)
+
+    def __create_replica(self, index):
+        self.__DISK[index] = open("sofa_replica_%d.db" % index, writeback=True)
+
+    def __find_replica(self, index):
+        # See if replica with index exists
+        if index not in self.__DISK:
+            # Create new replica
+            self.__create_replica(index)
+
+        return self.__DISK[index]
 
     def get_responsible(self, index):
         return self.__storage_nodes[index]
@@ -148,10 +165,8 @@ class StorageHandler(Dispatcher):
         nxt = self.__storage_nodes[self.__config.node_idx % self.get_num_storage_nodes()]
         return prev, nxt
 
-    def __get_ghosts(self, send_right, send_left, didentifier, operation_context, is_local_transfer, self_data=None):
-        if self_data is None:
-            self_data = self.__get_raw_blocks(didentifier)
-        elif isinstance(self_data, list) or isinstance(self_data, ndarray):
+    def __get_ghosts(self, send_right, send_left, didentifier, operation_context, self_data, is_local_transfer):
+        if isinstance(self_data, list) or isinstance(self_data, ndarray):
             self_data = self_data
         elif isinstance(self_data, Iterable):
             self_data = list(self_data)
@@ -188,7 +203,7 @@ class StorageHandler(Dispatcher):
         return str(didentifier) in self.__FLAG
 
     def handle_ghosts(self, didentifier, operation_context, done_callback_handler,
-                      is_local_transfer=False, self_data=None):
+                      self_data, is_local_transfer=False):
         left_ghost, right_ghost, l_neighbor, r_neighbor = (None,) * 4
         if not is_local_transfer:
             l_neighbor, r_neighbor = self.__get_neighbors()
@@ -197,7 +212,7 @@ class StorageHandler(Dispatcher):
         send_right = operation_context.send_right and (r_neighbor or is_local_transfer)
 
         left_ghost, right_ghost = self.__get_ghosts(send_right, send_left, didentifier, operation_context,
-                                                    is_local_transfer, self_data=self_data)
+                                                    self_data, is_local_transfer)
 
         if is_local_transfer:
             done_callback_handler(is_ready=False, left=(None, left_ghost), right=(None, right_ghost))
@@ -220,31 +235,41 @@ class StorageHandler(Dispatcher):
         if self.__context_exists(identifier) and not is_update:
             return STATUS_ALREADY_EXISTS, "Dataset already exists"
 
-        info("Creating context with identifier %s on %s." % (identifier, self.__config.node))
+        info("Creating context with identifier %s at replica %d on %s."
+             % (identifier, PRIMARY_REPLICA, self.__config.node))
 
-        self.__FLAG[str(identifier)] = True
-        self.__RAW[str(identifier)] = [udumps(meta_data)]
+        # Always use primary replica when writing meta data
+        # TODO: Maybe replicate meta data too?
+        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
+
+        identifier = str(identifier)
+        self.__FLAG[identifier] = True
+        replica_blocks[identifier] = [udumps(meta_data)]
+
         return STATUS_SUCCESS
 
     def append(self, bundle):
         # TODO: Block from calling any other operation on this context, while append is finishing
-        identifier, block, create_new_stride = secure_load(bundle)
+        identifier, block, create_new_stride, replica_index = secure_load(bundle)
 
         res = self.get_meta_from_identifier(identifier)
         if is_error(res):
             return res, "Dataset doesn't exists"
 
-        info("Writing block of size %d to datatset with identifier %s on %s." % (
-            getsizeof(block), identifier, self.__config.node))
+        info("Writing block of size %d to datatset with identifier %s at replica %d on %s." % (
+            getsizeof(block), identifier, replica_index, self.__config.node))
+
+        # Find correct replica to append to -> 0 is primary
+        replica_blocks = self.__find_replica(replica_index)
 
         identifier = str(identifier)
-        if identifier not in self.__RAW:
-            self.__RAW[identifier] = []
+        if identifier not in replica_blocks:
+            replica_blocks[identifier] = []
 
         if create_new_stride:
-            self.__RAW[identifier].append(block)
+            replica_blocks[identifier].append(block)
         else:
-            self.__RAW[identifier][-1].extend(block)
+            replica_blocks[identifier][-1].extend(block)
 
         # Delete local cache, since context is appended
         self.__srcs.delete(identifier)
@@ -255,20 +280,20 @@ class StorageHandler(Dispatcher):
     def delete(self, identifier):
         # TODO: Block from calling any other operation on this context
 
-        # Delete all blocks
-        local_blocks = len(self.__RAW[identifier]) - 1  # Remove meta data from number of blocks
-        total_blocks = int(uloads(self.__RAW[identifier][0])['num-blocks'])
-
-        if local_blocks != total_blocks:
-            # TODO delete the rest of the blocks on other storage nodes
-            pass
-
-        # Delete local blocks + meta data
-        del self.__RAW[identifier]
-
-        # Delete local cache and ghosts, since context is removed
-        self.__srcs.delete(identifier)
-        self.__dgcs.delete(identifier)
+        # # Delete all blocks
+        # local_blocks = len(self.__RAW[identifier]) - 1  # Remove meta data from number of blocks
+        # total_blocks = int(uloads(self.__RAW[identifier][0])['num-blocks'])
+        #
+        # if local_blocks != total_blocks:
+        #     # TODO delete the rest of the blocks on other storage nodes
+        #     pass
+        #
+        # # Delete local blocks + meta data
+        # del self.__RAW[identifier]
+        #
+        # # Delete local cache and ghosts, since context is removed
+        # self.__srcs.delete(identifier)
+        # self.__dgcs.delete(identifier)
         return STATUS_SUCCESS
 
     @dispatch
@@ -276,13 +301,14 @@ class StorageHandler(Dispatcher):
         if not self.__context_exists(didentifier):
             return STATUS_NOT_FOUND
 
-        return self.__RAW[str(didentifier)][0]
+        # Always use primary replica when finding meta data
+        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
+        return replica_blocks[str(didentifier)][0]
 
     @dispatch
     def update_meta_key(self, identifier, bundle):
         update_type, key, value = secure_load(bundle)
 
-        # Else do the job self.
         res = self.get_meta_from_identifier(identifier)
         if is_error(res):
             return res, "Dataset doesn't exists"
@@ -296,7 +322,9 @@ class StorageHandler(Dispatcher):
 
         info("%s is %s with %d" % (key, update_type, value))
 
-        self.__RAW[str(identifier)][0] = udumps(meta_data)
+        # Always use primary replica when modifying meta data
+        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
+        replica_blocks[str(identifier)][0] = udumps(meta_data)
         return STATUS_SUCCESS
 
     def get_datasets(self, is_internal_call=False):
@@ -306,9 +334,11 @@ class StorageHandler(Dispatcher):
             datasets = []
             for key in self.__FLAG.iterkeys():
                 meta_data = uloads(self.get_meta_from_identifier(int(key)))
+                operations = [{'name': operation, 'num_arguments': num_arguments}
+                              for operation, num_arguments in meta_data['operations']]
                 datasets.append({'name': meta_data['name'],
                                  'description': meta_data['description'],
-                                 'operations': meta_data['operations']})
+                                 'operations': operations})
             return datasets
 
         if not is_internal_call and all_others > 1:
@@ -355,9 +385,15 @@ class StorageHandler(Dispatcher):
             # Calculate self
             return __self_jobs()
 
-    def __get_raw_blocks(self, didentifier):
-        is_root = str(didentifier) in self.__FLAG
-        return self.__RAW[str(didentifier)][1 if is_root else 0:]  # Blocks on self
+    def __get_raw_blocks(self, didentifier, replica_index):
+        # We only store meta data on primary replica = 0
+        is_root = str(didentifier) in self.__FLAG and replica_index == 0
+
+        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
+        return replica_blocks[str(didentifier)][1 if is_root else 0:]  # Blocks on self
+
+    def __get_num_raw_blocks(self, didentifier, replica_index):
+        return len(self.__get_raw_blocks(didentifier, replica_index))
 
     def __get_operation_context(self, didentifier, function_name, meta_data=None):
         if not meta_data:
@@ -383,18 +419,19 @@ class StorageHandler(Dispatcher):
         # Merge ghosts into blocks
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
+            _blocks = None
 
             # Get blocks to work on
             if process_state['block-state'] is 'raw':
-                blocks = self.__get_raw_blocks(didentifier)
+                _blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
             elif process_state['block-state'] is 'partial':
                 # The result block is used for partial results in the case of built in functions with synchronization
-                blocks = self.__srcs.get(didentifier)[fidentifier][RESULT]
+                _blocks = self.__srcs.get(didentifier)[fidentifier][RESULT]
 
-            assert blocks != None
+            assert _blocks is not None
 
             for l, m, r in izip_longest(ghosts['ghost-left'] if 'ghost-left' in ghosts else [None],
-                                        blocks,
+                                        _blocks,
                                         ghosts['ghost-right'] if 'ghost-right' in ghosts else [None]):
                 # Ensure all data is lists for list concatenation
                 if l is None:
@@ -409,7 +446,7 @@ class StorageHandler(Dispatcher):
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
         else:
-            blocks = self.__get_raw_blocks(didentifier)
+            blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
 
         args[BLOCKS] = blocks
         query = process_state['query']
@@ -502,7 +539,7 @@ class StorageHandler(Dispatcher):
 
             l_neighbor, right_ghost = left
             r_neighbor, left_ghost = right
-            fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, (meta_data, process_state))
+            fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, meta_data, process_state)
 
             # Ghost is required
             if is_local_transfer:
@@ -523,7 +560,10 @@ class StorageHandler(Dispatcher):
             return
 
         # Find ghosts from local neighbors if needed else execute
-        self.handle_ghosts(didentifier, operation_context, done_callback_handler, is_local_transfer=is_local_transfer)
+        replica_blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
+
+        self.handle_ghosts(didentifier, operation_context, done_callback_handler, replica_blocks,
+                           is_local_transfer=is_local_transfer)
 
     def execute_function(self, didentifier, fidentifier, meta_data, process_state):
         function_name = process_state['function-name']
@@ -625,7 +665,8 @@ class StorageHandler(Dispatcher):
             else:
                 self.execute_function(*common)
 
-    def handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args):
+    def handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier,
+                               meta_data, process_state):
         info("Receiving ghost at " + str(self))
 
         assert left_ghost is not None or right_ghost is not None
@@ -633,7 +674,7 @@ class StorageHandler(Dispatcher):
         if left_ghost is not None:
             is_ghost_right = False
             is_root = str(didentifier) in self.__FLAG
-            num_blocks = len(self.__RAW[str(didentifier)]) - (1 if is_root else 0)
+            num_blocks = self.__get_num_raw_blocks(didentifier, process_state['replica-index'])
 
             if is_root or len(left_ghost) < num_blocks:
                 # Received too much and shifted data
@@ -652,7 +693,7 @@ class StorageHandler(Dispatcher):
 
         has_other_part = ('ghost-left' if is_ghost_right else 'ghost-right') in self.__dgcs.get(fidentifier)
         if has_other_part or not needs_both:
-            self.__report_ready(didentifier, fidentifier, *fun_args)
+            self.__report_ready(didentifier, fidentifier, meta_data, process_state)
 
     def send_ghost(self, bundle):
         self.handle_received_ghosts(*secure_load(bundle))
@@ -719,8 +760,8 @@ def _local_execute(self, functions, args, operation_context_args):
         query = args[QUERY]
         if operation_context.needs_block_formatting():
             blocks = operation_context.block_formatter(blocks, fun_counter)
-
         # If function is buit-in call it by the wrapper import utils function
+
         if isbuiltin(possible_function) or possible_function.__doc__ == 'wrapped':
             res = possible_function(blocks, query)
         else:

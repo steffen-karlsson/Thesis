@@ -10,7 +10,8 @@ from os import path
 from inspect import isclass, getmembers
 
 from sofa.cache import CacheSystem
-from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, STATUS_SUCCESS
+from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, \
+    STATUS_SUCCESS, STATUS_NOT_ALLOWED
 from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
@@ -69,6 +70,9 @@ class GatewayHandler(object):
 
         return res[key]
 
+    def __find_least_loaded_replica(self):
+        return 0
+
     def create(self, bundle):
         name, dataset_source, package, extra_meta_data = secure_load(bundle)
         class_name = package.rsplit(".", 1)[1]
@@ -90,7 +94,8 @@ class GatewayHandler(object):
                                 'package': package,
                                 'source': pdata,
                                 'num-blocks': 0})
-        extra_meta_data['operations'] = [operation.fun_name for operation in operations] if operations else []
+        extra_meta_data['operations'] = [(operation.fun_name, operation.get_num_arguments())
+                                         for operation in operations] if operations else []
 
         virtualized_identifier = self.__find_identifier(self.__virtualize_name(name))
         return self.__get_storage_node().create(virtualized_identifier, udumps(extra_meta_data))
@@ -143,11 +148,18 @@ class GatewayHandler(object):
         # Clean function cache
         self.__gcs.delete(identifier)
 
+        # Preprocess data if needed
         data = context.preprocess(data_ref)
+
+        replication_factor = context.get_replication_factor()
+        if replication_factor > num_storage_nodes:
+            return STATUS_NOT_ALLOWED, "Replication factor can't be larger than number of storage nodes"
+
         for block in self.__next_block(context, data):
-            # TODO: Save response and check if correct is saved and received
-            # TODO: Use self.__get_storage_node() and don't index into storage_nodes, alternatively do a redirect on storage
-            self.__storage_nodes[start].append(identifier, block, create_new_stride)
+            # Implementing simple store and forward method
+            for i in xrange(replication_factor):
+                # TODO: Save response and check if correct is saved and received
+                self.__storage_nodes[start + i].append(identifier, block, create_new_stride, replica_index=i)
 
             block_count += 1
             current_stride += 1
@@ -199,10 +211,13 @@ class GatewayHandler(object):
             # We already have the value
             return
 
-        process_state = {'function-name': function,
-                         'fidentifier': fidentifier,
-                         'dataset-name': name,
-                         'query': query}
+        process_state = {
+            'function-name': function,
+            'fidentifier': fidentifier,
+            'dataset-name': name,
+            'query': query,
+            'replica-index': self.__find_least_loaded_replica()
+        }
 
         result_cache[fidentifier] = (STATUS_PROCESSING, None)
         self.__get_storage_node().submit_job(didentifier, process_state, self.__config.node)
