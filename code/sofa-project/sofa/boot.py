@@ -5,7 +5,7 @@ from logging import error, info
 from sys import argv
 from signal import signal, SIGTERM, SIGINT
 
-from Pyro4 import Daemon, locateNS, config
+from Pyro4 import Daemon, locateNS, config as pyro_config
 
 from sofa.handler.gateway import GatewayHandler
 from sofa.handler.storage import StorageHandler
@@ -16,7 +16,6 @@ REGISTRY_NAME = None
 DAEMON = None
 NS = locateNS()
 
-
 def _handle_kill_signal(signal, frame):
     NS.remove(REGISTRY_NAME)
     DAEMON.close()
@@ -24,6 +23,9 @@ def _handle_kill_signal(signal, frame):
 
 
 if __name__ == "__main__":
+    pyro_config.SERVERTYPE = "thread"
+    pyro_config.THREADING2 = True
+
     node_types = argv[3:]
 
     cfg_file = argv[2]
@@ -45,8 +47,6 @@ if __name__ == "__main__":
     if instance is None:
         error("Node with type: %s is not supported" % config.node.type)
         exit(1)
-
-    config.SERVERTYPE = "thread"
 
     DAEMON = Daemon(port=config.port)
 
