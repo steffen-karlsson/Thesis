@@ -7,6 +7,8 @@
 
 from ConfigParser import SafeConfigParser
 from logging import basicConfig, INFO, debug
+from os.path import exists
+from os import makedirs
 
 DEFAULT_BLOCK_SIZE = 64
 DEFAULT_PORT = 9090
@@ -87,7 +89,10 @@ def parse_project_cfg(path, index, node_types):
     instance_name = global_config.instance_name = config.get("general", "instance-name")
 
     if config.has_option("general", "mount-point"):
-        global_config.fuse_mount_point = config.get("general", "mount-point")
+        global_config.mount_point = config.get("general", "mount-point")
+
+    if not exists(global_config.mount_point):
+        makedirs(global_config.mount_point)
 
     if config.has_option("general", "log-file"):
         basicConfig(filename=config.get("general", "log-file"), level=INFO)
@@ -144,8 +149,10 @@ class Configuration:
         self.keyspace_size = DEFAULT_KEYSPACE_SIZE
         self.port = DEFAULT_PORT
         self.heartbeat_scheduler_delay = DEFAULT_HEARTBEAT_DELAY
-        self.fuse_mount_point = "/mnt/sofa/"
+        self.mount_point = "/mnt/sofa/"
 
+    def get_mount_point(self):
+        return self.mount_point if self.mount_point.endswith('/') else "%s/" % self.mount_point
 
 if __name__ == "__main__":
     # Only used for test the parsing of .cfg file

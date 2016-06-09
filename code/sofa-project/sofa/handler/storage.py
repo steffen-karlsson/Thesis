@@ -126,12 +126,12 @@ class StorageHandler(Dispatcher):
         super(StorageHandler, self).__init__(self.__config.node_idx, space_size)
 
         self.__DISK = {}
-        self.__FLAG = open("sofa_flag.db", writeback=True)
+        self.__FLAG = open(self.__get_mounted_filename('sofa_flag.db'), writeback=True)
         # Create primary replica
         self.__create_replica(PRIMARY_REPLICA)
 
     def __create_replica(self, index):
-        self.__DISK[index] = open("sofa_replica_%d.db" % index, writeback=True)
+        self.__DISK[index] = open(self.__get_mounted_filename("sofa_replica_%d.db" % index), writeback=True)
 
     def __find_replica(self, index):
         # See if replica with index exists
@@ -140,6 +140,9 @@ class StorageHandler(Dispatcher):
             self.__create_replica(index)
 
         return self.__DISK[index]
+
+    def __get_mounted_filename(self, filename):
+        return "%s%s" % (self.__config.get_mount_point(), filename)
 
     def get_responsible(self, index):
         return self.__storage_nodes[index]
