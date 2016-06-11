@@ -13,6 +13,7 @@ from os import makedirs
 DEFAULT_BLOCK_SIZE = 64
 DEFAULT_PORT = 9090
 DEFAULT_HEARTBEAT_DELAY = 5
+DEFAULT_HEARTBEAT_RETRIES = 5
 DEFAULT_KEYSPACE_SIZE = pow(2, 64)
 
 
@@ -46,6 +47,8 @@ def parse_project_cfg(path, index, node_types):
 
         # Defined in seconds
         heartbeat_scheduler_delay =
+        num_heartbeat_retries =
+        enable_live_software_reboot =
 
         # Defined in megabytes
         block-size =
@@ -104,6 +107,12 @@ def parse_project_cfg(path, index, node_types):
     if config.has_option("general", "heartbeat-scheduler-delay"):
         global_config.heartbeat_scheduler_delay = config.getint("general", "heartbeat-scheduler-delay")
 
+    if config.has_option("general", "num_heartbeat_retries"):
+        global_config.num_heartbeat_retries = config.getint("general", "num_heartbeat_retries")
+
+    if config.has_option("general", "enable_live_software_reboot"):
+        global_config.live_software_reboot = config.getboolean("general", "enable_live_software_reboot")
+
     if config.has_option("general", "keyspace-size"):
         global_config.keyspace_size = eval(config.get("general", "keyspace-size"))
 
@@ -149,6 +158,8 @@ class Configuration:
         self.keyspace_size = DEFAULT_KEYSPACE_SIZE
         self.port = DEFAULT_PORT
         self.heartbeat_scheduler_delay = DEFAULT_HEARTBEAT_DELAY
+        self.num_heartbeat_retries = DEFAULT_HEARTBEAT_RETRIES
+        self.live_software_reboot = False
         self.mount_point = "/mnt/sofa/"
 
     def get_mount_point(self):
