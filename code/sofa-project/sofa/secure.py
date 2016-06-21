@@ -12,16 +12,7 @@ def __generate_digest(data):
     return new(sha256(__generate_digest.__module__).hexdigest(), data, sha256).hexdigest()
 
 
-def secure_send(data, fun):
-    return fun(secure(data))
-
-
-def secure_load(bundle):
-    digest, pdata = bundle
-    return secure_load2(digest, pdata)
-
-
-def secure_load2(digest, pdata):
+def secure_load(digest, pdata):
     if isinstance(pdata, unicode):
         pdata = pdata.encode("ascii")
 

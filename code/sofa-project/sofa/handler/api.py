@@ -2,11 +2,10 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from inspect import getsourcefile
-from functools import partial
+from simplejson import dumps
 
 from Pyro4 import Proxy, locateNS, async
 
-from sofa.secure import secure_send
 from sofa.handler import import_class
 
 
@@ -15,17 +14,17 @@ class _StorageApi(object):
         self._api = None
         self._storage_uri = storage_uri
 
-    def create(self, identifier, meta_data, is_update=False):
+    def create(self, function_delegation, identifier, meta_data, is_update=False):
         self._validate_api()
-        return secure_send((meta_data, is_update), partial(self._api.create, identifier))
+        return self._api.create(function_delegation, identifier, dumps(meta_data), is_update)
 
-    def append(self, identifier, block, create_new_stride, replica_index=0):
+    def append(self, function_delegation, identifier, block, create_new_stride):
         self._validate_api()
-        return secure_send((identifier, block, create_new_stride, replica_index), self._api.append)
+        return self._api.append(function_delegation, identifier, block, create_new_stride)
 
-    def update_meta_key(self, identifier, update_type, key, value):
+    def update_meta_key(self, function_delegation, identifier, update_type, key, value):
         self._validate_api()
-        return secure_send((update_type, key, value), partial(self._api.update_meta_key, identifier))
+        return self._api.update_meta_key(function_delegation, identifier, update_type, key, value)
 
     def get_datasets(self, is_internal_call=False):
         self._validate_api()
@@ -36,14 +35,14 @@ class _StorageApi(object):
         self._validate_api()
         return self._api.get_submitted_jobs(is_internal_call)
 
-    def get_meta_from_identifier(self, identifier):
+    def get_meta_from_identifier(self, function_delegation, identifier):
         self._validate_api()
         # TODO: secure return
-        return self._api.get_meta_from_identifier(identifier)
+        return self._api.get_meta_from_identifier(function_delegation, identifier)
 
-    def submit_job(self, didentifier, process_state, gateway):
+    def submit_job(self, forward_queue_handler, didentifier, process_state, gateway):
         self._validate_api()
-        async(self._api).submit_job(didentifier, process_state, gateway)
+        async(self._api).submit_job(forward_queue_handler, didentifier, process_state, gateway)
 
     def delete(self, identifier):
         self._validate_api()
@@ -51,7 +50,7 @@ class _StorageApi(object):
 
     def update(self, identifier, meta_data):
         self._validate_api()
-        return secure_send((identifier, meta_data, True), self._api.create)
+        return self._api.create(identifier, meta_data, True)
 
     def _validate_api(self):
         if not self._api:
@@ -77,11 +76,11 @@ class _InternalStorageApi(_StorageApi):
 
     def send_ghost(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args):
         self._validate_api()
-        secure_send((left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args), async(self._api).send_ghost)
+        async(self._api).send_ghost(left_ghost, right_ghost, needs_both, didentifier, fidentifier, fun_args)
 
     def ready(self, didentifier, fidentifier, meta_data, process_state):
         self._validate_api()
-        secure_send((didentifier, fidentifier, meta_data, process_state), async(self._api).ready)
+        async(self._api).ready(didentifier, fidentifier, meta_data, process_state)
 
 
 class GatewayApi(object):
@@ -106,7 +105,7 @@ class GatewayApi(object):
     @staticmethod
     def _set_dataset_by_function(name, package, extra_meta_data, funcion):
         with open(getsourcefile(import_class(package)), "r") as f:
-            return secure_send((name, f.read(), package, extra_meta_data), funcion)
+            return funcion(name, f.read(), package, extra_meta_data)
 
     def create(self, name, package, extra_meta_data=None):
         return GatewayApi._set_dataset_by_function(name, package, extra_meta_data, self._api.create)
@@ -115,7 +114,7 @@ class GatewayApi(object):
         return GatewayApi._set_dataset_by_function(name, package, None, self._api.update)
 
     def append(self, name, path_or_url):
-        return secure_send((name, path_or_url), self._api.append)
+        return self._api.append(name, path_or_url)
 
     def delete(self, name):
         return self._api.delete(name)

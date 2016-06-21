@@ -3,7 +3,7 @@
 
 from sys import getsizeof
 from random import choice
-from ujson import dumps as udumps, loads as uloads
+from simplejson import loads
 from collections import defaultdict
 from math import floor, ceil
 from os import path
@@ -12,7 +12,6 @@ from inspect import isclass, getmembers
 from sofa.cache import CacheSystem
 from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, \
     STATUS_SUCCESS, STATUS_NOT_ALLOWED
-from sofa.secure import secure_load, secure_load2, secure
 from sofa.handler.api import _StorageApi
 from sofa.handler import get_class_from_source
 from sofa.foundation.operation import OperationContext
@@ -49,7 +48,7 @@ class GatewayHandler(object):
         if is_error(res):
             return res
 
-        return uloads(res)
+        return loads(res)
 
     def __get_class_from_identifier(self, identifier, key):
         res = self.__get_meta_from_identifier(identifier)
@@ -57,7 +56,7 @@ class GatewayHandler(object):
             return res
 
         meta_data = res
-        source = secure_load2(meta_data['digest'], meta_data['source'])
+        source = secure_load(meta_data['digest'], meta_data['source'])
         if is_error(source):
             return STATUS_INVALID_DATA
 
@@ -73,8 +72,7 @@ class GatewayHandler(object):
     def __find_least_loaded_replica(self):
         return 0
 
-    def create(self, bundle):
-        name, dataset_source, package, extra_meta_data = secure_load(bundle)
+    def create(self, name, dataset_source, package, extra_meta_data):
         class_name = package.rsplit(".", 1)[1]
 
         context = get_class_from_source(dataset_source, class_name)
@@ -116,8 +114,7 @@ class GatewayHandler(object):
         self.__gcs.delete(identifier)
         return self.__get_storage_node().delete(identifier)
 
-    def append(self, bundle):
-        name, data_ref = secure_load(bundle)
+    def append(self, name, data_ref):
         identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'class-name')
         if is_error(res):
