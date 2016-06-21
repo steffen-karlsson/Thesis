@@ -35,3 +35,9 @@ class TextDataBySentence(_TextData):
     def next_entry(self, data):
         for sentence in sent_tokenize(data):
             yield sentence
+
+class TextDataByLine(_TextData):
+    __metaclass__ = ABCMeta
+
+    def next_entry(self, data):
+        return data.splitlines()
