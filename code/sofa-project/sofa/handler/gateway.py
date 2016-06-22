@@ -1,21 +1,26 @@
+# -*- coding: utf-8 -*-
+
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from sys import getsizeof
-from random import choice
-from simplejson import loads
 from collections import defaultdict
+from inspect import isclass, getmembers
 from math import floor, ceil
 from os import path
-from inspect import isclass, getmembers
+from random import choice
+from sys import getsizeof
+
+from simplejson import loads
 
 from sofa.cache import CacheSystem
+from sofa.delegation import FunctionDelegation
 from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_FOUND, STATUS_PROCESSING, \
     STATUS_SUCCESS, STATUS_NOT_ALLOWED
-from sofa.handler.api import _StorageApi
-from sofa.handler import get_class_from_source
-from sofa.foundation.operation import OperationContext
 from sofa.foundation import strategy as sofa_strategies
+from sofa.foundation.operation import OperationContext
+from sofa.handler import get_class_from_source
+from sofa.handler.api import _StorageApi
+from sofa.secure import secure_load, secure
 
 
 def find_identifier(name, mod):
@@ -29,7 +34,7 @@ class GatewayHandler(object):
         self.__block_size = config.block_size * 1000000  # To bytes from MB
         self.__gcs = CacheSystem(defaultdict, args=dict)
         self.__num_storage_nodes = len(others['storage'])
-        self.__storage_nodes = [_StorageApi(storage_uri) for storage_uri in others['storage']]
+        self.__storage_nodes = [_StorageApi(storage_uri) for storage_uri, _ in others['storage']]
 
     def __find_identifier(self, name):
         return find_identifier(name, self.__config.keyspace_size)
@@ -44,11 +49,17 @@ class GatewayHandler(object):
         return self.__get_meta_from_identifier(self.__find_identifier(self.__virtualize_name(name)))
 
     def __get_meta_from_identifier(self, identifier):
-        res = self.__get_storage_node().get_meta_from_identifier(identifier)
+        fd = FunctionDelegation(identifier) \
+            .as_forward_queue_delegation(None, self.__config.load_balancing_threshold, None)
+
+        res = self.__get_storage_node().get_meta_from_identifier(fd, identifier)
         if is_error(res):
             return res
 
         return loads(res)
+
+    # def __find_replicas(self, root_idx, replication_factor):
+    #     return _generate_forward_queue(root_idx, replication_factor, self.__num_storage_nodes, include_self=False)
 
     def __get_class_from_identifier(self, identifier, key):
         res = self.__get_meta_from_identifier(identifier)
@@ -69,9 +80,6 @@ class GatewayHandler(object):
 
         return res[key]
 
-    def __find_least_loaded_replica(self):
-        return 0
-
     def create(self, name, dataset_source, package, extra_meta_data):
         class_name = package.rsplit(".", 1)[1]
 
@@ -91,12 +99,18 @@ class GatewayHandler(object):
                                 'class-name': class_name,
                                 'package': package,
                                 'source': pdata,
+                                'replication-factor': context.get_replication_factor(),
                                 'num-blocks': 0})
         extra_meta_data['operations'] = [(operation.fun_name, operation.get_num_arguments())
                                          for operation in operations] if operations else []
 
         virtualized_identifier = self.__find_identifier(self.__virtualize_name(name))
-        return self.__get_storage_node().create(virtualized_identifier, udumps(extra_meta_data))
+
+        fd = FunctionDelegation(virtualized_identifier) \
+            .as_dispatch_delegation() \
+            .as_required_queue_delegation(None, context.get_replication_factor())
+
+        return self.__get_storage_node().create(fd, virtualized_identifier, extra_meta_data)
 
     def exists(self, name):
         return self.__get_meta_from_name(name)
@@ -105,6 +119,7 @@ class GatewayHandler(object):
         return self.__get_property(name, 'package')
 
     def update(self, bundle):
+        # TODO: Implement when needed
         pass
 
     def delete(self, name):
@@ -152,11 +167,12 @@ class GatewayHandler(object):
         if replication_factor > num_storage_nodes:
             return STATUS_NOT_ALLOWED, "Replication factor can't be larger than number of storage nodes"
 
+        fd = FunctionDelegation(identifier) \
+            .as_required_queue_delegation(None, context.get_replication_factor())
+
         for block in self.__next_block(context, data):
-            # Implementing simple store and forward method
-            for i in xrange(replication_factor):
-                # TODO: Save response and check if correct is saved and received
-                self.__storage_nodes[start + i].append(identifier, block, create_new_stride, replica_index=i)
+            # Store at primary replica first
+            self.__storage_nodes[start].append(fd, identifier, block, create_new_stride)
 
             block_count += 1
             current_stride += 1
@@ -168,7 +184,10 @@ class GatewayHandler(object):
                 current_stride = 0
                 start = (start + 1) % num_storage_nodes
 
-        self.__get_storage_node().update_meta_key(identifier, 'append', 'num-blocks', block_count)
+        fd = FunctionDelegation(identifier) \
+            .as_dispatch_delegation() \
+            .as_required_queue_delegation(None, context.get_replication_factor())
+        self.__get_storage_node().update_meta_key(fd, identifier, 'append', 'num-blocks', block_count)
 
     def __next_block(self, context, data):
         block = []
@@ -213,11 +232,15 @@ class GatewayHandler(object):
             'fidentifier': fidentifier,
             'dataset-name': name,
             'query': query,
-            'replica-index': self.__find_least_loaded_replica()
         }
 
         result_cache[fidentifier] = (STATUS_PROCESSING, None)
-        self.__get_storage_node().submit_job(didentifier, process_state, self.__config.node)
+
+        fd = FunctionDelegation(didentifier) \
+            .as_dispatch_delegation() \
+            .as_forward_queue_delegation(None, self.__config.load_balancing_threshold, None)
+
+        self.__get_storage_node().submit_job(fd, didentifier, process_state, self.__config.node)
 
     def poll_for_result(self, name, function, query):
         didentifier = self.__find_identifier(self.__virtualize_name(name))

@@ -1,29 +1,33 @@
+# -*- coding: utf-8 -*-
+
 # Created by Steffen Karlsson on 02-11-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+from collections import Iterable
+from collections import defaultdict
+from inspect import isfunction, isbuiltin
+from itertools import izip_longest
+from logging import info
+from multiprocessing.pool import ThreadPool
+from os.path import basename, isfile
+from re import compile
 from shelve import open
 from sys import getsizeof
-from logging import info
-from ujson import loads as uloads, dumps as udumps
-from multiprocessing.pool import ThreadPool
-from collections import defaultdict
-from itertools import izip_longest
-from inspect import isfunction, isbuiltin
-from re import compile
-from collections import Iterable
-from os.path import basename, isfile
+from simplejson import loads, dumps
 
 from numpy import ndarray
 
-from sofa.handler.dispatcher import Dispatcher, dispatch
-from sofa.handler import get_class_from_source
+from sofa.cache import CacheSystem
+from sofa.delegation import DelegationHandler
+from sofa.delegation.responsible_dispatch import with_responsible_dispatch, find_responsible
+from sofa.delegation.queue import with_forward_count, with_forward_queue, with_required_queue
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
     STATUS_PROCESSING, STATUS_NO_DATA, is_error
-from sofa.secure import secure_load, secure_load2
-from sofa.tree_barrier import TreeBarrier
-from sofa.cache import CacheSystem
-from sofa.handler.api import _InternalStorageApi, _InternalGatewayApi
 from sofa.foundation.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
+from sofa.handler import get_class_from_source
+from sofa.handler.api import _InternalStorageApi, _InternalGatewayApi
+from sofa.secure import secure_load
+from sofa.tree_barrier import TreeBarrier
 
 RESULT = 0
 REQUEST_COUNT = 1
@@ -54,7 +58,7 @@ def _forward_and_extract(fun, max_num_args):
 
 # Function for KEYWORD: neighborhood
 def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1, 1)):
-    operation_context, didentifier, fidentifier, process_state = operation_context_args
+    operation_context, didentifier, fidentifier, process_state, meta_data = operation_context_args
 
     # Use block-state = 'partial' such that arguments (with ghosts) for next function
     # is based on previous results and not raw blocks
@@ -74,7 +78,7 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
         # left and right is tuples with node reference and data to send
         l_neighbor, right_ghost = left
         r_neighbor, left_ghost = right
-        fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, None, process_state)
+        fun_args = (operation_context.needs_both_ghosts(), didentifier, fidentifier, meta_data, process_state)
 
         # Ghost is required
         if is_local_transfer:
@@ -90,6 +94,27 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
 
     handler.handle_ghosts(didentifier, operation_context, done_callback_handler,
                           self_data=args[BLOCKS], is_local_transfer=is_local_transfer)
+
+
+def _get_operation_context(function_name, meta_data):
+    if meta_data['num-blocks'] == 0:
+        # No data found for data identifier
+        return STATUS_NOT_FOUND
+
+    source = secure_load(meta_data['digest'], meta_data['source'])
+    context = get_class_from_source(source, meta_data['class-name'])
+
+    for operation_context in context.get_operations():
+        if operation_context.fun_name == function_name:
+            return operation_context
+
+    return STATUS_NOT_FOUND
+
+
+def _str_loads(s):
+    while not isinstance(s, dict):
+        s = loads(s)
+    return s
 
 
 class WillContinueExecuting(Exception):
@@ -108,7 +133,7 @@ class Keywords(dict):
 KEYWORDS = Keywords()
 
 
-class StorageHandler(Dispatcher):
+class StorageHandler(DelegationHandler):
     def __init__(self, config, others):
         self.__config = config
         self.__tb = None
@@ -116,13 +141,15 @@ class StorageHandler(Dispatcher):
         self.__dgcs = CacheSystem(defaultdict, args=dict)  # Dataset Ghosts Cache System
 
         if 'storage' in others:
-            self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri in others['storage']]
+            self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri, _ in others['storage']]
         else:
             self.__storage_nodes = []
 
         self.__num_storage_nodes = len(self.__storage_nodes)
         self.__neighbors = self.__get_neighbors()
         space_size = self.__config.keyspace_size / self.get_num_storage_nodes(True)
+
+        # Setup delegation with information needed
         super(StorageHandler, self).__init__(self.__config.node_idx, space_size)
 
         self.__DISK = {}
@@ -145,7 +172,8 @@ class StorageHandler(Dispatcher):
         return "%s%s" % (self.__config.get_mount_point(), filename)
 
     def get_responsible(self, index):
-        return self.__storage_nodes[index]
+        # Offset by this nodes position, since it's not part of storage nodes
+        return self.__storage_nodes[index + (-1 if index >= self.__config.node_idx else 0)]
 
     def save_partial_value_state(self, didentifier, fidentifier, res):
         is_root = str(didentifier) in self.__FLAG
@@ -159,6 +187,15 @@ class StorageHandler(Dispatcher):
 
     def get_num_storage_nodes(self, including_self=False):
         return self.__num_storage_nodes + (1 if including_self else 0)
+
+    def get_replication_factor(self, identifier):
+        # Only callable on the node responsible for identifier i.e. identifier in self.__FLAGS
+        res = self.__get_meta_from_identifier_and_replica(identifier, PRIMARY_REPLICA)
+        if is_error(res):
+            raise AttributeError("get_replication_factor not callable at servers which isn't root for " + str(identifier))
+
+        meta_data = loads(res)
+        return meta_data['replication-factor']
 
     def __get_neighbors(self):
         if self.get_num_storage_nodes() == 0:
@@ -223,15 +260,22 @@ class StorageHandler(Dispatcher):
 
         done_callback_handler(is_ready=False, left=(l_neighbor, right_ghost), right=(r_neighbor, left_ghost))
 
-    @dispatch
-    def create(self, identifier, bundle):
-        meta_data, is_update = secure_load(bundle)
+    def __get_meta_from_identifier_and_replica(self, identifier, replica_index):
+        if not self.__context_exists(identifier):
+            return STATUS_NOT_FOUND
 
+        replica_blocks = self.__find_replica(replica_index)
+        return replica_blocks[str(identifier)][0]
+
+    @with_responsible_dispatch
+    @with_required_queue
+    @with_forward_count
+    def create(self, function_delegation, identifier, meta_data, is_update):
         if is_update:
             # TODO: Block from calling any other operation on this context, while update is finishing
             pass
 
-        meta_data = uloads(meta_data)
+        meta_data = _str_loads(meta_data)
         meta_data['root-idx'] = self.__config.node_idx
 
         # Else do the job self.
@@ -239,23 +283,23 @@ class StorageHandler(Dispatcher):
             return STATUS_ALREADY_EXISTS, "Dataset already exists"
 
         info("Creating context with identifier %s at replica %d on %s."
-             % (identifier, PRIMARY_REPLICA, self.__config.node))
+             % (identifier, function_delegation['replica-index'], self.__config.node))
 
-        # Always use primary replica when writing meta data
-        # TODO: Maybe replicate meta data too?
-        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
+        replica_blocks = self.__find_replica(function_delegation['replica-index'])
 
         identifier = str(identifier)
         self.__FLAG[identifier] = True
-        replica_blocks[identifier] = [udumps(meta_data)]
+        replica_blocks[identifier] = [dumps(meta_data)]
 
         return STATUS_SUCCESS
 
-    def append(self, bundle):
+    @with_required_queue
+    @with_forward_count
+    def append(self, function_delegation, identifier, block, create_new_stride):
         # TODO: Block from calling any other operation on this context, while append is finishing
-        identifier, block, create_new_stride, replica_index = secure_load(bundle)
+        replica_index = function_delegation['replica-index']
 
-        res = self.get_meta_from_identifier(identifier)
+        res = self.__get_meta_from_identifier_and_replica(identifier, replica_index)
         if is_error(res):
             return res, "Dataset doesn't exists"
 
@@ -279,13 +323,15 @@ class StorageHandler(Dispatcher):
 
         return STATUS_SUCCESS
 
-    @dispatch
-    def delete(self, identifier):
+    @with_responsible_dispatch
+    @with_required_queue
+    @with_forward_count
+    def delete(self, function_delegation, identifier):
         # TODO: Block from calling any other operation on this context
 
         # # Delete all blocks
         # local_blocks = len(self.__RAW[identifier]) - 1  # Remove meta data from number of blocks
-        # total_blocks = int(uloads(self.__RAW[identifier][0])['num-blocks'])
+        # total_blocks = int(loads(self.__RAW[identifier][0])['num-blocks'])
         #
         # if local_blocks != total_blocks:
         #     # TODO delete the rest of the blocks on other storage nodes
@@ -299,24 +345,23 @@ class StorageHandler(Dispatcher):
         # self.__dgcs.delete(identifier)
         return STATUS_SUCCESS
 
-    @dispatch
-    def get_meta_from_identifier(self, didentifier):
-        if not self.__context_exists(didentifier):
-            return STATUS_NOT_FOUND
+    @with_responsible_dispatch
+    @with_forward_queue
+    @with_forward_count
+    def get_meta_from_identifier(self, function_delegation, didentifier):
+        return self.__get_meta_from_identifier_and_replica(didentifier, function_delegation['replica-index'])
 
-        # Always use primary replica when finding meta data
-        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
-        return replica_blocks[str(didentifier)][0]
+    @with_responsible_dispatch
+    @with_required_queue
+    @with_forward_count
+    def update_meta_key(self, function_delegation, identifier, update_type, key, value):
+        replica_index = function_delegation['replica-index']
 
-    @dispatch
-    def update_meta_key(self, identifier, bundle):
-        update_type, key, value = secure_load(bundle)
-
-        res = self.get_meta_from_identifier(identifier)
+        res = self.__get_meta_from_identifier_and_replica(identifier, replica_index)
         if is_error(res):
             return res, "Dataset doesn't exists"
 
-        meta_data = uloads(res)
+        meta_data = loads(res)
         if update_type == 'append':
             meta_data[key] += value
 
@@ -325,18 +370,20 @@ class StorageHandler(Dispatcher):
 
         info("%s is %s with %d" % (key, update_type, value))
 
-        # Always use primary replica when modifying meta data
-        replica_blocks = self.__find_replica(PRIMARY_REPLICA)
-        replica_blocks[str(identifier)][0] = udumps(meta_data)
+        replica_blocks = self.__find_replica(replica_index)
+        replica_blocks[str(identifier)][0] = dumps(meta_data)
         return STATUS_SUCCESS
 
+    # Doesn't make sense to forward, since its contacting all other servers for data anyway
+    @with_forward_count
     def get_datasets(self, is_internal_call=False):
         all_others = self.get_num_storage_nodes(True)
 
         def __self_datasets():
             datasets = []
             for key in self.__FLAG.iterkeys():
-                meta_data = uloads(self.get_meta_from_identifier(int(key)))
+                # Only getting the datasets that this node is responsible for "self.__FLAGS"
+                meta_data = loads(self.__get_meta_from_identifier_and_replica(int(key), PRIMARY_REPLICA))
                 operations = [{'name': operation, 'num_arguments': num_arguments}
                               for operation, num_arguments in meta_data['operations']]
                 datasets.append({'name': meta_data['name'],
@@ -353,6 +400,8 @@ class StorageHandler(Dispatcher):
             # Calculate self
             return __self_datasets()
 
+    # Doesn't make sense to forward, since its contacting all other servers for data anyway
+    @with_forward_count
     def get_submitted_jobs(self, is_internal_call=False):
         all_others = self.get_num_storage_nodes(True)
 
@@ -398,26 +447,6 @@ class StorageHandler(Dispatcher):
     def __get_num_raw_blocks(self, didentifier, replica_index):
         return len(self.__get_raw_blocks(didentifier, replica_index))
 
-    def __get_operation_context(self, didentifier, function_name, meta_data=None):
-        if not meta_data:
-            res = self.get_meta_from_identifier(didentifier)
-            if is_error(res):
-                return res
-            meta_data = uloads(res)
-
-        if meta_data['num-blocks'] == 0:
-            # No data found for data identifier
-            return STATUS_NOT_FOUND
-
-        source = secure_load2(meta_data['digest'], meta_data['source'])
-        context = get_class_from_source(source, meta_data['class-name'])
-
-        for operation_context in context.get_operations():
-            if operation_context.fun_name == function_name:
-                return operation_context, meta_data
-
-        return STATUS_NOT_FOUND
-
     def __get_operations_and_arguments(self, didentifier, fidentifier, process_state):
         # Merge ghosts into blocks
         def _get_blocks_with_ghost():
@@ -456,8 +485,10 @@ class StorageHandler(Dispatcher):
         args[QUERY] = [query] if query and not isinstance(query, list) else query
         return args
 
-    @dispatch
-    def submit_job(self, didentifier, process_state, gateway):
+    @with_responsible_dispatch
+    @with_forward_queue
+    @with_forward_count
+    def submit_job(self, function_delegation, didentifier, process_state, gateway):
         fidentifier = process_state['fidentifier']
 
         has_result = self.__srcs.contains(didentifier) \
@@ -470,6 +501,7 @@ class StorageHandler(Dispatcher):
             'partial-value': 0,
             'block-state': 'raw',
             'processing': False if has_result else True,
+            'replica-index': function_delegation['replica-index']
         })
 
         if has_result:
@@ -487,8 +519,17 @@ class StorageHandler(Dispatcher):
         all_nodes = self.get_num_storage_nodes(True)  # Plus one for self
         self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway, process_state]
 
+        # Getting meta data for common arguments
+        res = self.__get_meta_from_identifier_and_replica(didentifier, function_delegation['replica-index'])
+        if is_error(res):
+            # Dataset doesn't exists
+            self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
+            return
+
+        meta_data = loads(res)
+
         root = self.__config.node
-        common = (didentifier, process_state, root)
+        common = (didentifier, process_state, root, meta_data)
         if all_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool wrapper initialize job")
@@ -508,7 +549,7 @@ class StorageHandler(Dispatcher):
         _InternalGatewayApi(data[GATEWAY]).set_status_result(didentifier, fidentifier, status, data[RESULT])
 
     # Internal Api
-    def initialize_job(self, didentifier, process_state, root):
+    def initialize_job(self, didentifier, process_state, root, meta_data):
         function_name = process_state['function-name']
         fidentifier = process_state['fidentifier']
 
@@ -521,11 +562,11 @@ class StorageHandler(Dispatcher):
         # If im the only node in the system
         is_local_transfer = self.get_num_storage_nodes() == 0
 
-        res = self.__get_operation_context(didentifier, function_name)
+        res = _get_operation_context(function_name, meta_data)
         if is_error(res):
             self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
             return
-        operation_context, meta_data = res
+        operation_context = res
 
         # Set return type
         process_state['data-type'] = operation_context.get_return_type()
@@ -572,11 +613,11 @@ class StorageHandler(Dispatcher):
         function_name = process_state['function-name']
         info("Execute function " + function_name + " at " + str(self))
 
-        res = self.__get_operation_context(didentifier, function_name, meta_data=meta_data)
+        res = _get_operation_context(function_name, meta_data)
         if is_error(res):
             self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
             return
-        operation_context, meta_data = res
+        operation_context = res
 
         # Calculate results of functions, which isn't already processed, i.e. function-count
         functions = operation_context.get_functions()[process_state['function-count']:]
@@ -589,7 +630,7 @@ class StorageHandler(Dispatcher):
                 return
 
             is_root = str(didentifier) in self.__FLAG
-            operation_context_args = (operation_context, didentifier, fidentifier, process_state)
+            operation_context_args = (operation_context, didentifier, fidentifier, process_state, meta_data)
             try:
                 res = _local_execute(self, functions, args, operation_context_args)
                 process_state['processing'] = False
@@ -641,7 +682,9 @@ class StorageHandler(Dispatcher):
             pass
 
     def __report_ready(self, didentifier, fidentifier, meta_data, process_state):
-        responsible = self.__find_responsibility(didentifier)
+        responsible_idx = find_responsible(didentifier, self.get_key_space())
+        responsible = None if responsible_idx == self.me() else self.get_responsible(responsible_idx)
+
         args = didentifier, fidentifier, meta_data, process_state
         if responsible:
             info("Reporting ready for other at: " + str(self))
@@ -650,8 +693,8 @@ class StorageHandler(Dispatcher):
             info("Reporting ready for self")
             self.__local_ready(*args)
 
-    def ready(self, bundle):
-        self.__local_ready(*secure_load(bundle))
+    def ready(self, didentifier, fidentifier, meta_data, process_state):
+        self.__local_ready(didentifier, fidentifier, meta_data, process_state)
 
     def __local_ready(self, didentifier, fidentifier, meta_data, process_state):
         self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] -= 1
@@ -668,8 +711,8 @@ class StorageHandler(Dispatcher):
             else:
                 self.execute_function(*common)
 
-    def handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier,
-                               meta_data, process_state):
+    def handle_received_ghosts(self, left_ghost, right_ghost, needs_both, didentifier,
+                               fidentifier, meta_data, process_state):
         info("Receiving ghost at " + str(self))
 
         assert left_ghost is not None or right_ghost is not None
@@ -698,8 +741,9 @@ class StorageHandler(Dispatcher):
         if has_other_part or not needs_both:
             self.__report_ready(didentifier, fidentifier, meta_data, process_state)
 
-    def send_ghost(self, bundle):
-        self.handle_received_ghosts(*secure_load(bundle))
+    def send_ghost(self, left_ghost, right_ghost, needs_both, didentifier, fidentifier, meta_data, process_state):
+        self.handle_received_ghosts(left_ghost, right_ghost, needs_both, didentifier,
+                                    fidentifier, meta_data, process_state)
 
     # Internal Monitor Api
     def heartbeat(self):
@@ -728,7 +772,7 @@ def _wrapper_local_execute(args):
 
 def _local_execute(self, functions, args, operation_context_args):
     try:
-        operation_context, didentifier, fidentifier, process_state = operation_context_args
+        operation_context, didentifier, fidentifier, process_state, meta_data = operation_context_args
         possible_function = functions.pop(0)
         fun_counter = operation_context.get_functions().index(possible_function)
 

@@ -116,6 +116,9 @@ def parse_project_cfg(path, index, node_types):
     if config.has_option("general", "keyspace-size"):
         global_config.keyspace_size = eval(config.get("general", "keyspace-size"))
 
+    if config.has_option("general", "load-balancing-threshold"):
+        global_config.load_balancing_threshold = config.getint("general", "load-balancing-threshold")
+
     for idx, node in enumerate(node_types):
         if config.has_section(node):
             if not config.has_option(node, "addresses"):
@@ -160,6 +163,7 @@ class Configuration:
         self.heartbeat_scheduler_delay = DEFAULT_HEARTBEAT_DELAY
         self.num_heartbeat_retries = DEFAULT_HEARTBEAT_RETRIES
         self.live_software_reboot = False
+        self.load_balancing_threshold = 1
         self.mount_point = "/mnt/sofa/"
 
     def get_mount_point(self):

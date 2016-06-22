@@ -40,13 +40,13 @@ class _StorageApi(object):
         # TODO: secure return
         return self._api.get_meta_from_identifier(function_delegation, identifier)
 
-    def submit_job(self, forward_queue_handler, didentifier, process_state, gateway):
+    def submit_job(self, function_delegation, didentifier, process_state, gateway):
         self._validate_api()
-        async(self._api).submit_job(forward_queue_handler, didentifier, process_state, gateway)
+        async(self._api).submit_job(function_delegation, didentifier, process_state, gateway)
 
-    def delete(self, identifier):
+    def delete(self, function_delegation, identifier):
         self._validate_api()
-        return self._api.delete(identifier)
+        return self._api.delete(function_delegation, identifier)
 
     def update(self, identifier, meta_data):
         self._validate_api()
