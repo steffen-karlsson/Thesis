@@ -7,6 +7,10 @@ from math import floor
 from sofa.delegation import is_function_delegation, is_delegation_handler
 
 
+def find_responsible(identifier, key_space):
+    return int(floor(identifier / key_space))
+
+
 def with_responsible_dispatch(func):
     @wraps(func)
     def dispatch_wrapper(*args):
@@ -15,7 +19,7 @@ def with_responsible_dispatch(func):
 
         if is_delegation_handler(context) and is_function_delegation(fd):
             # Check whether its self who is responsible
-            responsible_idx = int(floor(fd['identifier'] / context.get_key_space()))
+            responsible_idx = find_responsible(fd['identifier'], context.get_key_space())
 
             # Offset by replication index too
             responsible_idx = (responsible_idx + fd['replica-index']) \
