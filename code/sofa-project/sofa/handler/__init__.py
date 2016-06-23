@@ -24,6 +24,17 @@ def get_class_from_path(path):
     return split_class_path(package)[1]
 
 
+def get_function_from_source(source, func_name):
+    def __load():
+        return globals()[func_name]
+
+    try:
+        return __load()
+    except AttributeError:
+        exec (source, globals())
+        return __load()
+
+
 def get_class_from_source(source, cls_name):
     def __instantiate():
         return eval("%s()" % cls_name)
