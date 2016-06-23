@@ -14,6 +14,7 @@ from re import compile
 from shelve import open
 from sys import getsizeof
 from simplejson import loads, dumps
+from cPickle import loads as pickle_loads
 
 from numpy import ndarray
 
@@ -336,6 +337,10 @@ class StorageHandler(DelegationHandler):
     def append(self, function_delegation, identifier, block, create_new_stride):
         # TODO: Block from calling any other operation on this context, while append is finishing
         replica_index = function_delegation['replica-index']
+
+        if isinstance(block, unicode):
+            block = block.encode("ascii")
+        block = pickle_loads(block)
 
         res = self.__get_meta_from_identifier_and_replica(identifier, replica_index)
         if is_error(res):
