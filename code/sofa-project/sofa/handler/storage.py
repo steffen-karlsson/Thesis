@@ -24,7 +24,7 @@ from sofa.delegation.queue import with_forward_count, with_forward_queue, with_r
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
     STATUS_PROCESSING, STATUS_NO_DATA, is_error
 from sofa.foundation.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
-from sofa.handler import get_class_from_source
+from sofa.handler import get_class_from_source, get_function_from_source
 from sofa.handler.api import _InternalStorageApi, _InternalGatewayApi
 from sofa.secure import secure_load
 from sofa.tree_barrier import TreeBarrier
@@ -37,6 +37,7 @@ STATE = 4
 
 BLOCKS = 0
 QUERY = 1
+META_DATA = 4
 
 PRIMARY_REPLICA = 0
 
@@ -49,7 +50,10 @@ def _forward_and_extract(fun, max_num_args):
         expects_arguments = max_num_args > 0
         if has_arguments and expects_arguments:
             key_fun_args = fun_name.split(":")[1:]
-            return fun(handler, args, operation_context_args, tuple(key_fun_args))
+            if len(key_fun_args) > 1:
+                return fun(handler, args, operation_context_args, tuple(key_fun_args))
+            else:
+                return fun(handler, args, operation_context_args, key_fun_args[0])
         else:
             return fun(handler, args, operation_context_args)
 
@@ -96,19 +100,34 @@ def _exchange_neighborhood(handler, args, operation_context_args, ghost_count=(1
                           self_data=args[BLOCKS], is_local_transfer=is_local_transfer)
 
 
+def _modify_blocks(handler, args, operation_context_args, format_func_name):
+    _, didentifier, fidentifier, _, meta_data = operation_context_args
+
+    blocks = _get_function(meta_data, format_func_name)(args[BLOCKS])
+    handler.save_partial_value_state(didentifier, fidentifier, blocks)
+
+
 def _get_operation_context(function_name, meta_data):
     if meta_data['num-blocks'] == 0:
         # No data found for data identifier
         return STATUS_NOT_FOUND
 
-    source = secure_load(meta_data['digest'], meta_data['source'])
-    context = get_class_from_source(source, meta_data['class-name'])
-
+    context = _get_class_context(meta_data)
     for operation_context in context.get_operations():
         if operation_context.fun_name == function_name:
             return operation_context
 
     return STATUS_NOT_FOUND
+
+
+def _get_function(meta_data, func_name):
+    source = secure_load(meta_data['digest'], meta_data['source'])
+    return get_function_from_source(source, func_name)
+
+
+def _get_class_context(meta_data):
+    source = secure_load(meta_data['digest'], meta_data['source'])
+    return get_class_from_source(source, meta_data['class-name'])
 
 
 def _str_loads(s):
@@ -122,12 +141,27 @@ class WillContinueExecuting(Exception):
 
 
 class Keywords(dict):
+    SHOULD_BREAK = True
+    SHOULD_NOT_BREAK = False
+
+    SHOULD_RELOAD = True
+    SHOULD_NOT_RELOAD = False
+
     def __init__(self, **kwargs):
         super(Keywords, self).__init__(**kwargs)
-        self[compile("neighborhood(?::\d){0,2}$")] = _forward_and_extract(_exchange_neighborhood, 2)
+        self[compile("neighborhood(?::\d){0,2}$")] = \
+            (_forward_and_extract(_exchange_neighborhood, 2), Keywords.SHOULD_BREAK, Keywords.SHOULD_NOT_RELOAD)
+        self[compile("modify:([A-z_])")] = \
+            (_forward_and_extract(_modify_blocks, 1), Keywords.SHOULD_NOT_BREAK, Keywords.SHOULD_RELOAD)
 
     def find_function(self, index):
-        return self.values()[index]
+        return self.values()[index][0]
+
+    def should_break_calculation(self, index):
+        return self.values()[index][1]
+
+    def should_reload_blocks(self, index):
+        return self.values()[index][2]
 
 
 KEYWORDS = Keywords()
@@ -182,6 +216,9 @@ class StorageHandler(DelegationHandler):
         else:
             self.__srcs.get(didentifier)[fidentifier] = [res]
 
+    def get_partial_value(self, didentifier, fidentifier):
+        return self.__srcs.get(didentifier)[fidentifier][RESULT]
+
     def __str__(self):
         return self.__config.node
 
@@ -192,7 +229,8 @@ class StorageHandler(DelegationHandler):
         # Only callable on the node responsible for identifier i.e. identifier in self.__FLAGS
         res = self.__get_meta_from_identifier_and_replica(identifier, PRIMARY_REPLICA)
         if is_error(res):
-            raise AttributeError("get_replication_factor not callable at servers which isn't root for " + str(identifier))
+            raise AttributeError(
+                "get_replication_factor not callable at servers which isn't root for " + str(identifier))
 
         meta_data = loads(res)
         return meta_data['replication-factor']
@@ -458,7 +496,7 @@ class StorageHandler(DelegationHandler):
                 _blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
             elif process_state['block-state'] is 'partial':
                 # The result block is used for partial results in the case of built in functions with synchronization
-                _blocks = self.__srcs.get(didentifier)[fidentifier][RESULT]
+                _blocks = self.get_partial_value(didentifier, fidentifier)
 
             assert _blocks is not None
 
@@ -799,16 +837,22 @@ def _local_execute(self, functions, args, operation_context_args):
             # Update process state
             process_state['function-count'] = operation_context.get_functions().index(possible_function) + 1
 
-            KEYWORDS.find_function(is_keyword_fun[0])(self, args, possible_function, operation_context_args)
-            raise WillContinueExecuting()
+            function_idx = is_keyword_fun[0]
+            KEYWORDS.find_function(function_idx)(self, args, possible_function, operation_context_args)
+
+            if KEYWORDS.should_break_calculation(function_idx):
+                raise WillContinueExecuting()
+
+            if KEYWORDS.should_reload_blocks(function_idx):
+                args[BLOCKS] = self.get_partial_value(didentifier, fidentifier)
+
+            return _local_execute(self, functions, args, operation_context_args)
 
         # Modify and format blocks if needed
         blocks = args[BLOCKS]
         query = args[QUERY]
-        if operation_context.needs_block_formatting():
-            blocks = operation_context.block_formatter(blocks, fun_counter)
-        # If function is buit-in call it by the wrapper import utils function
 
+        # If function is buit-in call it by the wrapper import utils function
         if isbuiltin(possible_function) or possible_function.__doc__ == 'wrapped':
             res = possible_function(blocks, query)
         else:

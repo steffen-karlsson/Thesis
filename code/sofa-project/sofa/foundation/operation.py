@@ -141,7 +141,6 @@ class OperationContext:
         self.send_right = False
         self.use_cyclic = False
         self.post_process = None
-        self.block_formatter = None
         self.return_type = ExpectedReturnType.Text
         self.num_arguments = 1
 
@@ -160,10 +159,6 @@ class OperationContext:
 
     def with_expected_return_type(self, return_type):
         self.return_type = return_type
-        return self
-
-    def with_block_formatting(self, fun_block_formatter):
-        self.block_formatter = fun_block_formatter
         return self
 
     def with_post_processing(self, fun_post_process_step):
@@ -194,12 +189,6 @@ class OperationContext:
 
     def has_post_processing_step(self):
         return self.post_process is not None
-
-    def needs_block_formatting(self):
-        return self.block_formatter is not None
-
-    def format_blocks(self, block_gen):
-        return self.block_formatter(block_gen)
 
     def execute_post_process(self, args):
         return self.post_process(args)
