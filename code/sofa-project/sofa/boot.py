@@ -10,11 +10,13 @@ from Pyro4 import Daemon, locateNS, config as pyro_config
 from sofa.handler.gateway import GatewayHandler
 from sofa.handler.storage import StorageHandler
 from sofa.handler.monitor import MonitorHandler
-from sofa.config import validate_configuration
+from sofa.config import validate_configuration, _InvalidConfigurationFile
+from sofa.config.parser import Configuration
 
 REGISTRY_NAME = None
 DAEMON = None
 NS = locateNS()
+
 
 def _handle_kill_signal(signal, frame):
     NS.remove(REGISTRY_NAME)
@@ -27,10 +29,19 @@ if __name__ == "__main__":
     pyro_config.THREADING2 = True
 
     node_types = argv[3:]
+    node_type = node_types[0]
 
     cfg_file = argv[2]
-    config = validate_configuration(cfg_file, int(argv[1]), node_types)
-    node_type = node_types[0]
+    index = int(argv[1])
+
+    try:
+        config = validate_configuration(cfg_file, index, node_types)
+    except _InvalidConfigurationFile, e:
+        try:
+            # Could be json from a live software boot
+            config = Configuration.decode(cfg_file, index)
+        except ValueError:
+            raise _InvalidConfigurationFile(e.message)
 
     if config is None:
         error("Unable to start %s without configuration" % node_type)
