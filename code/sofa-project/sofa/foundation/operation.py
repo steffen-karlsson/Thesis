@@ -3,7 +3,7 @@
 
 from re import finditer
 from base64 import b64encode
-from ujson import dumps as udumps
+from simplejson import dumps
 
 
 class ExpectedReturnType(object):
@@ -20,7 +20,7 @@ class ExpectedReturnType(object):
         Text: lambda s: s,
         Number: lambda d: str(d),
         Image: lambda i: ExpectedReturnType._img_representation(i),
-        NumpyArray: lambda a: udumps(a.tolist())
+        NumpyArray: lambda a: dumps(a.tolist())
     }
 
     @staticmethod

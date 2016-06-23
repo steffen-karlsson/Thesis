@@ -1,7 +1,7 @@
 # Created by Steffen Karlsson on 06-02-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from ujson import dumps as udumps, loads as uloads
+from simplejson import dumps, loads
 from argparse import ArgumentParser
 
 from Pyro4.errors import NamingError
@@ -31,7 +31,7 @@ def finalize_data(handler, data):
         handler.finish()
     else:
         handler.set_status(200)
-        handler.finish(udumps(data))
+        handler.finish(dumps(data))
 
 
 class _DatasetHandler(RequestHandler):
@@ -70,7 +70,7 @@ class _SubmitNewJobHandler(RequestHandler):
     SUPPORTED_METHODS = {'POST'}
 
     def post(self, *args, **kwargs):
-        parameters = uloads(self.request.body)
+        parameters = loads(self.request.body)
         if "dataset_name" in parameters and "operation_name" in parameters and "query" in parameters:
             self.set_status(201)
             self.finish()

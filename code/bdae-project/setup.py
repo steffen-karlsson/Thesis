@@ -9,7 +9,7 @@ __doc__ = "BDAE"
 
 install_requires = [
     'Pyro4',
-    'ujson',
+    'simplejson',
     'tornado',
     'netCDF4',
 ]

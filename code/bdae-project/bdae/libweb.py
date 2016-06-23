@@ -5,7 +5,7 @@
 .. module:: libs
 """
 
-from ujson import dumps as udumps, loads as uloads
+from simplejson import dumps, loads
 from os import path
 from base64 import b64encode
 
@@ -46,7 +46,7 @@ class _RegisteredDatasetHandler(RequestHandler):
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
-        self.finish(udumps(list() if datasets is None else datasets))
+        self.finish(dumps(list() if datasets is None else datasets))
 
 
 class _OperationsHandler(RequestHandler):
@@ -58,13 +58,13 @@ class _OperationsHandler(RequestHandler):
 
         self.set_header('Content-Type', 'application/json')
         self.set_status(200)
-        self.finish(udumps(list() if operations is None else operations))
+        self.finish(dumps(list() if operations is None else operations))
 
 
 class _CreateDatasetHandler(RequestHandler):
     @asynchronous
     def post(self, *args, **kwargs):
-        body = dict(uloads(self.request.body))
+        body = dict(loads(self.request.body))
 
         message = ""
         try:
@@ -95,16 +95,16 @@ class _UpdateDatasetHandler(RequestHandler):
 class _JobHandler(RequestHandler):
     @asynchronous
     def post(self, *args, **kwargs):
-        body = dict(uloads(self.request.body))
+        body = dict(loads(self.request.body))
 
         if body['is-polling']:
             status, res = GW.poll_for_result(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(status)
             if res[1]:
                 with open(res[0], "rb") as f:
-                    self.finish(udumps({'data': "data:image/png;base64," + b64encode(f.read()), 'is-path': True}))
+                    self.finish(dumps({'data': "data:image/png;base64," + b64encode(f.read()), 'is-path': True}))
             else:
-                self.finish(udumps({'data': res[0], 'is-path': False}))
+                self.finish(dumps({'data': res[0], 'is-path': False}))
         else:
             GW.submit_job(body['dataset-name'], body['function-name'], body['query'])
             self.set_status(202)

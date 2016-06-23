@@ -9,7 +9,7 @@ __doc__ = "SOFA"
 
 install_requires = [
     'Pyro4',
-    'ujson',
+    'simplejson',
     'apscheduler'
 ]
 
