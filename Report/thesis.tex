@@ -15,7 +15,6 @@
 \usepackage{float}
 \usepackage{hyperref}
 \usepackage{color}
-\usepackage{xcolor}
 \usepackage{cite}
 \usepackage{url}
 \usepackage[verbose]{wrapfig}
@@ -27,13 +26,22 @@
 \usepackage{amsthm}
 \usepackage{lettrine}
 \usepackage[labelfont=bf]{caption}
- 
+\usepackage{listings}
+\usepackage{afterpage}
+
+\usepackage{xcolor}
+\definecolor{generalcolor}{RGB}{52,73,94}
+\definecolor{myblue}{HTML}{268BD2}
+\definecolor{mygreen}{HTML}{859900}
+\definecolor{mygray}{HTML}{93A1A1}
+
 \newtheorem{theorem}{Theorem}
 
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}[section]
 
 \def \CodeName{SOFA }
+\def \CodeNameShort{SOFA}
 \def \CodeNameFull{SOFA (Semantic Oriented File Archive) }
 
 \def \FullName{Steffen Karlsson}
@@ -69,6 +77,26 @@
 \newcommand{\etal}{\textit{et al}. }
 \newcommand{\ie}{\textit{i}.\textit{e}., }
 \newcommand{\eg}{\textit{e}.\textit{g}. }
+
+\lstset{ %
+  basicstyle=\footnotesize,        % the size of the fonts that are used for the code
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{mygreen},    % comment style
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  frame=none,                      % adds a frame around the code
+  keywordstyle=\color{blue},       % keyword style
+  language=Python,                 % the language of the code
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+  numbersep=5pt,                   % how far the line-numbers are from the code
+  numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  stepnumber=2,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  showspaces=false,
+  tabsize=2,                       % sets default tabsize to 2 spaces
+  title=\lstname,                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+  xleftmargin=.02\textwidth
+}
 
 \newcommand{\cfigure}[4]{
 	\vspace*{5mm}
@@ -154,7 +182,7 @@
 \chapter{Components} \label{chp:components}
 \input{tex/components.tex}
 
-\chapter{API} \label{chp:api}
+\chapter{Core API} \label{chp:api}
 \input{tex/sofa-api.tex}
 
 
@@ -162,8 +190,8 @@
 \chapter{A Big Data Analysis Engine} \label{chp:bdae}
 \input{tex/bdae.tex}
 
-\chapter{SofaFUSE} \label{chp:fuse}
-\input{tex/sofa-fuse.tex}
+\chapter{Android App} \label{chp:bdaeapp}
+\input{tex/bdae-app.tex}
 
 
 \part{Evaluation} \label{prt:evaluation}
