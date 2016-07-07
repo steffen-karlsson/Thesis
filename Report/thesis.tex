@@ -47,6 +47,10 @@
 \def \FullName{Steffen Karlsson}
 \def \HandinDate{August 2016}
 
+\makeatletter
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref{#1}}\@footnotemark}
+\makeatother
+
 \renewcommand{\kufrontfont}{\sffamily}
 
 \title{\CodeName}
@@ -185,6 +189,8 @@
 \chapter{Core API} \label{chp:api}
 \input{tex/sofa-api.tex}
 
+\chapter{Nodes} \label{chp:nodes}
+\input{tex/nodes.tex}
 
 \part{Extensions} \label{prt:extensions}
 \chapter{A Big Data Analysis Engine} \label{chp:bdae}
