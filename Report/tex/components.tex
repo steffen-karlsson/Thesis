@@ -1,4 +1,4 @@
-Essential components of the \CodeName ecosystem will be described and discussed in the following chapter, which includes the core configuration of the system, such as accessibility and mounting points. Other essential components counts; the three nodes (Gateway, Storage and Monitor) mentioned in the Architecture and Design chapter and the foundation package including the \texttt{SofaBaseObject} and the operation context definition.
+Essential components of the \CodeName ecosystem will be described and discussed in the following chapter, which includes the core configuration of the system, such as accessibility and mounting points. Other essential components counts; the delegation framework and the foundation package including the \texttt{SofaBaseObject} and the operation context definition.
 
 \section{System configuration} \label{sec:configuration}
 Each instance of \CodeName running is specified by a set of different parameters in the configuration file. All parameters are chosen, defined and implemented in order to make each version as customizable as possible. Figure \ref{fig:cfg_example} is an example of a custom implementation of a \CodeName configuration.
@@ -59,19 +59,6 @@ It is important to notice that the \texttt{block-size} parameter defines that ma
 
 Other configuration parameters such as \texttt{heartbeat-scheduler-delay} and \texttt{enable\-live-software-reboot} will be described and deliberated on as part of the components they strengthen.
 
-\section{Storage node} \label{sec:storage}
-% TODO: Menition Real-time scalable access model: NameService due to on the fly calculation of ids on all storage nodes
-
-\section{Gateway} \label{sec:gateway}
-
-\section{Monitor} \label{sec:monitor}
-% TODO: Reference to \ref{sec:recovery} from architecture when writing about live software reboot - also reference to the system configuration \ref{sec:configuration}
-
-\section{Delegation} \label{sec:delegation}
-% TODO: Reference to \ref{sec:recovery} and DM Multipath as load balancing together with load-balancing-threshold in the forward queue
-
-\newpage
-
 \section{\texttt{SofaBaseObject}} \label{sec:sofabaseobject}
 Dataset in \CodeName has to adhere the interface defined in the \texttt{SofaBaseObject}, which is composed and designed in such a way that the associated data potentially\footnote{Vastly depended on how the function from the interface is implemented.} is stored and processed optimally.
 
@@ -125,7 +112,7 @@ While the users now have been granted some, not unreasonable responsibilities ar
 	\centering
 	\includegraphics[scale=0.85]{pdf/distribution-strategies.pdf}
 	\vspace*{3mm}
-	\caption[Distribution strategies]{An Example of how the three distribution strategies work in action. The figure illustrates three storage nodes denoted by s\textit{0}, s\textit{1} and s\textit{2} and the block stored on them with strategies of respectively \textbf{1-by-1}, \textbf{Tiles} of size 2 and \textbf{Linear}. \label{fig:distribution-strategies}}
+	\caption[Distribution strategies]{An example of how the three distribution strategies work in action. The figure illustrates three storage nodes denoted by s\textit{0}, s\textit{1} and s\textit{2} and the block stored on them with strategies of respectively \textbf{1-by-1}, \textbf{Tiles} of size 2 and \textbf{Linear}. \label{fig:distribution-strategies}}
 \end{figure}	
 
 It is worth to notice that all the different distribution strategies in one or another way are a variant of the Round Robin algorithm and thereby adhere to the architecture and design criterion for partitioning and distribution described in section \ref{sec:pandd}.
@@ -144,9 +131,6 @@ One could think of other distribution strategies and algorithms to use on certai
 \newline
 
 The replication factor can additionally be used as a load balancing mechanism for the dataset and thereby increase its accessibility for the end-users, this among other things were described and discussed in section \ref{sec:delegation}.
-
-%\subsection{Verification}
-%In \CodeNameShort, verification of individual operation context functions\footnote{An operation context is assembled by one or more functions, this will be described in details in section \ref{sec:operation}).} is required when utilizing the optional list of operation contexts parameter. In order 
 
 \section{Operation context} \label{sec:operation}
 An \texttt{OperationContext} is a mutable object attached to a dataset that represents and describes a function or multiple chained ones and the associated parameters and prerequisites, to be executed on the data. A number of optional specifications are available such that most most common requirements are supported out of the box to increase productivity and correctness.
@@ -232,7 +216,7 @@ The neighbor exchange protocol is implement by default in \CodeName and can be u
 \subsubsection*{Protocol}
 The naïve approach for implementing a ghost point distribution protocol using Figure \ref{fig:sofa-overview} as starting point is to:
 \begin{enumerate}
-	\item First of all, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset was defined in section \ref{sec:storage} previously in this chapter} for that particular dataset.
+	\item First of all, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset is defined in section \ref{sec:gateway} in an forthcoming chapter} for that particular dataset.
 	\item Moreover, let that node initialize the calculation and exchange protocol on all the nodes with segments of the data.
 	\item Finally, every storage node ask every neighbor for their needs in terms of ghost semantic blocks.
 \end{enumerate}
@@ -266,7 +250,7 @@ An optional step executed after the core of the operation has completed and befo
 \subsection{Built-in keywords}
 \CodeName offers a range\footnote{Effortlessly extended when demanded} of different built-in keyword functions for conventional operations on data along with a module importer library that easily binds language specific core functions to \CodeName operations and functions, with a function name change if requested.
 
-An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \texttt{string} module in Python that counts number of \texttt{y} in \texttt{x}. Following snippet transforms the \texttt{count(}x, y\texttt{)} into \texttt{count\_occurrences(}x, y\texttt{)} with identical logic parameters and results:
+An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \texttt{string} module in Python \cite{PagePython} that counts number of \texttt{y} in \texttt{x}. Following snippet transforms the \texttt{count(}x, y\texttt{)} into \texttt{count\_occurrences(}x, y\texttt{)} with identical logic parameters and results:
 \vspace*{2mm}
 \begin{lstlisting}[language=Python, basicstyle=\footnotesize, numbers=none, showtabs=false, showstringspaces=false, showspaces=false, otherkeywords={string,new_fun_names}, stringstyle=\color{blue}]
    module_binder(string, function_binder, ['count'], 
@@ -285,5 +269,73 @@ Noticeable keyword to discussed and elaborate on are:
 		\item \texttt{neighborhood:ghost\_count}
 		\item \texttt{neighborhood:left\_ghost\_count:right\_ghost\_count}
 	\end{enumerate}
-	The default value of \texttt{neighborhood} is \texttt{neighborhood:1}, which again is a equivalent to \texttt{neighborhood:1:1}. The function with two arguments mainly cohere asymmetric counts, \ie \texttt{left\_ghost\_count} $\neq$ \texttt{right\_ghost\_count}.
+	The default value of \texttt{neighborhood} is \texttt{neighborhood:1}, which again is a equivalent to \texttt{neighborhood:1:1}. The function with two arguments mainly cohere asymmetric counts, \ie \texttt{left\_ghost\_count} $\neq$ \texttt{right\_ghost\_count}.	
 \end{itemize}
+
+\section{Delegation} \label{sec:delegation}
+The delegation framework in \CodeName serves a vast amount of important practical and approachable purposes:
+\begin{itemize}
+	\item The responsible dispatcher part (illustrated at Figure \ref{fig:delegation-framework}) is pledged to route the request to the node responsible for it.
+	\item Count the number of delegation-important\footnote{\label{note:explained}Will be explained and thereby be more obvious subsequently in this section.} operations that are executing simultaneously.
+	\item To forward the request to the next replica\footnote{\label{note:replication-factor}If \texttt{replication factor} is larger than one.} in the \textbf{forward queue} if the local operation count is larger than the specified threshold\footnoteref{note:explained}.
+	\item Moreover, to redirect the request to the next replica\footnoteref{note:replication-factor} in the \textbf{redirect queue} if the request requires replication.
+\end{itemize}
+\vspace*{4mm}
+
+\begin{figure}[ht!]
+	\centering
+	\includegraphics[scale=0.72]{pdf/delegation-framework.pdf}
+	\caption[Overview of the delegation framework]{Overview of the flow in the delegation framework. \label{fig:delegation-framework}}
+\end{figure}	
+
+\noindent
+The framework is invented to:
+\begin{itemize}
+	\item Simplify the usage of individual dataset replication and seal the logic described as part of section \ref{sec:sofabaseobject}.
+	\item Streamline the offloading of the primary data replicas when needed\footnoteref{note:replication-factor}.
+	\item Enables a dynamic load balancing (whilst the DM Multipath described in \ref{sec:recovery} provides load balancing on a disk level) on separate datasets by the \texttt{load\-balancing-threshold} in the configuration file (described in section \ref{sec:configuration}) in combination with the replication factor.
+\end{itemize}
+\vspace*{4mm}
+The delegation solution is designed as illustrated in Figure \ref{fig:delegation-framework} and is integrated into the core of storage nodes logic (defined in section \ref{sec:storage}). The responsible dispatcher is theoretically optional to use but is enforced by default, provided that it is debilitated it would require the gateway (described in section \ref{sec:gateway}) to be aware of how to determine the responsible server\footnote{Equation \ref{eq:responsible}} for the particular dataset, which would violate the single point of failure (SPOF) objective listed in section \ref{sec:objectives}:
+\begin{quotation}
+\textit{"Eliminating single-point of failure on a stateful master server."}
+\end{quotation}
+, since the gateway then would require slightly more discernment than expected for a stateless server\footnote{\label{note:stateful}A stateful server is commonly a synonym with SPOF.}.
+\newline
+
+The responsible server is calculated based on following calculation (\ref{eq:responsible}), and the current server is executing the function if the result is equal to this. Otherwise, the request is routed to the responsible.
+\begin{equation} \label{eq:responsible}
+\Big(\Big\lfloor\dfrac{\texttt{id}:data}{\texttt{\#}keyspace}\Big\rfloor + \texttt{id}:replica\Big) \texttt{ mod } \texttt{\#}storagenodes
+\end{equation}
+
+\subsubsection*{Protocol}
+A range of different opportunities are examined, reviewed, and some tested to implement such framework as described. The first choice was to design a gossip based protocol as Tanenbaum \etal examines in \cite{Tanenbaum:2006:DSP:1202502} between gateways to let the others know what "\textit{you}" are doing. Such a protocol will in \textbf{best case} improve performance since the gateways will be capable of predicting which server to send the request to, \textbf{worst case} on the other hand would not be different from the default behavior and thus not affecting the correctness of the results.
+\newline
+
+Preceding protocol was first of all discarded due to the increased complexity in logic on the gateway servers and the sudden intercommunication between them that it would cause, and secondly because it would require the servers to be moderately stateful\footnoteref{note:stateful}.
+
+\begin{quotation}
+C. A. R. Hoare defined in his 1978 paper \textit{"Communicating Sequential Processes"}\cite{Hoare:1978:CSP:359576.359585} a formal language for describing patterns of interaction in concurrent systems, which later has been implemented in a variety of different well known programming languages such as Python by Bj{\o}rndalen, Vinter \etal in \cite{bjorndalen2007pycsp}.
+\end{quotation}
+
+\noindent
+Although this second approach currently is not achievable since it would require that \CodeName is implemented in a CSP fashion with processes and channels, it is from a theoretical perspective an interesting thought and therefor included as a conceptual task. One could think of a \CodeName system based on CSP techniques with channels between gateways and storage nodes and the forward queue to load balance the system, for example, implemented as an Alternative (explained in definition \ref{def:alternation}) that facilitates a solution without queues and with improved I/O.
+\vspace*{3mm}
+\begin{definition}[PyCSP: Alternative] \label{def:alternation}
+\textit{A central abstraction as Bj{\o}rndalen, Vinter \etal describes in \cite{bjorndalen2007pycsp} that from a list of channels selects the one ready (for a read or write) the first and thus implements a first-come-first-serve strategy.}
+\end{definition}
+
+The model implemented is a comprise between complexity, time and expected outcome compared to the fact that this initial \CodeName implementation was purposed as a prototype to a plausible solution. It is an extended dynamic store and forward method where whole requests are redirected to a random storage node as explained in details in section \ref{sec:gateway}, which if needed based on responsible dispatcher either is executing or forwarding the request. 
+\newline
+
+Assuming forwarding is enabled based on the conditions previously listed and the primary replica has enough work to do, it will generate the forward queue based on a number of parameters and forward the request to the first in the queue. A worst case example is as follows:
+\vspace*{-5mm}
+\begin{center}
+\begin{align*}
+	0: &x \rightarrow [1, 2, 0] \\
+	1: &x \rightarrow [1, 0] \\
+	2: &x \rightarrow [0] \\
+	0: &x \rightarrow []
+\end{align*}
+\end{center}
+, where three storage nodes ($0 \ldots 2$), $0$ as the dataset root and a generated forward queue as $[1, 2, 0]$ is assumed. The reason why the node it self is added at the end of the queue, is precisely the case listed above were all the other nodes is occupied too and the root node receives an empty list, and is forced to execute the operation itself.
