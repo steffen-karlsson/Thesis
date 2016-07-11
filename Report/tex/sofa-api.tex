@@ -1,12 +1,38 @@
-\section{Create}
+The core public API\footnote{Application Programming Interface} of \CodeName will be explained, demonstrated and documented in the following chapter. The routines defined provides facilities to develop powerful and useful extensions and applications, through the minimal but adequate interface. Two examples of extensions empowered by the public \CodeName API are explained subsequently in part \ref{prt:extensions} and are demonstrations of the strength and confirms that all the building blocks needed are available.
+\newline
 
-\section{Append}
+The protocol exposes a vast amount of various \texttt{get}-methods to retrieve useful information regarding the datasets such as metadata, in addition to the routines explained in this chapter.
+
+\section{General}
+The formalities which are consistent throughout all of the routines are examined and described in this section.
+
+The API is implemented in Python\cite{PagePython}, which is a high-productivity rather than high-performance programming language that have caught much attention and gained popularity in the high performance and research communities where the utilization thus has increased. The reason for the increased acceptance is because the language easily is extended by open source libraries written in other traditional high-performance languages like Fortran or C++, with a corresponding bridge such as Cython\cite{PageCPython} for C/C++. 
+\newline
+
+These types of bridges are are usually an optimising static compilers for Python that simplifies, and minimizes the hard work in the cross language integration. Examples of such library is the de-facto standard in scientific programming, NumPy \cite{PageNumpy} \cite{oliphant2006guide} that is implemented using Cython and Bohrium \cite{PageBohrium} \cite{kristensen2013bohrium} which is a runtime environment for efficiently executing vectorized code on a range of different hardware platforms\footnote{Such as CPU and GPU}.
+
+\begin{quotation}
+Python as the main programming language was chosen over others such as C++ and Java based primarily on its high-productivity and thus an appropriate prototype environment in addition to the integration abilities described above.
+\end{quotation}
+
+All communication in \CodeName between nodes and the public API is implemented using a Pyro4\cite{PagePyro4}, a remote procedure call library for Python that facilitates communication across the network by minimizing the workload. The library was chosen due to simplicity and precedence with regards to the project scope, but as mentioned in section \ref{sec:communication} there were other alternatives, which in a final solution potentially would increase performance.
+\newline
+
+The API seeks to implement a classic CRUD (Create, Read, Update and Delete) pattern with well-known slightly modifications, such as \textit{retrieve} instead of read in terms of the \texttt{get}-methods discussed and an extra \textit{append} functionality to attach data to the dataset.
+
+\section{Create}
+\CodeName provides a dynamic create API call for initializing new empty\footnote{With no data attached} datasets from a required unique name, a required Python class name and package reference like \texttt{example.data.MySpecialDataset} and an optional dictionary of specific extended user and dataset defined meta data attributes, apart from the private configuration \CodeName defined ones.
+\newline
+
+The concatenated package and class name are internally transformed to \CodeName \texttt{OperationContext} closure byte stream by compressing\footnote{Using the \texttt{marshall} \cite{PageMarshall} library which by \cite{Brody2015} is approximately 50\% faster than the regular \texttt{cPickle}.} it with an associated digest as a cryptographic signature. The closure is the core of operation execution in \CodeName, which will be explained further in details in section \ref{sec:submit}.
+
+\section{Append} \label{sec:api-append}
 
 \section{Update}
 
 \section{Delete}
 
-\section{Submit}
+\section{Submit} \label{sec:submit}
 
 \section{Poll}
 
