@@ -20,14 +20,81 @@ All communication in \CodeName between nodes and the public API is implemented u
 
 The API seeks to implement a classic CRUD (Create, Read, Update and Delete) pattern with well-known slightly modifications, such as \textit{retrieve} instead of read in terms of the \texttt{get}-methods discussed and an extra \textit{append} functionality to attach data to the dataset.
 
-\section{Create}
-\CodeName provides a dynamic create API call for initializing new empty\footnote{With no data attached} datasets from a required unique name, a required Python class name and package reference like \texttt{example.data.MySpecialDataset} and an optional dictionary of specific extended user and dataset defined meta data attributes, apart from the private configuration \CodeName defined ones.
+\section{Create} \label{sec:api-create}
+\CodeName provides a dynamic create API call for initializing new empty\footnote{With no data attached} datasets from a required unique name, a required Python class name and package reference like \texttt{example.data.MySpecialDataset} and an optional dictionary of specific extended user and dataset defined metadata attributes, apart from the private configuration \CodeName defined ones.
 \newline
+
+The anonymous unique identifier of a dataset is calculated by a hash function\footnote{A mapping function used to represent arbitrary sized data in a fixed space.} and is limited to the key-space size defined in the system configurations, described in details in section \ref{sec:configuration}, to find the responsible root node index (primary replica), which appended to the metadata of the dataset:
+\begin{equation}
+	\texttt{hash}:name \texttt{ mod } \texttt{\#}keyspace
+\end{equation}
 
 The concatenated package and class name are internally transformed to \CodeName \texttt{OperationContext} closure byte stream by compressing\footnote{Using the \texttt{marshall} \cite{PageMarshall} library which by \cite{Brody2015} is approximately 50\% faster than the regular \texttt{cPickle}.} it with an associated digest as a cryptographic signature. The closure is the core of operation execution in \CodeName, which will be explained further in details in section \ref{sec:submit}.
 
-\section{Append} \label{sec:api-append}
+\begin{figure}[ht!]
+	\centering
+	\includegraphics[scale=1.1]{pdf/package-pipeline.pdf}
+	\caption{Timing diagram with example of package pipelining \label{fig:package-pipeline}}
+\end{figure}	
 
+\section{Append} \label{sec:api-append}
+Whenever the frame for a dataset is initialized in \CodeName by the create call, it is possible to append data to it by either one of three ways: \textit{local path}, \textit{url} or \textit{true data}. The unique name that a dataset is initialized with is used whenever any of the other method calls such as \textit{append} or \textit{delete} are utilized. 
+\newline
+
+The append call implements the previous described important flow illustrated at Figure \ref{fig:preprocess-nextentry} and thus is the core of succeeding following two objectives (described in details in section \ref{sec:objectives}):
+
+\begin{quotation}
+	\textit{Split data such that semantically coherent parts are stored jointly and thus eliminating the data residual problem known from Hadoop.}
+\end{quotation}
+\noindent
+and
+\begin{quotation}
+	\textit{To store data in arbitrary sized chunks as a consequence of above mentioned.}
+\end{quotation}
+
+The responsible dispatcher examined in section \ref{sec:delegation} and depicted at Figure \ref{fig:delegation-framework} is disabled for this particular call only, due to bandwidth rate and latency on transferring new data to a node not responsible for that semantic block of data first before redirected to the right one.
+
+The gateway is for this call capable of determining the responsible server without relaxing excessively on the stateless property, by using the root index added to the metadata in the create-call, to calculate the primary replica index of a specific semantic block:
+
+\vspace*{2mm}
+\begin{equation} \label{eq:startindex}
+	\Big\lfloor\Big(\texttt{id}:root + \dfrac{\texttt{\#}blocks}{stride}\Big) \texttt{ mod } \texttt{\#}storagenodes\Big\rfloor
+\end{equation}
+
+, where the \textit{stride} is a constant specific for each dataset and decided by the distribution strategy, described in section \ref{sec:sofabaseobject}.
+
+\begin{quotation}
+	{\sffamily\textbf{NOTE:}} As an aftermath of the abovementioned calculation in equation \ref{eq:startindex}, it is possible henceforth to pick up and append new data to dataset where it left off.
+\end{quotation}
+
+\subsubsection*{Package distribution}
+Figure \ref{fig:package-pipeline} illustrates a suggestion to an ideal HPC package distribution solution for the append flow implementation, based on the common concept of pipeline computation that Wilkinson \etal describes in \cite{Wilkinson:1998:PPT:289352}. The model is designed to stream fragmented semantic block packages in a pipeline fashion between the gateway and the list of required replicas (as described in section \ref{sec:delegation}) in a priority queue.
+\newline
+
+The latency for streaming one package, assuming a network speed of 1 Mb/s and a fragmented package size of 1 MB is:
+\begin{equation}
+	\dfrac{\texttt{\#}fpackage}{network\text{ }speed} = \dfrac{8\cdot 1024^2 \text{ bits}}{1024^3 \text{ bits/s}} = \dfrac{1}{128} \text{ sec}
+\end{equation}
+, which with a replication factor of \textit{x} and an assuming total package size of maximum 64 MB (customisable in the system configurations) leads to a replication latency of:
+\begin{equation}
+	(64 + x - 1) \cdot \dfrac{1}{128} \text{ sec}
+\end{equation}
+, where the $x - 1$ directly can be derived from Figure \ref{fig:package-pipeline}, with the light gray, dotted line indicates when the first node has finished receiving and transmitting.
+\newline
+
+\noindent
+Unfortunately, the fragmented package solution explained, requires the communication library applied to support streaming, which Pyro4 doesn't\footnote{Nevertheless, it was chosen based on the criteria and features listed previously.}. The package distribution algorithm implemented in \CodeName is based on the same technology and research as the protocol carried out in the delegation framework, namely the store and forward method. This also means that if the puzzle of replacing the communication library with a more suitable one, it will improve the delegation framework too.
+\newline
+
+Current implementation has following latency on sending one 64 MB semantic package and with the same network speed as the previous example:
+\begin{equation}
+	\dfrac{\texttt{\#}package}{network\text{ }speed} = \dfrac{64\cdot 8\cdot 1024^2 \text{ bits}}{1024^3 \text{ bits/s}} = 0.5 \text{ sec}
+\end{equation}
+, and thus have a \textit{x} replication latency of:
+\begin{equation}
+	x \cdot 0.5 \text{ sec}
+\end{equation}
+ 
 \section{Update}
 
 \section{Delete}
