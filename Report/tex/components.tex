@@ -216,7 +216,7 @@ The neighbor exchange protocol is implement by default in \CodeName and can be u
 \subsubsection*{Protocol}
 The naïve approach for implementing a ghost point distribution protocol using Figure \ref{fig:sofa-overview} as starting point is to:
 \begin{enumerate}
-	\item First of all, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset is defined in section \ref{sec:gateway} in an forthcoming chapter} for that particular dataset.
+	\item First of all, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset is defined in section \ref{sec:api-create} in an forthcoming chapter} for that particular dataset.
 	\item Moreover, let that node initialize the calculation and exchange protocol on all the nodes with segments of the data.
 	\item Finally, every storage node ask every neighbor for their needs in terms of ghost semantic blocks.
 \end{enumerate}
@@ -296,7 +296,7 @@ The framework is invented to:
 	\item Enables a dynamic load balancing (whilst the DM Multipath described in \ref{sec:recovery} provides load balancing on a disk level) on separate datasets by the \texttt{load\-balancing-threshold} in the configuration file (described in section \ref{sec:configuration}) in combination with the replication factor.
 \end{itemize}
 \vspace*{4mm}
-The delegation solution is designed as illustrated in Figure \ref{fig:delegation-framework} and is integrated into the core of storage nodes logic (defined in section \ref{sec:storage}). The responsible dispatcher is theoretically optional to use but is enforced by default, provided that it is debilitated it would require the gateway (described in section \ref{sec:gateway}) to be aware of how to determine the responsible server\footnote{Equation \ref{eq:responsible}} for the particular dataset, which would violate the single point of failure (SPOF) objective listed in section \ref{sec:objectives}:
+The delegation solution is designed as illustrated in Figure \ref{fig:delegation-framework} and is integrated into the core of storage nodes logic (defined in section \ref{sec:storage}). The responsible dispatcher is theoretically optional to use but is enforced by default, provided that it is disabled it would require the gateway (described in section \ref{sec:gateway}) to be aware of how to determine the responsible server\footnote{Equation \ref{eq:responsible}} for the particular dataset, which would violate the single point of failure (SPOF) objective listed in section \ref{sec:objectives}:
 \begin{quotation}
 \textit{"Eliminating single-point of failure on a stateful master server."}
 \end{quotation}

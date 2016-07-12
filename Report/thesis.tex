@@ -28,6 +28,7 @@
 \usepackage[labelfont=bf]{caption}
 \usepackage{listings}
 \usepackage{afterpage}
+\usepackage{lastpage}
 
 \usepackage{xcolor}
 \definecolor{generalcolor}{RGB}{52,73,94}
@@ -131,8 +132,8 @@
 \makepagestyle{diku}
 \makeevenhead{diku}{\sffamily\rightmark}{}{}
 \makeoddhead{diku}{\sffamily\rightmark}{}{\sffamily\currenttitle}
-\makeevenfoot{diku}{}{\sffamily\thepage}{}
-\makeoddfoot{diku}{}{\sffamily\thepage}{}
+\makeevenfoot{diku}{}{\sffamily\thepage \text{ of } \sffamily\pageref{LastPage}}{}
+\makeoddfoot{diku}{}{\sffamily\thepage \text{ of } \sffamily\pageref{LastPage}}{}
 \makeheadrule{diku}{\textwidth}{1pt}
 \makeheadposition{diku}{flushright}{flushright}{}{}   
 
