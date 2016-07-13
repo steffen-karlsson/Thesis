@@ -121,7 +121,7 @@ Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel like model
 The reason for the barrier before the execution is to ensure that all storage nodes is in charge of the data required for the calculation, such that no superfluous intercommunication is needed.
 \newline
 
-The execution of the operation itself is implemented as a tradeoff between minimizing I/O cost and reducing load on the root node. The solution is based on the logic of the arrival part of a tree implementation of a barrier as illustrated in the example with 16 storage nodes at Figure \ref{fig:reduction-tree}. 
+The execution of the operation itself is implemented as a tradeoff between minimizing I/O cost and reducing load on the root node. The solution is based on the logic of the arrival part of a tree implementation of a barrier as illustrated in the example with 16 storage nodes at Figure \ref{fig:reduction-tree} and explained by Wilkinson \etal in \cite{Wilkinson:1998:PPT:289352}.
 
 A solution particularly well-suited for big data analysis with MapReduce (outlined in definition \ref{def:mapreduce}) as primary data execution model, a statement that is clarified and explained in details with tangible examples in chapter \ref{chp:bdae}.
 \newline
