@@ -1,4 +1,4 @@
-The core public API\footnote{Application Programming Interface} of \CodeName will be explained, demonstrated and documented in the following chapter. The routines defined provides facilities to develop powerful and useful extensions and applications, through the minimal but adequate interface. Two examples of extensions empowered by the public \CodeName API are explained subsequently in part \ref{prt:extensions} and are demonstrations of the strength and confirms that all the building blocks needed are available.
+The core public API\footnote{Application Programming Interface} of \CodeName will be explained, demonstrated and documented in the following chapter. The routines defined, provides facilities to develop powerful and useful extensions and applications, through the minimal but adequate interface. Two examples of extensions empowered by the public \CodeName API are explained subsequently in part \ref{prt:extensions} and are demonstrations of the strength and confirms that all the building blocks needed are available.
 \newline
 
 The protocol exposes a vast amount of various \texttt{get}-methods to retrieve useful information regarding the datasets such as metadata, in addition to the routines explained in this chapter.
@@ -75,10 +75,12 @@ The latency for streaming one package, assuming a network speed of 1 Mb/s and a 
 \begin{equation}
 	\dfrac{\texttt{\#}fpackage}{network\text{ }speed} = \dfrac{8\cdot 1024^2 \text{ bits}}{1024^3 \text{ bits/s}} = \dfrac{1}{128} \text{ sec}
 \end{equation}
+
 , which with a replication factor of \textit{x} and an assuming total package size of maximum 64 MB (customisable in the system configurations) leads to a replication latency of:
 \begin{equation}
 	(64 + x - 1) \cdot \dfrac{1}{128} \text{ sec}
 \end{equation}
+
 , where the $x - 1$ directly can be derived from Figure \ref{fig:package-pipeline}, with the light gray, dotted line indicates when the first node has finished receiving and transmitting.
 \newline
 
@@ -87,20 +89,57 @@ Unfortunately, the fragmented package solution explained, requires the communica
 \newline
 
 Current implementation has following latency on sending one 64 MB semantic package and with the same network speed as the previous example:
+\vspace*{1mm}
 \begin{equation}
 	\dfrac{\texttt{\#}package}{network\text{ }speed} = \dfrac{64\cdot 8\cdot 1024^2 \text{ bits}}{1024^3 \text{ bits/s}} = 0.5 \text{ sec}
 \end{equation}
+\vspace*{2mm}
+
+\noindent
 , and thus have a \textit{x} replication latency of:
 \begin{equation}
 	x \cdot 0.5 \text{ sec}
 \end{equation}
  
 \section{Update}
+Based on the same logic as described in the create call (section \ref{sec:api-create}) but an initialized dataset is a prerequisite before it can be updated.
 
 \section{Delete}
+Remove an existing dataset and all associated semantic blocks and replicas, by its 	initiating name.
 
 \section{Submit} \label{sec:submit}
+Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel like model implemented in the submit call. The request forwarded to the responsible replica (described in section \ref{sec:delegation}) before initialization, which if needed is causing a parallel exchange of semantic ghost points (described in section \ref{sec:operation}) on the \textit{n} storage nodes. The interchange happens before the responsible server is initializing the parallel execution of the actual operation, which begins once the $n-1$ storage nodes have reported ready to the root node.
+\newline
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.7]{pdf/submit-job.pdf}
+	\caption{Flow diagram of the submit API call. \label{fig:submit-job}}
+\end{figure}	
+
+\noindent
+The reason for the barrier before the execution is to ensure that all storage nodes is in charge of the data required for the calculation, such that no superfluous intercommunication is needed.
+\newline
+
+The execution of the operation itself is implemented as a tradeoff between minimizing I/O cost and reducing load on the root node. The solution is based on the logic of the arrival part of a tree implementation of a barrier as illustrated in the example with 16 storage nodes at Figure \ref{fig:reduction-tree}. 
+
+A solution particularly well-suited for big data analysis with MapReduce (outlined in definition \ref{def:mapreduce}) as primary data execution model, a statement that is clarified and explained in details with tangible examples in chapter \ref{chp:bdae}.
+\newline
+
+The calculation of whom to send to who is based on a multiplication of the \textit{sum of odd numbers}\footnote{$1 + 3 + 5 + \ldots + (2n-1) = n^2$} with respect to the iteration count (the x-axis at the figure). The calculation for any given iteration \textit{i} is as follows:
+\begin{equation}
+\underbrace{\dfrac{\texttt{id}:node}{2^{i}}}_{\forall \in \mathbb{N}_0} \texttt{ mod } 2 \equiv 1
+\end{equation}
+, and will resolve in boolean values that indicate whether the node has to send its result to the closest neighbor on the left-hand side.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{pdf/reduction-tree.pdf}
+	\caption[Result reduction calucation example]{Example of a result reduction calucation with 16 storage nodes. \label{fig:reduction-tree}}
+\end{figure}	
 
 \section{Poll}
+The poll call is used to check whether the execution of the submitted operation has terminated if the callback of the submit request is vacant.
 
 \section{Documentation}
+All the public API calls are documented using Sphinx \cite{PageSphinx} which, using the Python docstring and a \texttt{reStructuredText} markup language layout files is generating intelligent and browsable HTML pages.
