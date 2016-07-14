@@ -9,7 +9,7 @@ from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 from bdae.libweb import GatewayWebWrapper
 from bdae.dataset import AbsMapReduceDataset
-from sofa.foundation.operation import OperationContext
+from sofa.foundation.operation import OperationContext, ExpectedReturnType
 
 NUM_PROJECTIONS = 320
 DETECTOR_ROWS = 192
@@ -34,7 +34,9 @@ class FDKDataset(AbsMapReduceDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]').with_post_processing(post_process)
+            OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]')
+                .with_post_processing(post_process)
+                .with_expected_return_type(ExpectedReturnType.Image)
         ]
 
 
