@@ -26,7 +26,7 @@ As a matter of fact, the only case where data partitioning is ensured to be avoi
 Existing implementations and research projects within the field of big data analysis frameworks and distributed parallel file systems relevant to this project will be described in this section, including the once previously mentioned.
 
 \subsection*{Hadoop}
-Hadoop was originally described in 2010 by Shvachko \etal in \cite{Shvachko:2010:HDF:1913798.1914427}. The Apache and Yahoo! developed framework is designed to store and analyze enormous datasets. It provides the distributed hierarchical file system with directories and archives HDFS (Hadoop Distributed File System), as data access layer (DAL) and a primary execution model based on the programming paradigm MapReduce (sharing this feature with the following computing platform), \reference{def:mapreduce}{sec:mapreduce}.
+Hadoop was originally described in 2010 by Shvachko \etal in \cite{Shvachko:2010:HDF:1913798.1914427}. The Apache and Yahoo! developed framework is designed to store and analyze enormous datasets. It provides the distributed hierarchical file system with directories and archives HDFS (Hadoop Distributed File System), as data access layer (DAL) and a primary execution model based on the programming paradigm MapReduce (sharing this feature with the following computing platform), outlined in definition \ref{def:mapreduce}.
 \vspace*{5mm}
 
 \begin{definition}[MapReduce] \label{def:mapreduce}
@@ -50,6 +50,7 @@ The loss of a NameNode is not tolerated, as described, nor at Facebook. It is be
 	\caption[Incidents at Facebooks Data Warehouse]{Incidents at Facebooks Data Warehouse by percentage at the responsible part, others including user specified jobs etc. \newline \textit{Statistics are from }\cite{FacebookHadoopImprovement}. \label{fig:fb-hadoop-incidents}}
 \end{figure}
 
+\newpage
 Facebooks engineers designed a solution based on a so-called Avatarnode, as a functioning hot fail-over solution, turning the existing NameNode into a highly-available server. The open source Avatarnode is essentially two NameNodes wrapped in an Apache ZooKeeper\footnote{Apache ZooKeeper\cite{PageZookeper} is a centralized service provider for configuration information and naming etc.} instance, with support for manual failover. The two NameNode instances behave as an active one and a standby with internal virtual IP address (VIP), handled by ZooKeeper, \ie each client request is initialized through that to get the VIP of the primary node (see Figure \ref{fig:facebook-avatarnode}).
 \newline
 
@@ -58,7 +59,7 @@ Synchronization between the active and the standby NameNode instance is managed 
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[scale=0.75]{pdf/facebook-avatarnode.pdf}
+	\includegraphics[scale=0.8]{pdf/facebook-avatarnode.pdf}
 	\caption[Avatarnode: Facebooks Hadoop implementation]{Control flow of the AvatarNode and ZooKeeper with virtual IP address and network file server for synchronization. \label{fig:facebook-avatarnode}}
 	\vspace*{3mm}
 \end{figure}
@@ -105,17 +106,23 @@ The solution is based on redundant duplication of the NameNode, such that one ma
 \subsection*{Disco}
 Mundkur \etal at Nokia Research Center publish in 2011 a paper on their implementation of the distributed computing platform Disco\cite{PageDisco}\cite{Mundkur:2011:DCP:2034654.2034670}. Disco is an easy customizable MapReduce (described in section \ref{sec:mapreduce}) framework with regards to environment and requirements, designed for clusters of commodity server machines. Disco is likewise based on the master/slave architecture and relies on a standard file system and thus, deprioritize persistent fault tolerance, achievable by a dedicated custom implementation. 
 
-The single master pattern is as mentioned a single point of failure but is preferred due to consistency over availability (CAP theorem is \reference{def:cap}{sec:cap}).
+The single master pattern is as mentioned a single point of failure but is preferred due to consistency over availability (CAP theorem is outlined in \ref{def:cap}).
 \vspace*{5mm}
 
 \begin{definition}[CAP Theorem] \label{def:cap}
-\textit{Eric Brewer's presented in his keynote speech}\cite{Brewer2000} \textit{the CAP (Consistency, Availability, and Partition Tolerance) theorem that states, a distributed system (set of independent computers working together) only can guarantee two of the three listed acronym properties. This theorem is described further in section \ref{sec:cap}.}
+\textit{Eric Brewer presented in his keynote speech}\cite{Brewer2000} \textit{the CAP (Consistency, Availability, and Partition Tolerance) theorem that states, a distributed system (set of independent computers working together) only at any point in time can guarantee two of the three listed acronym properties, as illustrated in Figure \ref{fig:cap}.}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.7]{pdf/cap.pdf}
+	\caption{Illustrating the concept and limitations of CAP. \label{fig:cap}}
+\end{figure}	
 \end{definition}
 
 \subsection*{Dynamo}
 Dynamo is a highly available key-value storage system presented by Amazon engineers in \cite{DeCandia:2007:DAH:1294261.1294281}. The system is implemented using an eventual consistency protocol and thereby sacrifices it under certain scenarios, by cause of availability. 
 
-The reason for this choice is the \textit{"always-on"} user experience on core services on the Amazon platform that Dynamo is used to function. Dynamo uses consistent hashing (\reference{def:ch}{sec:dd}) to partition the key space across all available machines. A uniform distribution ultimately causes a uniform load assuming the key space access is not too skewed.
+The reason for this choice is the \textit{"always-on"} user experience on core services on the Amazon platform that Dynamo is used to function. Dynamo uses consistent hashing (outlined in definition \ref{def:ch}) to partition the key space across all available machines. A uniform distribution ultimately causes a uniform load assuming the key space access is not too skewed.
 \vspace*{3mm}
 
 \begin{definition}[Consitent hashing] \label{def:ch}
@@ -138,7 +145,7 @@ A vastly simplified design and sophisticated placement of data on the slaves, to
 
 \section{Proposal} \label{sec:proposal}
 The knowledge, features and compromises in the papers discussed and described in the latter section, \textit{Related work}, provides the foundation for the introductory piece of research in the project. It is first and foremost the ambition to investigate and evaluate different types of distributed file system architectures. The ambition of the research is to design and implement a prototype of an alternative to the existing file archives used in big data analysis subsequently, if achievable.
-\newline
+\newpage
 
 The design of the architectural organization of the project is intended to eliminate the complications and issues in the existing solutions described among others. A desired outcome of latter is a substitute system eliminating data residuals and with reduced I/O-cost, complexity and increased performance.
 \newline
