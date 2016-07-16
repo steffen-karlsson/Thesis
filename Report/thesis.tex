@@ -37,6 +37,9 @@
 \definecolor{mygreen}{HTML}{859900}
 \definecolor{mygray}{HTML}{93A1A1}
 
+\definecolor{sourcebackground}{HTML}{ECF0F1}
+\definecolor{bashcommetcolor}{HTML}{95A5A6}
+
 \newtheorem{theorem}{Theorem}
 
 \theoremstyle{definition}
@@ -212,6 +215,10 @@
 \part{Epilogue} \label{prt:epilogue}
 \chapter{Future work} \label{chp:future-work}
 \input{tex/futurework.tex}
+
+\appendix
+\input{tex/appendix.tex}
+
 \backmatter
 \renewcommand*{\printchaptertitle}[1]{\flushleft\chaptitlefont#1}
 \renewcommand*{\chaptitlefont}{\normalfont\sffamily\Huge\bfseries}
@@ -220,8 +227,5 @@
 \sectionmark{Bibliography}
 \bibliographystyle{ieeetr}
 \bibliography{tex/references}
-
-\appendix
-\input{tex/appendix.tex}
 
 \end{document}

@@ -1,0 +1,68 @@
+\chapter{Installation Guide} \label{app:installation}
+
+A installation guide\footnote{Linux-based operation system is preferred} for both \CodeName and BDAE including an available test and example suite with samples such as the ones explained in section \ref{sec:examples} in the analysis phase of \CodeName. The source code archive\footnote{\texttt{<project path>/src/}} of the combined project will onwards be referenced as \texttt{src/} and assumed to be fetched from the repository.
+
+\begin{enumerate}
+	\item Install \CodeName:
+	
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt]
+		cd src/sofa-project
+		bash install.sh
+	\end{lstlisting}
+	\vspace*{-6mm}
+	\item Install BDAE:
+	
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt]
+		cd src/bdae-project
+		bash install.sh
+	\end{lstlisting}
+	\vspace*{-6mm}
+	\item Create new empty project directory\footnote{Will ahead be denoted as \texttt{example/}}.
+	\item Duplicate and modify the system configuration file to fit the purpose:
+	
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt]
+		cd example
+		cp $SOFA_HOME/sofa/sofa.cfg my_sofa.cfg
+		vim my_sofa.cfg
+	\end{lstlisting}
+	
+	\item Enable local SSH\footnote{Extra step on macintosh-based systems available here: \url{http://www.techradar.com/how-to/computing/apple/how-to-enable-ssh-on-your-mac-1305644}} to fully utilize the supplied boot-scripts (explained and exemplified in appendix \ref{app:execution}):
+	
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt, commentstyle=\color{bashcommetcolor}]
+		cd ~/.ssh/
+		touch authorized_keys
+		cat id_rsa.pub > authorized_keys
+		
+		# Verify by ssh to localhost
+		ssh localhost
+	\end{lstlisting}
+	\vspace*{-6mm}
+	\item Install following extra Python 2.7 packages to run all BDAE examples, located in \texttt{\$BDAE\_HOME/examples}:
+
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt, commentstyle=\color{bashcommetcolor}, showstringspaces=false]
+		# Prerequisite for text.py
+		pip install ntlk
+		python -c "import nltk; nltk.download('punkt')"
+		
+		# Prerequisite for avs5m.py
+		pip install tifffile
+		
+		# Prerequisite for NetCDF pop.py
+		pip install netCDF4
+	\end{lstlisting}
+	\vspace*{-6mm}
+	\item[$\bullet$] {\sffamily\textbf{NOTE:}} To uninstall \CodeName and BDAE, use following two commands:
+	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt, commentstyle=\color{bashcommetcolor}, showstringspaces=false]
+		cd src/
+		bash clean.sh sofa
+		bash clean.sh bdae		
+	\end{lstlisting}
+\end{enumerate}
+
+
+\chapter{Execution Guide} \label{app:execution}
+Assuming the installation guide at appendix \ref{app:installation} is completed.
+
+\begin{enumerate}
+	\item 
+\end{enumerate}
