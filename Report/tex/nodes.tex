@@ -32,3 +32,6 @@ The third and last server type is the monitor, one of the five objectives listed
 The protocol implemented is a rather simple but dynamic and powerful two step hearth beat scheduler with verification. The control interval and the number of confirmations whether the node is dead or not are variables that can be changed in the system configurations (described in section \ref{sec:configuration}). 
 
 A second recovery scheme in addition to the one explained in section \ref{sec:recovery} is whenever a storage or gateway node is proclaimed dead\footnote{Presumably caused by a malformed end-user defined software in an operation.}, a live software reboot of the node is available if the \texttt{enable-live-software-reboot} parameter is enabled.
+
+\section{Summary}
+Appendix \ref{app:installation} instructs how to install \CodeName from scratch and appendix \ref{app:execution} teaches how to properly initialize the nodes and get them up and running connected to one another.
