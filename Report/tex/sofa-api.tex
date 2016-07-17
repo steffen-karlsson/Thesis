@@ -108,7 +108,7 @@ Based on the same logic as described in the create call (section \ref{sec:api-cr
 Remove an existing dataset and all associated semantic blocks and replicas, by its 	initiating name.
 
 \section{Submit} \label{sec:submit}
-Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel like model implemented in the submit call. The request forwarded to the responsible replica (described in section \ref{sec:delegation}) before initialization, which if needed is causing a parallel exchange of semantic ghost points (described in section \ref{sec:operation}) on the \textit{n} storage nodes. The interchange happens before the responsible server is initializing the parallel execution of the actual operation, which begins once the $n-1$ storage nodes have reported ready to the root node.
+Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel like model implemented in the submit call. The request is forwarded to the responsible replica (described in section \ref{sec:delegation}) before initialization, which if needed is causing a parallel exchange of semantic ghost points (described in section \ref{sec:operation}) on the \textit{n} storage nodes. The interchange happens before the responsible server is initializing the parallel execution of the actual operation, which begins once the $n-1$ storage nodes have reported ready to the root node.
 \newline
 
 \begin{figure}
@@ -121,7 +121,7 @@ Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel like model
 The reason for the barrier before the execution is to ensure that all storage nodes is in charge of the data required for the calculation, such that no superfluous intercommunication is needed.
 \newline
 
-The execution of the operation itself is implemented as a tradeoff between minimizing I/O cost and reducing load on the root node. The solution is based on the logic of the arrival part of a tree implementation of a barrier as illustrated in the example with 16 storage nodes at Figure \ref{fig:reduction-tree} and explained by Wilkinson \etal in \cite{Wilkinson:1998:PPT:289352}.
+The execution of the operation itself is implemented as a tradeoff between minimizing I/O cost and reducing the load on the root node. The solution is based on the logic of the arrival part of a tree implementation of a barrier as illustrated in the example with 16 storage nodes at Figure \ref{fig:reduction-tree} and explained by Wilkinson \etal in \cite{Wilkinson:1998:PPT:289352}.
 
 A solution particularly well-suited for big data analysis with MapReduce (outlined in definition \ref{def:mapreduce}) as primary data execution model, a statement that is clarified and explained in details with tangible examples in chapter \ref{chp:bdae}.
 \newline
@@ -131,12 +131,15 @@ The calculation of whom to send to who is based on a multiplication of the \text
 \underbrace{\dfrac{\texttt{id}:node}{2^{i}}}_{\forall \in \mathbb{N}_0} \texttt{ mod } 2 \equiv 1
 \end{equation}
 , and will resolve in boolean values that indicate whether the node has to send its result to the closest neighbor on the left-hand side.
+\newline
 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.5]{pdf/reduction-tree.pdf}
 	\caption[Result reduction calucation example]{Example of a result reduction calucation with 16 storage nodes. \label{fig:reduction-tree}}
 \end{figure}	
+
+Each function in the \texttt{OperationContext} is executed in parallel and sequential by the specification from the end-user for the particular procedure. At least one parameter; a block iterator, are required for all functions defined. Hence, the following piece of simple code can be used to iterate over the semantic block content: \texttt{for temp in temperatures: $\ldots$ ;}
 
 \section{Poll}
 The poll call is used to check whether the execution of the submitted operation has terminated if the callback of the submit request is vacant.
