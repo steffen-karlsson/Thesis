@@ -104,7 +104,7 @@ The solution is based on redundant duplication of the NameNode, such that one ma
 \end{enumerate}
 
 \subsection*{Disco}
-Mundkur \etal at Nokia Research Center publish in 2011 a paper on their implementation of the distributed computing platform Disco\cite{PageDisco}\cite{Mundkur:2011:DCP:2034654.2034670}. Disco is an easy customizable MapReduce (described in section \ref{sec:mapreduce}) framework with regards to environment and requirements, designed for clusters of commodity server machines. Disco is likewise based on the master/slave architecture and relies on a standard file system and thus, deprioritize persistent fault tolerance, achievable by a dedicated custom implementation. 
+Mundkur \etal at Nokia Research Center publish in 2011 a paper on their implementation of the distributed computing platform Disco\cite{PageDisco}\cite{Mundkur:2011:DCP:2034654.2034670}. Disco is an easy customizable MapReduce (outlined in defintion \ref{def:mapreduce}) framework with regards to environment and requirements, designed for clusters of commodity server machines. Disco is likewise based on the master/slave architecture and relies on a standard file system and thus, deprioritize persistent fault tolerance, achievable by a dedicated custom implementation. 
 
 The single master pattern is as mentioned a single point of failure but is preferred due to consistency over availability (CAP theorem is outlined in \ref{def:cap}).
 \vspace*{5mm}

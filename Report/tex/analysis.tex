@@ -19,7 +19,7 @@ As described in section \ref{sec:related} is the single master pattern in the ca
 Later versions as described previously supports fail-over to a working redundant standby copy, with a hardware and communication cost. Other solutions to the SPOF error described in section \ref{sec:related} such as the Facebook Avatarnode Hadoop extension requires integrations and instances of extra systems like ZooKeeper.
 \newline
 
-Other systems like the Google File System (GFS) follows the same stateful metadata master model, whereas DDFS, which is the data access model of Disco (described in section \ref{sec:related}) implements an interesting model where the metadata and data chunks are stored jointly on the cluster hosts. Nevertheless are a metadata cache system implemented on the master, which apropos is a single master motivated by the preference for consistency over availability in the CAP Theorem (\reference{def:cap}{sec:cap}).
+Other systems like the Google File System (GFS) follows the same stateful metadata master model, whereas DDFS, which is the data access model of Disco (described in section \ref{sec:related}) implements an interesting model where the metadata and data chunks are stored jointly on the cluster hosts. Nevertheless are a metadata cache system implemented on the master, which apropos is a single master motivated by the preference for consistency over availability in the CAP Theorem (outlined in definition \ref{def:cap}).
 
 \section{Partitioning} \label{sec:partitioning}
 The concept of data partitioning was previously outlined in the technical background in section \ref{sec:dd} and as mentioned is consistent hashing one opportunity to separate data uniformly across multiple machines. 
