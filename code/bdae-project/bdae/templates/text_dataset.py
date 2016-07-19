@@ -36,6 +36,7 @@ class TextDataBySentence(_TextData):
         for sentence in sent_tokenize(data):
             yield sentence
 
+
 class TextDataByLine(_TextData):
     __metaclass__ = ABCMeta
 
