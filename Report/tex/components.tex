@@ -249,19 +249,16 @@ An optional step executed after the core of the operation has completed and befo
 
 \subsection{Built-in keywords}
 \CodeName offers a range\footnote{Effortlessly extended when demanded} of different built-in keyword functions for conventional operations on data along with a module importer library that easily binds language specific core functions to \CodeName operations and functions, with a function name change if requested.
+\newline
 
-An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \texttt{string} module in Python \cite{PagePython} that counts number of \texttt{y} in \texttt{x}. Following snippet transforms the \texttt{count(}x, y\texttt{)} into \texttt{count\_occurrences(}x, y\texttt{)} with identical logic parameters and results:
-\vspace*{2mm}
-\begin{lstlisting}[language=Python, basicstyle=\footnotesize, numbers=none, showtabs=false, showstringspaces=false, showspaces=false, otherkeywords={string,new_fun_names}, stringstyle=\color{blue}]
-   module_binder(string, function_binder, ['count'], 
-                 new_fun_names=['count_occurrences'])
-\end{lstlisting}
-
+\noindent
 Noticeable keyword to discussed and elaborate on are:
 \vspace*{2mm}
 
 \begin{itemize}
-	\item The \textbf{modify} keyword function takes one argument defined by a semicolon: \texttt{modify:<function\_name>} and calls the action defined by the \texttt{function\_name} parameter with the current data block state. The modify function is especially useful in combination with the module importer service since it is quite often that general core functions require that data to be in a certain format.
+	\item The \textbf{modify} keyword function takes one argument defined by a semicolon: \texttt{modify:<function\_name>} and calls the action defined by the \texttt{function\_name} parameter with the current data block state. 
+	
+	The modify function is especially useful in combination with the module importer service since it is quite often that general core functions require that data to be in a certain format.
 	\item \textbf{neighborhood} takes either zero, one or two arguments\footnote{Separated by a semicolon as for the other keyword functions.} and implements the ghost point transfer protocol described previously in this section.
 	\begin{enumerate}
 		\setcounter{enumi}{-1}
@@ -284,8 +281,10 @@ The delegation framework in \CodeName serves a vast amount of important practica
 
 \begin{figure}[ht!]
 	\centering
-	\includegraphics[scale=0.72]{pdf/delegation-framework.pdf}
+	\vspace*{5mm}
+	\includegraphics[scale=0.8]{pdf/delegation-framework.pdf}
 	\caption[Overview of the delegation framework]{Overview of the flow in the delegation framework. \label{fig:delegation-framework}}
+	\vspace*{5mm}
 \end{figure}	
 
 \noindent
@@ -301,7 +300,7 @@ The delegation solution is designed as illustrated in Figure \ref{fig:delegation
 \textit{"Eliminating single-point of failure on a stateful master server."}
 \end{quotation}
 , since the gateway then would require slightly more discernment than expected for a stateless server\footnote{\label{note:stateful}A stateful server is commonly a synonym with SPOF.}.
-\newline
+\clearpage
 
 The responsible server is calculated based on following calculation (\ref{eq:responsible}), and the current server is executing the function if the result is equal to this. Otherwise, the request is routed to the responsible.
 \begin{equation} \label{eq:responsible}

@@ -45,7 +45,7 @@ The \texttt{SofaBaseObject} defined in section \ref{sec:sofabaseobject} has been
 	\item All functions defined in an extended \texttt{OperationContex} is at runtime verified towards the two categories since the MapReduce execution model prescribes that each operation has at least one map function and at most one reduce function as the.
 \end{itemize}
 
-\section{Collection}
+\section{Collection} \label{sec:collection}
 A dataset in \CodeName is defined by a dictionary with meta data and a list of associated semantic blocks, as previously mentioned in section \ref{sec:sofabaseobject}, but this meta data structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives listed in section \ref{sec:bdae-objectives}:
 
 \begin{quotation}
@@ -72,7 +72,7 @@ Figure \ref{fig:reduction-tree} illustrates the two steps explained above, where
 	\caption[BDAE MapReduce implementation]{Utilization of the tree barrier based operation execution model in \CodeName for MapReduce in BDAE. \texttt{m} = map and \texttt{r} = reduce. \label{fig:map-reduce-tree}}
 \end{figure}	
 
-\section{User tiers}
+\section{User tiers} \label{sec:user-tiers}
 One of the objectives for BDAE was to: \textit{"Characterize a domain specific access model"} to first and foremost redeem expectations of system-wide access control, such that the scientist research employees who submit new map reduce operations does not have direct access to boot and teardown servers, as an example.
 \newline
 
@@ -105,15 +105,32 @@ Access rights:
 \end{itemize}
 
 \section{Templates}
+BDAE provides a range of different abstract templates related to commonly used data types within the field of interest, to reduce excessive workload for the end-users and generalize the final implementation solution, such that solutions to similar problems are easily comparable.
+\newline
+
+\noindent
+The templates provided includes:
+\begin{itemize}
+	\item One for \textbf{text} data that can split raw data into semantic blocks by three different properties: \textit{line}, \textit{sentence} or \textit{word}.
+	\item A template for \textbf{image} data that simplifies the burden of transforming raw data such as tiff-files into Numpy arrays.
+	\item The template for \textbf{Numpy/Bohrium array}'s is a simple solution that uses the template module binder described subsequently to bind regularly used functions from the respective libraries.
+	\item One of the objectives listed in section \ref{sec:bdae-objectives} includes: \textit{"Load complex data structures such as NetCDF $\ldots$ in an intelligent and thus efficiently way to reduce I/O cost."}, which is accomplished by utilizing the collection module described in section \ref{sec:collection} to create a \textbf{NetCDF} template. This is possible since this data format essentially is a group of related data records. 
+\end{itemize}
+
 \subsection{Module binder}
-\subsection{Text}
-\subsection{Image}
-\subsection{Numpy Array}
-\subsection{NetCDF}
+The module binder is not as such a template, but provides opportunities for conveniently binding Python built-in and other third party library functions like \texttt{map} and \texttt{reduce} specific \texttt{OperationContext} functions.
+\newline
+
+An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \texttt{string} module in Python \cite{PagePython} that counts number of \texttt{y} in \texttt{x}. The following snippet transforms the \texttt{count(}x, y\texttt{)} into \texttt{count\_occurrences(}x, y\texttt{)} with identical logic parameters and results.
+\vspace*{2mm}
+\begin{lstlisting}[language=Python, basicstyle=\footnotesize, numbers=none, showtabs=false, showstringspaces=false, showspaces=false, otherkeywords={string,new_fun_names}, stringstyle=\color{blue}]
+   module_binder(string, function_binder, ['count'], 
+                 new_fun_names=['count_occurrences'])
+\end{lstlisting}
+\vspace*{-6mm}
 
 \section{Libraries}
-\subsection{\texttt{libbdaescientist}}
-\subsection{\texttt{libbdaemanager}}
-\subsection{\texttt{libbdaeadmin}}
+BDAE provides three python libraries one for each of the user tier described in section \ref{sec:user-tiers}: \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively.
+
 \subsection{Web}
 \subsection{Android App} \label{sec:bdaeapp}
