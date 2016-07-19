@@ -46,7 +46,7 @@ The \texttt{SofaBaseObject} defined in section \ref{sec:sofabaseobject} has been
 \end{itemize}
 
 \section{Collection}
-A dataset in \CodeName is defined by a dictionary with meta data and a list of associated semantic blocks, as previously mentioned in section \ref{sec:sofabaseobject}, but this meta data structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, as was one of the objectives listed in section \ref{sec:bdae-objectives}:
+A dataset in \CodeName is defined by a dictionary with meta data and a list of associated semantic blocks, as previously mentioned in section \ref{sec:sofabaseobject}, but this meta data structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives listed in section \ref{sec:bdae-objectives}:
 
 \begin{quotation}
 	\textit{"Define and design a collection structure to batch similar datasets."}
@@ -55,11 +55,54 @@ A dataset in \CodeName is defined by a dictionary with meta data and a list of a
 In other words; a collection in BDAE is defined as a marginally altered meta data dictionary with zero-length list of associated semantic blocks, that nevertheless obeys the interface of the \texttt{SofaBaseObject}, which is a required for any type of data in \CodeName.
 
 \section{MapReduce}
+The tree barrier based operation execution model implemented in \CodeName and descried in section \ref{sec:submit} is well-suited for a MapReduce framework and BDAE is utilizing this straightforward advantage. Figure \ref{fig:reduction-tree} illustrates an example of an execution reduction tree as it would resemble with 16 storage nodes, the figure exemplifies among other things how and when the different storage nodes are communicating to calculate the correct result jointly.
+\newline
+
+The joints have an important function in the MapReduce framework and have the overall responsibility of why the execution model adds up and it is implemented as following:
+\begin{enumerate}
+	\item Each node is executing one or more \texttt{map} functions locally.
+	\item The neighbor nodes are based on equation \ref{eq:reduction} calculating the locally combined \texttt{reduce} together.
+\end{enumerate}
+
+Figure \ref{fig:reduction-tree} illustrates the two steps explained above, where second step is repeated with the same \texttt{reduce} function until all local results are combined to a global result.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.7]{pdf/map-reduce-tree.pdf}
+	\caption[BDAE MapReduce implementation]{Utilization of the tree barrier based operation execution model in \CodeName for MapReduce in BDAE. \texttt{m} = map and \texttt{r} = reduce. \label{fig:map-reduce-tree}}
+\end{figure}	
 
 \section{User tiers}
-\subsection{Data scientist}
-\subsection{Data manager}
-\subsection{System administrator}
+One of the objectives for BDAE was to: \textit{"Characterize a domain specific access model"} to first and foremost redeem expectations of system-wide access control, such that the scientist research employees who submit new map reduce operations does not have direct access to boot and teardown servers, as an example.
+\newline
+
+The entire BDAE + \CodeName system are divided into three major responsibilities, which each has its domain specific user access level. The responsibilities are inherited as the level increases, which means that a \textbf{manager} have the same rights as the \textbf{scientist} and so fourth.
+\newline
+
+The core API of \CodeName has been wrapped into a BDAE specific controller that grants access based on user level, in order to restrict the API access and thus accomplish this.
+
+\subsection{Level 1: Data scientist}
+Access rights:
+\begin{itemize}
+	\item Submit new MapReduce operation
+	\item Poll for result
+	\item Various \texttt{get}-functions to retrieve meta data information regarding the datasets.
+\end{itemize}
+
+\subsection{Level 2: Data manager}
+Access rights:
+\begin{itemize}
+	\item Create dataset
+	\item Create collection (essentially a thin wrapper around the create dataset API-call with some extra collection specific logic.)
+	\item Append data to dataset
+	\item Update/delete dataset
+\end{itemize}
+
+\subsection{Level 3: System administrator}
+Access rights:
+\begin{itemize}
+	\item Boot and teardown servers
+\end{itemize}
 
 \section{Templates}
 \subsection{Module binder}

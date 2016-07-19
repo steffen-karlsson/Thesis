@@ -127,7 +127,7 @@ A solution particularly well-suited for big data analysis with MapReduce (outlin
 \newline
 
 The calculation of whom to send to who is based on a multiplication of the \textit{sum of odd numbers}\footnote{$1 + 3 + 5 + \ldots + (2n-1) = n^2$} with respect to the iteration count (the x-axis at the figure). The calculation for any given iteration \textit{i} is as follows:
-\begin{equation}
+\begin{equation} \label{eq:reduction}
 \underbrace{\dfrac{\texttt{id}:node}{2^{i}}}_{\forall \in \mathbb{N}_0} \texttt{ mod } 2 \equiv 1
 \end{equation}
 , and will resolve in boolean values that indicate whether the node has to send its result to the closest neighbor on the left-hand side.
