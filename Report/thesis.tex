@@ -133,9 +133,12 @@
 
 \renewcommand*{\chaptitlefont}{\normalfont\sffamily\Huge\bfseries}
 
+\let\Sectionmark\sectionmark
+\def\sectionmark#1{\def\Sectionname{#1}\Sectionmark{#1}}
+
 \makepagestyle{diku}
 \makeevenhead{diku}{\sffamily\rightmark}{}{}
-\makeoddhead{diku}{\sffamily\rightmark}{}{\sffamily\currenttitle}
+\makeoddhead{diku}{\sffamily\rightmark}{}{\sffamily\Sectionname}
 \makeevenfoot{diku}{}{\sffamily\thepage \text{ of } \sffamily\pageref{LastPage}}{}
 \makeoddfoot{diku}{}{\sffamily\thepage \text{ of } \sffamily\pageref{LastPage}}{}
 \makeheadrule{diku}{\textwidth}{1pt}
