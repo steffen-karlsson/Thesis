@@ -130,7 +130,47 @@ An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \textt
 \vspace*{-6mm}
 
 \section{Libraries}
-BDAE provides three python libraries one for each of the user tier described in section \ref{sec:user-tiers}: \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively.
+BDAE provides three python libraries one for each of the user tier described in section \ref{sec:user-tiers}: \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively, that implements the logic listed.
+
+\section{Extensions}
+Using the rather simple \CodeName core API it is possible to write useful and comprehensive extensions, as BDAE exemplifies. Likewise it is possible to create extensions on top BDAE using the libraries briefly explained in the previous section. The generic web interface and Android\cite{PageAndroid} application described in this section are two examples of that.
 
 \subsection{Web}
-\subsection{Android App} \label{sec:bdaeapp}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.33]{img/website.png}
+	\caption{Overview of the BDAE website. \label{fig:website}}
+\end{figure}
+
+A simple graphical user interface represented as a website (illustrated in figure \ref{fig:website}) is provided as part of the BDAE installation (explained in appendix \ref{app:installation}). 
+
+The website expands the options regarding the scientist position, since it is no longer a requirement to master the skill of programming in order to operate BDAE at that user tier. At the moment it is possible to:
+\begin{itemize}
+	\item Choose the dataset to operate on among all available in \CodeName.
+	\item Submit a new MapReduce operation.
+	\item And view the result whenever it has finished the execution.
+\end{itemize}
+, but supporting more features are in the project pipeline.
+
+\subsection{Android application} \label{sec:bdaeapp}
+\begin{figure}
+	\centering
+	\vspace*{4mm}
+	\includegraphics[width=0.4\textwidth]{img/overview.png}
+	\caption[Android application overview]{Android application overview of the current MapReduce operations executing in BDAE. \label{fig:app-overview}}
+	\vspace*{4mm}
+\end{figure}
+
+The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} as visualized in figure \ref{fig:app-overview} and appendix \ref{chp:app-screenshots}.
+\newline
+
+\noindent
+The application supports following features:
+\begin{itemize}
+	\item Configuration of gateway access server.
+	\item All types \CodeName specific instances defined by the \texttt{instance-name} system configuration.
+	\item Visualization of current executing MapReduce operations.
+	\item Adding new operations for existing datasets.
+	\item Listing meta data information about all datasets currently available in \CodeName.
+	\item View the results of all the previous executed operations.
+\end{itemize}
