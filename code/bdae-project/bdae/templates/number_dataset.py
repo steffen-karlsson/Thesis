@@ -12,7 +12,8 @@ class NumpyArrayDataset(AbsMapReduceDataset):
     __metaclass__ = ABCMeta
 
     def get_map_functions(self):
-        return module_binder(numpy, map_function_binder, ['floor', 'ceil', 'round'], new_fun_names=['count_occurrences'])
+        return module_binder(numpy, map_function_binder, ['floor', 'ceil', 'round'])
 
     def get_reduce_functions(self):
-        return module_binder(numpy, reduce_function_binder, ['sum', 'min', 'max'])
+        return module_binder(numpy, reduce_function_binder, ['sum', 'min', 'max', 'add.reduce', 'average'])
+

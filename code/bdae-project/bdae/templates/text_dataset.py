@@ -15,7 +15,8 @@ class _TextData(AbsMapReduceDataset):
     __metaclass__ = ABCMeta
 
     def get_map_functions(self):
-        return module_binder(string, map_function_binder, ['count'], new_fun_names=['count_occurrences'])
+        return module_binder(string, map_function_binder, ['count'], new_fun_names=['count_occurrences']) \
+               + module_binder(__builtin__, map_function_binder, ['len'])
 
     def get_reduce_functions(self):
         return module_binder(__builtin__, reduce_function_binder, ['sum', 'min', 'max'])
