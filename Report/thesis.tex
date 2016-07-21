@@ -30,8 +30,11 @@
 \usepackage{listings}
 \usepackage{afterpage}
 \usepackage{lastpage}
-
+\usepackage{mdframed}
+\usepackage{booktabs}
 \usepackage{xcolor}
+\usepackage{ifthen}
+
 \definecolor{generalcolor}{RGB}{52,73,94}
 \definecolor{myblue}{HTML}{268BD2}
 \definecolor{mygreen}{HTML}{859900}
@@ -114,6 +117,52 @@
 		\includegraphics[scale=#4]{pdf/#1}
 		\caption[#3]{#2 \label{fig:#1}}
 	\end{figure}
+}
+
+\newmdenv[
+  topline=false,
+  bottomline=false,
+  skipabove=\topsep,
+  skipbelow=\topsep,
+  leftmargin=2pt,
+  rightline=false,
+  innertopmargin=6pt,
+  innerbottommargin=10pt
+]{siderules}
+
+\newcommand{\testcase}[7]{
+	\vspace*{4mm}
+	\begin{siderules}
+	{\large\sffamily\textbf{Test Case:}} #1
+	\begin{quotation}
+		\textit{#2}
+	\end{quotation}
+	\begin{quotation}
+		\vspace*{2mm}
+		\ifthenelse { \equal {#3} {} } {} {
+			\noindent
+			\textbf{Note}: #3
+			\\~
+			\\~
+			\vspace*{2mm}}
+		\noindent
+		\textbf{Arguments}:
+		#4
+		\vspace*{2mm}
+		\noindent
+		\textbf{Expected result}:
+		\begin{quotation}
+			#5
+		\end{quotation}
+		\vspace*{2mm}
+		\noindent
+		\textbf{Result}\ifthenelse { \equal {#6} {} } {:} { (\textit{#6}):}
+		\vspace*{2mm}
+		\begin{quotation}
+			#7
+		\end{quotation}
+	\end{quotation}
+	\end{siderules}
 }
 
 \usepackage{tikz, blindtext}
