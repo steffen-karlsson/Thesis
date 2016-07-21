@@ -31,7 +31,7 @@ X, Y = 566, 362
 M = arange(-30, 31)
 
 # Number of slices to process
-NUM_SLICES = 5
+NUM_SLICES = 2
 
 # Erode dimension
 D = ERODE_SIZE * 2 + 1
@@ -73,7 +73,7 @@ class AVS5MDataset(ImageDataset):
         return [median_filter, thresholding, eroding, connected_components]
 
     def get_distribution_strategy(self):
-        return Tiles(3)
+        return Tiles(2)
 
 
 def median_filter(blocks):
@@ -182,6 +182,7 @@ if __name__ == '__main__':
     manager = PyBDAEManager("sofa:textdata:gateway:0")
     manager.create_dataset(AVS5MDataset(name="AVS5M dataset", description="Testing image circle recognition"))
     manager.append_to_dataset("AVS5M dataset", BASE_PATH + "AVS5M.tif")
+    print "Appended"
 
     def callback(res):
         print "The result is: " + str(res)

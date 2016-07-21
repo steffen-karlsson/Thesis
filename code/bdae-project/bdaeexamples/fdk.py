@@ -117,6 +117,7 @@ if __name__ == '__main__':
     manager = PyBDAEManager("sofa:textdata:gateway:0")
     manager.create_dataset(FDKDataset(name="FDK dataset", description="Testing reconstruction"))
     manager.append_to_dataset("FDK dataset", BASE_PATH + "projections.bin")
+    print "Appended"
 
     def callback(res):
         print "Saved"
@@ -127,5 +128,5 @@ if __name__ == '__main__':
             BASE_PATH + 'transform.bin',
             BASE_PATH + 'volumeweight.bin']
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    # GatewayWebWrapper(scientist).start(9990)
+    # GatewayWebWrapper(scientist).start(9990, hostname='0.0.0.0')
     scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
