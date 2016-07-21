@@ -80,7 +80,7 @@ def _crawl_syntax(context, syntax, functions, seq_start, seq_end, par_start, par
         tail = tail.strip()
         function = context.verify_function(tail)
         if not function:
-            raise Exception("Function %s is not valid compared to rules in verify_function" % tail)
+            raise Exception("Function %s is not valid compared to rules in verify_function" % function)
 
         functions = [function] + functions
 
