@@ -1,3 +1,83 @@
+A variety of different examples of how to utilize and program BDAE efficiently are provided as part of the installation of the complete framework (a guide is available in appendix \ref{app:installation}), which has been tested and verified throughout the development process. 
+
+Furthermore, a range of the most relevant scenarios are additionally tested and validated with the unit test framework\cite{PageUnitTest} in Python. The following chapter is dedicated to describing the unit tests.
+
 \section{SOFA}
+\CodeName was carefully tested as part of the BDAE unit tests, but not as a standalone framework, since it is hard to test alone as it is intended to be a subset of a larger system built on top using the available API. 
+
+The tests of BDAE are utilizing a majority of the available crucial API call\footnote{Not the straightforward \texttt{get} method calls.} of \CodeName and are considered comprehensive enough for now, as BDAE would not functioning correctly or at all if \CodeName did not operate correctly.
 
 \section{BDAE}
+The unit test cases are implemented using and thus testing the provided BDAE templates described in section \ref{sec:templates} using the adequate user level based BDAE libraries described in section \ref{sec:libraries}.
+\newline
+
+\CodeName + BDAE are additionally tested as part of the performance benchmarking described in chapter \ref{chp:benchmark}.
+
+\subsection*{Text}
+The test cases for the text-based data covers all three types of BDAE templates explained in section \ref{sec:templates} and the purpose is it test tangible examples.
+
+\testcase{Letter count}{Counting the total number of letters in an arbitrary generated scientific dataset string}{This test are verified using all the three types of text-based templates: \textit{line}, \textit{sentence} or \textit{word}.}{
+	\begin{itemize}
+		\item \textbf{M}: Repeat count
+		\item \textbf{L}: The letter to be repeated $M$ times, an example for $N=4$ and $L=$'a' results in: a aa aaa aaaa.
+		\item \textbf{N}: Replication count
+	\end{itemize}
+}{
+\begin{equation*}
+	N \cdot \sum_{m=1}^{M+1} m
+\end{equation*}
+}{All results are tested with $L$ = 'a'.}{
+\centering
+\begin{tabular}{l p{3cm}}
+\specialrule{1.5pt}{2pt}{2pt}
+\textbf{Input} & \textbf{Output} \\
+\midrule
+$N = 1$, $M=1$ & 1 \\ 
+$N = 10$, $M=1$ & 55 \\ 
+$N = 10$, $M=10$ & 550 \\ 
+\specialrule{1.5pt}{2pt}{2pt}
+\end{tabular}
+}
+
+\testcase{Line count}{Counting the number lines in an arbitrary generated scientific dataset string}{This test are verified using text-based templates: \textit{line}.}{
+	\begin{quotation}
+		Same as above.
+	\end{quotation}
+}{
+\begin{equation*}
+	M
+\end{equation*}
+}{All results are tested with $L$ = 'a'.}{
+\centering
+\begin{tabular}{l p{3cm}}
+\specialrule{1.5pt}{2pt}{2pt}
+\textbf{Input} & \textbf{Output} \\
+\midrule
+$N = 1$, $M=1$ & 1 \\ 
+$N = 10$, $M=1$ & 1 \\ 
+$N = 10$, $M=10$ & 10 \\ 
+\specialrule{1.5pt}{2pt}{2pt}
+\end{tabular}
+}
+
+\testcase{Word count}{Counting the number word (defined as text separated by a space in this situation) in an arbitrary generated scientific dataset string}{This test are verified using text-based templates: \textit{word}.}{
+	\begin{quotation}
+		Same as above.
+	\end{quotation}
+	\newpage
+}{
+\begin{equation*}
+	N*M
+\end{equation*}
+}{All results are tested with $L$ = 'a'.}{
+\centering
+\begin{tabular}{l p{3cm}}
+\specialrule{1.5pt}{2pt}{2pt}
+\textbf{Input} & \textbf{Output} \\
+\midrule
+$N = 1$, $M=1$ & 1 \\ 
+$N = 10$, $M=1$ & 10 \\ 
+$N = 10$, $M=10$ & 100 \\ 
+\specialrule{1.5pt}{2pt}{2pt}
+\end{tabular}
+}
