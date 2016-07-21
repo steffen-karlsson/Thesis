@@ -104,7 +104,7 @@ Access rights:
 	\item Boot and teardown servers
 \end{itemize}
 
-\section{Templates}
+\section{Templates} \label{sec:templates}
 BDAE provides a range of different abstract templates related to commonly used data types within the field of interest, to reduce excessive workload for the end-users and generalize the final implementation solution, such that solutions to similar problems are easily comparable.
 \newline
 
@@ -129,7 +129,7 @@ An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \textt
 \end{lstlisting}
 \vspace*{-6mm}
 
-\section{Libraries}
+\section{Libraries} \label{sec:libraries}
 BDAE provides three python libraries one for each of the user tier described in section \ref{sec:user-tiers}: \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively, that implements the logic listed.
 
 \section{Extensions}
@@ -142,7 +142,8 @@ Using the rather simple \CodeName core API it is possible to write useful and co
 	\caption{Overview of the BDAE website. \label{fig:website}}
 \end{figure}
 
-A simple graphical user interface represented as a website (illustrated in figure \ref{fig:website}) is provided as part of the BDAE installation (explained in appendix \ref{app:installation}). 
+A simple graphical user interface represented as a website (illustrated in figure \ref{fig:website}) is provided as part of the BDAE framework installation (explained in appendix \ref{app:installation}). 
+\clearpage
 
 The website expands the options regarding the scientist position, since it is no longer a requirement to master the skill of programming in order to operate BDAE at that user tier. At the moment it is possible to:
 \begin{itemize}
@@ -153,16 +154,16 @@ The website expands the options regarding the scientist position, since it is no
 , but supporting more features are in the project pipeline.
 
 \subsection{Android application} \label{sec:bdaeapp}
-\begin{figure}
+The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} as visualized in figure \ref{fig:app-overview} and appendix \ref{chp:app-screenshots}.
+\newline
+
+\begin{figure}[h!]
 	\centering
 	\vspace*{4mm}
 	\includegraphics[width=0.4\textwidth]{img/overview.png}
 	\caption[Android application overview]{Android application overview of the current MapReduce operations executing in BDAE. \label{fig:app-overview}}
 	\vspace*{4mm}
 \end{figure}
-
-The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} as visualized in figure \ref{fig:app-overview} and appendix \ref{chp:app-screenshots}.
-\newline
 
 \noindent
 The application supports following features:
