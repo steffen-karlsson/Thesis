@@ -132,3 +132,48 @@ $n = 2$, $M=10$ & 20 \\
 \newpage
 
 \subsection*{NetCDF}
+The two NetCDF test cases concentrate primarily on calculating the global sum of multiple arbitrary sized scientific arrays of fixed data stored jointly together in a NetCDF format, by only loading the data into memory once using the template explained in section \ref{sec:templates}.
+
+\testcase{Dataset sum}{Calculating the sum of a single dataset from a NetCDF format generated with arbitrary scientific single and or multidimensional array of fixed data.}{}{
+	\begin{itemize}
+		\item \textbf{M}: Repeat count
+		\item \textbf{n}: The number to be repeated in an $M\cdot M$ array.
+		\item \textbf{N}: Replication count
+	\end{itemize}
+}{
+\begin{equation*}
+	n \cdot M^2 \cdot N
+\end{equation*}
+}{Assuming $N=1$ as it is just an arbitrary multiplication of the base result.}{
+\centering
+\begin{tabular}{l p{3cm}}
+\specialrule{1.5pt}{2pt}{2pt}
+\textbf{Input} & \textbf{Output} \\
+\midrule
+$n = 1$, $M=1$ & 1 \\ 
+$n = 2$, $M=100$ & 10000 \\ 
+$n = 3$, $M=1000$ & 3000000 \\ 
+\specialrule{1.5pt}{2pt}{2pt}
+\end{tabular}
+}
+
+\testcase{Combined NetCDF sum}{Calculating the total global sum of all datasets generated with arbitrary scientific single and or multidimensional array of fixed data.}{}{
+	\begin{quotation}
+		Same as above.
+	\end{quotation}
+}{
+\begin{equation*}
+	\sum_{\forall n \in \{1,2,3\}} n \cdot M^2 \cdot N
+\end{equation*}
+}{Assuming $n = \{1,2,3\}$ and $N=1$ for the same reason as for the previous test.}{
+\centering
+\begin{tabular}{l p{3cm}}
+\specialrule{1.5pt}{2pt}{2pt}
+\textbf{Input} & \textbf{Output} \\
+\midrule
+$M=1$ & 6 \\ 
+$M=10$ & 600 \\
+$M=100$ & 60000 \\ 
+\specialrule{1.5pt}{2pt}{2pt}
+\end{tabular}
+}
