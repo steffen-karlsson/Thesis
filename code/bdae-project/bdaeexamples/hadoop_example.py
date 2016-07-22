@@ -47,8 +47,9 @@ if __name__ == '__main__':
     from bdae.libpy.libbdaescientist import PyBDAEScientist
 
     manager = PyBDAEManager("sofa:textdata:gateway:0")
-    manager.create_dataset(LogEventParserData(name="Log Events", description="A MR	Job	Example"))
-    manager.append_to_dataset("Log Events", getcwd() + "/testdata/logs.txt")
+    dataset = LogEventParserData(name="Log Events", description="A MR	Job	Example")
+    manager.create_dataset(dataset)
+    manager.append_path_to_dataset(dataset, getcwd() + "/testdata/logs.txt")
 
     def result_callback(res):
         print "The result is", ["%s: %s" % (level, int(count)) for level, count in zip(LEVELS, res)]

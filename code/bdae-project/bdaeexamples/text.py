@@ -11,11 +11,15 @@ LINK = "Insert link to Moby Dick"
 
 if __name__ == '__main__':
     manager = PyBDAEManager("sofa:textdata:gateway:0")
-    manager.create_dataset(MobyDickDatasetWord(name="moby dick word", description="Moby dick as words"))
-    manager.append_to_dataset("moby dick word", LINK)
+    dataset = MobyDickDatasetWord(name="moby dick word", description="Moby dick as words")
+    manager.create_dataset(dataset)
+    manager.append_path_to_dataset(dataset, LINK)
+
 
     def callback(res):
         print "Count:", res
 
+
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    GatewayWebWrapper(scientist).start(9990, hostname='0.0.0.0')
+    scientist.submit_job("moby dick word", "count", "Moby Dick", callback=callable)
+    # GatewayWebWrapper(scientist).start(9990, hostname='0.0.0.0')

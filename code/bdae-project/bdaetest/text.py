@@ -8,7 +8,7 @@ from functools import partial
 from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 from bdae.templates.text_dataset import TextDataByLine, TextDataByWord
-from sofa.foundation.operation import OperationContext
+from sofa.foundation.operation import OperationContext, ExpectedReturnType
 from sofa.error import DatasetAlreadyExistsException
 
 M = 10
@@ -24,9 +24,12 @@ def generate_scientific_dataset(letter, delimitter, m, n):
 
 def text_test_operations(context):
     return [
-        OperationContext.by(context, "letters", "[modify:combining, count_occurrences, sum]"),
-        OperationContext.by(context, "lines", "[len, sum]"),
+        OperationContext.by(context, "letters", "[modify:combining, count_occurrences, sum]")
+            .with_expected_return_type(ExpectedReturnType.Number),
+        OperationContext.by(context, "lines", "[len, sum]")
+            .with_expected_return_type(ExpectedReturnType.Number),
         OperationContext.by(context, "words", "[len, sum]")
+            .with_expected_return_type(ExpectedReturnType.Number)
     ]
 
 
@@ -62,11 +65,12 @@ class ABCTextTest(object):
     def __init__(self):
         self._scientist = PyBDAEScientist("sofa:textdata:gateway:0")
         self._manager = PyBDAEManager("sofa:textdata:gateway:0")
+        self._dataset = self.get_dataset()
 
     def set_up(self):
         try:
-            self._manager.create_dataset(self.get_dataset())
-            self._manager.append_to_dataset(self.get_dataset_name(), generate_scientific_dataset(L, "\n", M, N))
+            self._manager.create_dataset(self._dataset)
+            self._manager.append_data_to_dataset(self._dataset, generate_scientific_dataset(L, "\n", M, N))
         except DatasetAlreadyExistsException:
             pass
 

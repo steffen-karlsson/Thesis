@@ -180,8 +180,9 @@ def find_groups(blocks):
 if __name__ == '__main__':
     BASE_PATH = getcwd() + "/testdata/"
     manager = PyBDAEManager("sofa:textdata:gateway:0")
-    manager.create_dataset(AVS5MDataset(name="AVS5M dataset", description="Testing image circle recognition"))
-    manager.append_to_dataset("AVS5M dataset", BASE_PATH + "AVS5M.tif")
+    dataset = AVS5MDataset(name="AVS5M dataset", description="Testing image circle recognition")
+    manager.create_dataset(dataset)
+    manager.append_path_to_dataset(dataset, BASE_PATH + "AVS5M.tif")
     print "Appended"
 
     def callback(res):

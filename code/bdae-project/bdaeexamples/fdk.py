@@ -115,8 +115,9 @@ if __name__ == '__main__':
     BASE_PATH = getcwd() + "/testdata/"
 
     manager = PyBDAEManager("sofa:textdata:gateway:0")
-    manager.create_dataset(FDKDataset(name="FDK dataset", description="Testing reconstruction"))
-    manager.append_to_dataset("FDK dataset", BASE_PATH + "projections.bin")
+    dataset = FDKDataset(name="FDK dataset", description="Testing reconstruction")
+    manager.create_dataset(dataset)
+    manager.append_path_to_dataset(dataset, BASE_PATH + "projections.bin")
     print "Appended"
 
     def callback(res):

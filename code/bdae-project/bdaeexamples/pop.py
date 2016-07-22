@@ -7,7 +7,7 @@ from bdae.libpy.libbdaescientist import PyBDAEScientist
 from bdae.templates.netcdf_dataset import NetCDFDatasetCollection
 from bdaeexamples.netcdf_numpy import NetCDFNumpyDataset
 
-LINK = "Insert link to pop.nc"
+LINK = "/home/steffenkarlsson/Downloads/pop.nc"
 
 
 class PopDatasetCollection(NetCDFDatasetCollection):
@@ -24,8 +24,7 @@ class PopDatasetCollection(NetCDFDatasetCollection):
 
 if __name__ == '__main__':
     manager = PyBDAEManager("sofa:textdata:gateway:0")
-    manager.initialize_collection(PopDatasetCollection(name='pop'), with_new_data=True)
-    manager.append_to_dataset("pop", LINK)
+    manager.initialize_collection(PopDatasetCollection(name='pop'), with_new_data=LINK)
 
 
     def callback(res):
