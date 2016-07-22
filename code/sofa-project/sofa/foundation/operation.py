@@ -17,8 +17,8 @@ class ExpectedReturnType(object):
     }
 
     representation = {
-        Text: lambda s: s,
-        Number: lambda d: str(d),
+        Text: lambda s: str(s),
+        Number: lambda d: d,
         Image: lambda i: ExpectedReturnType._img_representation(i),
         NumpyArray: lambda a: dumps(a.tolist())
     }
