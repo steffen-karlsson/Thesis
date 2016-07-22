@@ -60,6 +60,29 @@ class SofaBaseObject:
         """
         pass
 
+    def deserialize(self, data):
+        """
+        Method to override in order to deserialize data if needed for sending across the network
+        (implement together with serialize and is_serialized)
+
+        :param data: data as inserted
+        :return: serialized data if needed to be serialized otherwise the data
+        """
+        return data
+
+    def serialize(self, data):
+        """
+        Method to override in order to serialize data if needed for sending across the network
+        (implement together with deserialize and is_serialized)
+
+        :param data: data as inserted
+        :return: serialized data if needed to be serialized otherwise the data
+        """
+        return data
+
+    def is_serialized(self):
+        return False
+
     def get_distribution_strategy(self):
         """
         Method to override in order to define a new distribution strategy from default e.g. Round Robin.

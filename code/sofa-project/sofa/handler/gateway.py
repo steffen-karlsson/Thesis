@@ -11,6 +11,7 @@ from random import choice
 from sys import getsizeof
 
 from simplejson import loads
+from cPickle import dumps as pickle_dumps
 
 from sofa.cache import CacheSystem
 from sofa.delegation import FunctionDelegation
@@ -129,15 +130,15 @@ class GatewayHandler(object):
         self.__gcs.delete(identifier)
         return self.__get_storage_node().delete(identifier)
 
-    def append(self, name, data_ref):
+    def append(self, name, data):
         identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'class-name')
         if is_error(res):
             return res
 
-        context, meta_data = res
+        class_context, meta_data = res
 
-        strategy = context.get_distribution_strategy()
+        strategy = class_context.get_distribution_strategy()
         if not isinstance(strategy, zip(*getmembers(sofa_strategies, isclass))[1]):
             return STATUS_NOT_FOUND, strategy.__class__.__name__, "is an invalid strategy"
 
@@ -160,17 +161,26 @@ class GatewayHandler(object):
         # Clean function cache
         self.__gcs.delete(identifier)
 
-        # Preprocess data if needed
-        data = context.preprocess(data_ref)
+        if class_context.is_serialized():
+            if isinstance(data, unicode):
+                data = data.encode("ascii")
 
-        replication_factor = context.get_replication_factor()
+            data = class_context.deserialize(data)
+
+        # Preprocess data if needed
+        data = class_context.preprocess(data)
+
+        replication_factor = class_context.get_replication_factor()
         if replication_factor > num_storage_nodes:
             return STATUS_NOT_ALLOWED, "Replication factor can't be larger than number of storage nodes"
 
         fd = FunctionDelegation(identifier) \
-            .as_required_queue_delegation(None, context.get_replication_factor())
+            .as_required_queue_delegation(None, class_context.get_replication_factor())
 
-        for block in self.__next_block(context, data):
+        for block in self.__next_block(class_context, data):
+            # Serialize data if needed
+            block = class_context.serialize(block)
+
             # Store at primary replica first
             self.__storage_nodes[start].append(fd, identifier, block, create_new_stride)
 
@@ -186,7 +196,7 @@ class GatewayHandler(object):
 
         fd = FunctionDelegation(identifier) \
             .as_dispatch_delegation() \
-            .as_required_queue_delegation(None, context.get_replication_factor())
+            .as_required_queue_delegation(None, class_context.get_replication_factor())
         self.__get_storage_node().update_meta_key(fd, identifier, 'append', 'num-blocks', block_count)
 
     def __next_block(self, context, data):

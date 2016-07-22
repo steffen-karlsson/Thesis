@@ -108,15 +108,15 @@ def _modify_blocks(handler, args, operation_context_args, format_func_name):
     handler.save_partial_value_state(didentifier, fidentifier, blocks)
 
 
-def _get_operation_context(function_name, meta_data):
+def _get_contexts(function_name, meta_data):
     if meta_data['num-blocks'] == 0:
         # No data found for data identifier
         return STATUS_NOT_FOUND
 
-    context = _get_class_context(meta_data)
-    for operation_context in context.get_operations():
+    class_context = _get_class_context(meta_data)
+    for operation_context in class_context.get_operations():
         if operation_context.fun_name == function_name:
-            return operation_context
+            return operation_context, class_context
 
     return STATUS_NOT_FOUND
 
@@ -340,7 +340,6 @@ class StorageHandler(DelegationHandler):
 
         if isinstance(block, unicode):
             block = block.encode("ascii")
-        block = pickle_loads(block)
 
         res = self.__get_meta_from_identifier_and_replica(identifier, replica_index)
         if is_error(res):
@@ -480,6 +479,10 @@ class StorageHandler(DelegationHandler):
             # Calculate self
             return __self_jobs()
 
+    def __get_deserialized_raw_blocks(self, class_context, didentifier, replica_index):
+        blocks = self.__get_raw_blocks(didentifier, replica_index)
+        return [class_context.deserialize(block) for block in blocks]
+
     def __get_raw_blocks(self, didentifier, replica_index):
         # We only store meta data on primary replica = 0
         is_root = str(didentifier) in self.__FLAG and replica_index == 0
@@ -490,7 +493,9 @@ class StorageHandler(DelegationHandler):
     def __get_num_raw_blocks(self, didentifier, replica_index):
         return len(self.__get_raw_blocks(didentifier, replica_index))
 
-    def __get_operations_and_arguments(self, didentifier, fidentifier, process_state):
+    def __get_operations_and_arguments(self, didentifier, fidentifier, class_context, process_state):
+        replica_index = process_state['replica-index']
+
         # Merge ghosts into blocks
         def _get_blocks_with_ghost():
             ghosts = self.__dgcs.get(fidentifier)
@@ -498,7 +503,9 @@ class StorageHandler(DelegationHandler):
 
             # Get blocks to work on
             if process_state['block-state'] is 'raw':
-                _blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
+                _blocks = self.__get_raw_blocks(didentifier, replica_index)
+            elif process_state['block-state'] is 'serialized':
+                _blocks = self.__get_deserialized_raw_blocks(class_context, didentifier, replica_index)
             elif process_state['block-state'] is 'partial':
                 # The result block is used for partial results in the case of built in functions with synchronization
                 _blocks = self.get_partial_value(didentifier, fidentifier)
@@ -521,7 +528,10 @@ class StorageHandler(DelegationHandler):
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
         else:
-            blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
+            if process_state['block-state'] is 'serialized':
+                blocks = self.__get_deserialized_raw_blocks(class_context, didentifier, replica_index)
+            else:
+                blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
 
         args[BLOCKS] = blocks
         query = process_state['query']
@@ -605,11 +615,15 @@ class StorageHandler(DelegationHandler):
         # If im the only node in the system
         is_local_transfer = self.get_num_storage_nodes() == 0
 
-        res = _get_operation_context(function_name, meta_data)
+        res = _get_contexts(function_name, meta_data)
         if is_error(res):
             self.__terminate_job(didentifier, fidentifier, STATUS_NO_DATA)
             return
-        operation_context = res
+        operation_context, class_context = res
+
+        # Set block state to serialized if the appended data is stored in a serialized manner
+        if class_context.is_serialized():
+            process_state['block-state'] = 'serialized'
 
         # Set return type
         process_state['data-type'] = operation_context.get_return_type()
@@ -647,27 +661,28 @@ class StorageHandler(DelegationHandler):
             return
 
         # Find ghosts from local neighbors if needed else execute
-        replica_blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
+        replica_blocks = self.__get_deserialized_raw_blocks(class_context, didentifier, process_state['replica-index'])
 
-        self.handle_ghosts(didentifier, operation_context, done_callback_handler, replica_blocks,
+        self.handle_ghosts(didentifier, operation_context, done_callback_handler,
+                           self_data=replica_blocks,
                            is_local_transfer=is_local_transfer)
 
     def execute_function(self, didentifier, fidentifier, meta_data, process_state):
         function_name = process_state['function-name']
         info("Execute function " + function_name + " at " + str(self))
 
-        res = _get_operation_context(function_name, meta_data)
+        res = _get_contexts(function_name, meta_data)
         if is_error(res):
             self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
             return
-        operation_context = res
+        operation_context, class_context = res
 
         # Calculate results of functions, which isn't already processed, i.e. function-count
         functions = operation_context.get_functions()[process_state['function-count']:]
         last_function = functions[-1]
 
         if process_state['processing']:
-            args = self.__get_operations_and_arguments(didentifier, fidentifier, process_state)
+            args = self.__get_operations_and_arguments(didentifier, fidentifier, class_context, process_state)
             if is_error(args):
                 self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
                 return
