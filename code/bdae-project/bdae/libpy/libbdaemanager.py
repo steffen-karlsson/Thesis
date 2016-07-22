@@ -7,6 +7,7 @@
 
 from inspect import isgeneratorfunction
 from logging import debug
+from cPickle import dumps as pickle_dumps
 
 from bdae.libpy.libbdaescientist import PyBDAEScientist
 from sofa.error import verify_error, DatasetAlreadyExistsException, DatasetNotExistsException, is_error
@@ -97,7 +98,7 @@ class PyBDAEManager(PyBDAEScientist):
                     self.create_dataset(dataset)
 
                     # If it went fine, append data
-                    self.append_to_dataset(identifier, data_ref)
+                    self.append_data_to_dataset(dataset, data_ref)
 
                 verify_specified_datasets = False
             except NotImplementedError:
@@ -117,18 +118,39 @@ class PyBDAEManager(PyBDAEScientist):
             name = collection.get_name().split(':')[1]
             raise CollectionAlreadyExistsException("Collection with name: '%s' already exists" % name)
 
-    def append_to_dataset(self, name, url):
+    def append_data_to_dataset(self, dataset, data):
         """
         Method to append data from a url to an existing dataset created by :func:`create_dataset`.
 
-        :param name: Name of the dataset
-        :type name: str
-        :param url: The path from where the framework gateway needs to download the data
+        :param dataset: Dataset reference
+        :type dataset: Implementation of :class:`.AbsMapReduceDataset`
+        :param data: Actual data
+        :type data: any
+        :raises DatasetNotExistsException: If the dataset isn't already created by :func:`create_dataset`
+        """
+
+        data = dataset.serialize(data)
+        self.append_url_to_dataset(dataset, data)
+
+    def append_path_to_dataset(self, dataset, path):
+        """
+        See append_url_to_dataset documentation
+        """
+
+        self.append_url_to_dataset(dataset, path)
+
+    def append_url_to_dataset(self, dataset, url):
+        """
+        Method to append data from a url to an existing dataset created by :func:`create_dataset`.
+
+        :param dataset: Dataset reference
+        :type dataset: Implementation of :class:`.AbsMapReduceDataset`
+        :param url: The url from where the framework gateway needs to download the data
         :type url: str
         :raises DatasetNotExistsException: If the dataset isn't already created by :func:`create_dataset`
         """
 
-        verify_error(self._api.append(name, url))
+        verify_error(self._api.append(dataset.get_name(), url))
 
     def delete_dataset(self, name):
         """

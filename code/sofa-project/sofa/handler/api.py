@@ -3,7 +3,6 @@
 
 from inspect import getsourcefile
 from simplejson import dumps
-from cPickle import dumps as pickle_dumps
 
 from Pyro4 import Proxy, locateNS, async
 
@@ -21,7 +20,7 @@ class _StorageApi(object):
 
     def append(self, function_delegation, identifier, block, create_new_stride):
         self._validate_api()
-        return self._api.append(function_delegation, identifier, pickle_dumps(block), create_new_stride)
+        return self._api.append(function_delegation, identifier, block, create_new_stride)
 
     def update_meta_key(self, function_delegation, identifier, update_type, key, value):
         self._validate_api()
@@ -114,8 +113,8 @@ class GatewayApi(object):
     def update(self, name, package):
         return GatewayApi._set_dataset_by_function(name, package, None, self._api.update)
 
-    def append(self, name, path_or_url):
-        return self._api.append(name, path_or_url)
+    def append(self, name, data_ref):
+        return self._api.append(name, data_ref)
 
     def delete(self, name):
         return self._api.delete(name)
