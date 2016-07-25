@@ -1,22 +1,22 @@
-The purpose and ambition are to create a \CodeName extension build up on the core API explained in chapter \ref{chp:api}, to demonstrate the opportunities with a tangible and present example to set a standard. The extension seeks to model a data access layer (DAL) as a MapReduce framework (outlined in definition \ref{def:mapreduce}) for \CodeName like Hadoop for HDFS.
+\BigLetter{T}{he} purpose and ambition are to create a \CodeName extension build up on the core API explained in chapter \ref{chp:api}, to demonstrate the opportunities with a tangible and present example to set a standard. The extension seeks to model a data access layer (DAL) as a MapReduce framework (Definition \ref{def:mapreduce}) for \CodeName like Hadoop for HDFS.
 
 \section{Investigation}
-The initial idea and thoughts were to create a bridge between the DAL of Disco (described in section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, such that \CodeName would be an optimized and semantic-intelligent replacement for DDFS (Disco Distributed File System). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
+The initial idea and thoughts were to create a bridge between the DAL of Disco (Section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, such that \CodeName would be an optimized and semantic-intelligent replacement for DDFS (Disco Distributed File System). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
 \newline
 
-The first and foremost reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second and likewise significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
+The reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second and likewise significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
 
 \section{Assumption}
-A small but sufficient number of assumptions has been put together, based on the brief but necessary investigation and the knowledge obtained by the examination of related work in section \ref{sec:related}, to limit the extension to the project scope:
+A small but sufficient number of assumptions has been put together, based on the brief but necessary investigation and the knowledge obtained by the examination of related work (Section \ref{sec:related}), to limit the extension to the project scope:
 
 \begin{itemize}
 	\item The solution is targeted and used for big data analysis.	
 	\item Data is assumed to be research and scientific related material. 
 \end{itemize}
-, which generally is inspired and based on the ones for \CodeNameShort, listed in section \ref{sec:assumption}.
+, which generally is inspired and based on the ones for \CodeName (Section \ref{sec:assumption}).
 \newline
 
-Additionally, it is a requirement and thereby an assumption that the \texttt{OperationContext}s (defined in section \ref{sec:operation}) of the datasets can be modeled in terms of a MapReduce scheme.
+Additionally, it is a requirement and thereby an assumption that the \texttt{OperationContext}s (Section \ref{sec:operation}) of the datasets can be modeled in terms of a MapReduce scheme.
 
 \section{Objectives} \label{sec:bdae-objectives}
 Based on the assumptions and the general knowledge taught by studying similar frameworks has following objectives been composed:
@@ -29,7 +29,7 @@ Based on the assumptions and the general knowledge taught by studying similar fr
 \end{itemize}
 
 \section{Overview}
-BDAE (\textit{/b'dei'/}) is the name and acronym of the big data analysis engine targeting MapReduce operations that are implemented. The solution is built solely using the \CodeName API as illustrated in figure \ref{fig:bdae-overview} and extending existing core components primarily from the foundation package, explained in chapter \ref{chp:components}.
+BDAE (\textit{/b'dei'/}) is the name and acronym of the big data analysis engine targeting MapReduce operations that are implemented. The solution is built solely using the \CodeName API as illustrated in Figure \ref{fig:bdae-overview} and extending existing core components primarily from the foundation package.
 
 \begin{figure}
 	\centering
@@ -39,23 +39,23 @@ BDAE (\textit{/b'dei'/}) is the name and acronym of the big data analysis engine
 
 
 \subsection{Dataset}
-The \texttt{SofaBaseObject} defined in section \ref{sec:sofabaseobject} has been extended and delimited along with the requirement of the functions defined in the \texttt{OperationContex}, as a consequence of the chosen execution model. 
+The \texttt{SofaBaseObject} (Section \ref{sec:sofabaseobject}) has been extended and delimited along with the requirement of the functions defined in the \texttt{OperationContex}, as a consequence of the chosen execution model. 
 \begin{itemize}
 	\item A \texttt{MapReduceDataset} has been defined which requires functions executed on the data to be ordered into a \texttt{map} and a \texttt{reduce} category. 
 	\item All functions defined in an extended \texttt{OperationContex} is at runtime verified towards the two categories since the MapReduce execution model prescribes that each operation has at least one map function and at most one reduce function as the.
 \end{itemize}
 
 \section{Collection} \label{sec:collection}
-A dataset in \CodeName is defined by a dictionary with meta data and a list of associated semantic blocks, as previously mentioned in section \ref{sec:sofabaseobject}, but this meta data structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives listed in section \ref{sec:bdae-objectives}:
+A dataset in \CodeName is defined by a dictionary with metadata and a list of associated semantic blocks, but this metadata structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives (Section \ref{sec:bdae-objectives}):
 
 \begin{quotation}
 	\textit{"Define and design a collection structure to batch similar datasets."}
 \end{quotation}
 
-In other words; a collection in BDAE is defined as a marginally altered meta data dictionary with zero-length list of associated semantic blocks, that nevertheless obeys the interface of the \texttt{SofaBaseObject}, which is a required for any type of data in \CodeName.
+In other words; a collection in BDAE is defined as a marginally altered metadata dictionary with zero-length list of associated semantic blocks, that nevertheless obeys the interface of the \texttt{SofaBaseObject}, which is a required for any type of data in \CodeName.
 
 \section{MapReduce}
-The tree barrier based operation execution model implemented in \CodeName and descried in section \ref{sec:submit} is well-suited for a MapReduce framework and BDAE is utilizing this straightforward advantage. Figure \ref{fig:reduction-tree} illustrates an example of an execution reduction tree as it would resemble with 16 storage nodes, the figure exemplifies among other things how and when the different storage nodes are communicating to calculate the correct result jointly.
+The tree barrier based operation execution model implemented in \CodeName is well-suited for a MapReduce framework and BDAE is utilizing this straightforward advantage. Figure \ref{fig:reduction-tree} illustrates an example of an execution reduction tree as it would resemble with 16 storage nodes, the figure exemplifies among other things how and when the different storage nodes are communicating to calculate the correct result jointly.
 \newline
 
 The joints have an important function in the MapReduce framework and have the overall responsibility of why the execution model adds up and it is implemented as following:
@@ -86,7 +86,7 @@ Access rights:
 \begin{itemize}
 	\item Submit new MapReduce operation
 	\item Poll for result
-	\item Various \texttt{get}-functions to retrieve meta data information regarding the datasets.
+	\item Various \texttt{get}-functions to retrieve metadata information regarding the datasets.
 \end{itemize}
 
 \subsection{Level 2: Data manager}
@@ -114,7 +114,7 @@ The templates provided includes:
 	\item One for \textbf{text} data that can split raw data into semantic blocks by three different properties: \textit{line}, \textit{sentence} or \textit{word}.
 	\item A template for \textbf{image} data that simplifies the burden of transforming raw data such as tiff-files into Numpy arrays.
 	\item The template for \textbf{Numpy/Bohrium array}'s is a simple solution that uses the template module binder described subsequently to bind regularly used functions from the respective libraries.
-	\item One of the objectives listed in section \ref{sec:bdae-objectives} includes: \textit{"Load complex data structures such as NetCDF $\ldots$ in an intelligent and thus efficiently way to reduce I/O cost."}, which is accomplished by utilizing the collection module described in section \ref{sec:collection} to create a \textbf{NetCDF} template. This is possible since this data format essentially is a group of related data records. 
+	\item One of the objectives listed in Section \ref{sec:bdae-objectives} includes: \textit{"Load complex data structures such as NetCDF $\ldots$ in an intelligent and thus efficiently way to reduce I/O cost."}, which is accomplished by utilizing the collection module (Section \ref{sec:collection}) to create a \textbf{NetCDF} template. This is possible since this data format essentially is a group of related data records. 
 \end{itemize}
 
 \subsection{Module binder}
@@ -130,7 +130,7 @@ An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \textt
 \vspace*{-6mm}
 
 \section{Libraries} \label{sec:libraries}
-BDAE provides three python libraries one for each of the user tier described in section \ref{sec:user-tiers}: \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively, that implements the logic listed.
+BDAE provides three python libraries one for each of the user tiers (Section \ref{sec:user-tiers}): \texttt{libbdaescientist}, \texttt{libbdaemanager} and \texttt{libbdaeadmin} respectively, that implements the logic listed.
 
 \section{Extensions}
 Using the rather simple \CodeName core API it is possible to write useful and comprehensive extensions, as BDAE exemplifies. Likewise it is possible to create extensions on top BDAE using the libraries briefly explained in the previous section. The generic web interface and Android\cite{PageAndroid} application described in this section are two examples of that.
@@ -142,7 +142,7 @@ Using the rather simple \CodeName core API it is possible to write useful and co
 	\caption{Overview of the BDAE website. \label{fig:website}}
 \end{figure}
 
-A simple graphical user interface represented as a website (illustrated in figure \ref{fig:website}) is provided as part of the BDAE framework installation (explained in appendix \ref{app:installation}). 
+A simple graphical user interface represented as a website (illustrated in Figure \ref{fig:website}) is provided as part of the BDAE framework installation (explained in Appendix \ref{app:installation}). 
 \clearpage
 
 The website expands the options regarding the scientist position, since it is no longer a requirement to master the skill of programming in order to operate BDAE at that user tier. At the moment it is possible to:
@@ -154,7 +154,7 @@ The website expands the options regarding the scientist position, since it is no
 , but supporting more features are in the project pipeline.
 
 \subsection{Android application} \label{sec:bdaeapp}
-The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} as visualized in figure \ref{fig:app-overview} and appendix \ref{chp:app-screenshots}.
+The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} (Figure \ref{fig:app-overview}) (Appendix \ref{chp:app-screenshots}).
 \newline
 
 \begin{figure}[h!]
@@ -172,6 +172,6 @@ The application supports following features:
 	\item All types \CodeName specific instances defined by the \texttt{instance-name} system configuration.
 	\item Visualization of current executing MapReduce operations.
 	\item Adding new operations for existing datasets.
-	\item Listing meta data information about all datasets currently available in \CodeName.
+	\item Listing metadata information about all datasets currently available in \CodeName.
 	\item View the results of all the previous executed operations.
 \end{itemize}

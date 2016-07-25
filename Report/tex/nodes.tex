@@ -1,12 +1,12 @@
-A \CodeName instance is composed by one or more of each of the three server types explained in this chapter. They all have in common that the logic behind is implemented Python, by the same reasons as for the core public API listed in chapter \ref{chp:api}.
+\BigLetter{A}{} \CodeName instance is composed by one or more of each of the three server types explained in this chapter. They all have in common that the logic behind is implemented Python, by the same reasons as for the core public API (Chapter \ref{chp:api}).
 
 \section{Gateway} \label{sec:gateway}
-The \CodeName gateway which seeks to model the notion of a stateless server, to eliminate the single-point of failure problem know from comparable solutions such as Hadoop, as listed in section \ref{sec:objectives}, the objectives:
+The \CodeName gateway seeks to model the notion of a stateless server, to eliminate the single-point of failure problem know from comparable solutions such as Hadoop and is one of the objectives (Section \ref{sec:objectives}):
 \begin{quotation}
 	\textit{"Eliminating single-point of failure on a stateful master server."}
 \end{quotation}
 
-It implements and exposes the core public API described in chapter \ref{chp:api} and is the sole entry\footnote{Multiple instances can be operating and serving at the same time.} for requests such as adding new datasets, and submitting new operations.
+It implements and exposes the core public API (Chapter \ref{chp:api}) and is the sole entry\footnote{Multiple instances can be operating and serving at the same time.} for requests such as adding new datasets, and submitting new operations.
 \newline
 
 The gateway provides an extensive caching system to store the results of dataset operations at an argument specific level, such that if one would request the same operation with same arguments afterward, the outcome is instant. However, the cache at the gateway level for the dataset is cleared whenever extending the data since the result would not be adequate anymore.
@@ -17,21 +17,22 @@ The aspiration for the storage component is to maintain a real-time name service
 
 The storage node disks are emulated as Python \texttt{shelve}s \cite{PageShelve} for the time being in the prototype implementation since the protocol easily integrates persistent storage for arbitrary objects out of the box with nifty features such as caching and ensuring write-back\footnote{Tracking of modifications to volatile objects}.
 
-Andersen has designed a Low-Level Object Store (L-LOS) with the purpose of providing an efficient low-level support for storing data, described in the project \textit{"Optimizing I/O Interactions with Hard Disk Drives for Object Stores"}\cite{andersen2016}. The L-LOS system is evidently a future optimization that will be discussed in further details in chapter \ref{chp:future-work}. 
+Andersen has designed a Low-Level Object Store (L-LOS) with the purpose of providing an efficient low-level support for storing data, described in the project \textit{"Optimizing I/O Interactions with Hard Disk Drives for Object Stores"}\cite{andersen2016}. The L-LOS system is evidently a future optimization that will be discussed in further details in Chapter \ref{chp:future-work}. 
 
 \section{Monitor} \label{sec:monitor}
-The third and last server type is the monitor, one of the five objectives listed in section \ref{sec:objectives} was to:
+The third and last server type is the monitor, one of the five objectives was to:
 
 \begin{quotation}
 	\textit{"Design and built a monitor service to measure and observe the system and handle redistribution when necessary."}
 \end{quotation}
 
-, which has been accomplished by implementing an optional pull-based extension service to offload the unnecessary and inconsequential 	occupation on the storage nodes. The service is built on the assumptions that the storage nodes already has a sufficient amount of work to do, by modifying and crunching data.
+This has been accomplished by implementing an optional pull-based extension service to offload the unnecessary and inconsequential 	occupation on the storage nodes. The service is built on the assumptions that the storage nodes already has a sufficient amount of work to do, by modifying and crunching data.
 \newline
 
-The protocol implemented is a rather simple but dynamic and powerful two step hearth beat scheduler with verification. The control interval and the number of confirmations whether the node is dead or not are variables that can be changed in the system configurations (described in section \ref{sec:configuration}). 
+The protocol implemented is a rather simple but dynamic and powerful two step hearth beat scheduler with verification. The control interval and the number of confirmations whether the node is dead or not are variables that can be changed in the system configurations (Section \ref{sec:configuration}). 
+\newpage
 
-A second recovery scheme in addition to the one explained in section \ref{sec:recovery} is whenever a storage or gateway node is proclaimed dead\footnote{Presumably caused by a malformed end-user defined software in an operation.}, a live software reboot of the node is available if the \texttt{enable-live-software-reboot} parameter is enabled.
+A second recovery scheme in addition to the one explained (Section \ref{sec:recovery}) is whenever a storage or gateway node is proclaimed dead\footnote{Presumably caused by a malformed end-user defined software in an operation.} by the monitor, a live software reboot of the node is available if the \texttt{enable-live-software-reboot} parameter is enabled.
 
 \section{Summary}
-Appendix \ref{app:installation} instructs how to install \CodeName from scratch and appendix \ref{app:execution} teaches how to properly initialize the nodes and get them up and running connected to one another.
+Appendix \ref{app:installation} instructs how to install \CodeName from scratch and Appendix \ref{app:execution} teaches how to properly initialize the nodes and get them up and running connected to one another.

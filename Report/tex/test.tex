@@ -1,4 +1,4 @@
-A variety of different examples of how to utilize and program BDAE efficiently are provided as part of the installation of the complete framework (a guide is available in appendix \ref{app:installation}), which has been tested and verified throughout the development process. 
+\BigLetter{A}{} variety of different examples of how to utilize and program BDAE efficiently are provided as part of the installation of the complete framework (a guide is available in Appendix \ref{app:installation}), which has been tested and verified throughout the development process. 
 
 Furthermore, a range of the most relevant scenarios are additionally tested and validated with the unit test framework\cite{PageUnitTest} in Python. The following chapter is dedicated to describing the unit tests.
 
@@ -8,13 +8,10 @@ Furthermore, a range of the most relevant scenarios are additionally tested and 
 The tests of BDAE are utilizing a majority of the available crucial API call\footnote{Not the straightforward \texttt{get} method calls.} of \CodeName and are considered comprehensive enough for now, as BDAE would not functioning correctly or at all if \CodeName did not operate correctly.
 
 \section{BDAE}
-The unit test cases are implemented using and thus testing the provided BDAE templates described in section \ref{sec:templates} using the adequate user level based BDAE libraries described in section \ref{sec:libraries}.
-\newline
-
-\CodeName + BDAE are additionally tested as part of the performance benchmarking described in chapter \ref{chp:benchmark}.
+The unit test cases are implemented using and thus testing the provided BDAE templates (Section \ref{sec:templates}) using the adequate user level based BDAE libraries (Section \ref{sec:libraries}). \CodeName + BDAE are additionally tested as part of the performance benchmarking (Chapter \ref{chp:benchmark}).
 
 \subsection*{Text}
-The test cases for the text-based data covers all three types of BDAE templates explained in section \ref{sec:templates} and the purpose is it test tangible examples.
+The test cases for the text-based data covers all three types of BDAE text templates and the purpose is to test tangible examples.
 
 \testcase{Letter count}{Counting the total number of letters in an arbitrary generated scientific dataset string}{This test are verified using all the three types of text-based templates: \textit{line}, \textit{sentence} or \textit{word}.}{
 	\begin{itemize}
@@ -64,11 +61,11 @@ $N = 10$, $M=10$ & 10 \\
 	\begin{quotation}
 		Same as above.
 	\end{quotation}
-	\newpage
 }{
 \begin{equation*}
 	N*M
 \end{equation*}
+\newpage
 }{All results are tested with $L$ = 'a'.}{
 \centering
 \begin{tabular}{l p{3cm}}
@@ -96,6 +93,7 @@ The test cases for the Numpy/Bohrium array template predominantly focuses on the
 \begin{equation*}
 	n \cdot M^2 \cdot N
 \end{equation*}
+\newpage
 }{}{
 \centering
 \begin{tabular}{l p{3cm}}

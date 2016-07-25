@@ -1,12 +1,12 @@
-Essential components of the \CodeName ecosystem will be described and discussed in the following chapter, which includes the core configuration of the system, such as accessibility and mounting points. Other essential components counts; the delegation framework and the foundation package including the \texttt{SofaBaseObject} and the operation context definition.
+\BigLetter{E}{ssential} components of the \CodeName ecosystem will be described and discussed in the following chapter, which includes the core configuration of the system, such as accessibility and mounting points. Other essential components counts; the delegation framework and the foundation package including the \texttt{SofaBaseObject} and the operation context definition.
 
 \section{System configuration} \label{sec:configuration}
 Each instance of \CodeName running is specified by a set of different parameters in the configuration file. All parameters are chosen, defined and implemented in order to make each version as customizable as possible. Figure \ref{fig:cfg_example} is an example of a custom implementation of a \CodeName configuration.
 \newline
 
-Each configuration specification is written in a \texttt{.cfg} file format (explained in definition \ref{def:cfg})) with four predefined groups:
+Each configuration specification is written in a \texttt{.cfg} file format (Definition \ref{def:cfg})) with four predefined groups:
 \begin{itemize}
-	\item \textbf{general}: Used to define various thresholds, retries, and path, but most important the \texttt{instance-name} which differentiates this instance from the rest. Additionally, it enables virtualization (described in section \ref{sec:virtualization}) and recovery (described in section \ref{sec:recovery}).
+	\item \textbf{general}: Used to define various thresholds, retries, and path, but most important the \texttt{instance-name} which differentiates this instance from the rest. Additionally, it enables virtualization (Section \ref{sec:virtualization}) and recovery (Section \ref{sec:recovery}).
 	\item \textbf{gateway/storage/monitor}: Used to specify the addresses and pots of the three different nodes booted at startup.
 \end{itemize}
 
@@ -67,19 +67,19 @@ A dataset is defined by a number of properties:
 \begin{itemize}
 	\item A unique \textbf{name} that will be used to identify it, throughout the lifetime of the dataset in \CodeName.
 	\item An optional \textbf{description} parameter to differentiate between and recognize dataset with similar or ambiguous names.
-	\item Optional list of \textbf{operation context}s (described subsequently in section \ref{sec:operation} in this chapter) to be executed on the data.
+	\item Optional list of \textbf{operation context}s (Section \ref{sec:operation}) to be executed on the data.
 \end{itemize}
 \vspace*{5mm}
 
-, and a number of required, and optional functions that will be discussed and described in details throughout the rest of this section since it is crucial to understand how, what seems like a limiting amount of functions, is general and generic enough to describe any type of data and operations to be executed on it. The meaning of the term \textit{operation (context)} and the purpose will be described subsequently in this chapter in section \ref{sec:operation}. 
+A number of required, and optional functions that will be discussed and described in details throughout the rest of this section since it is crucial to understand how, what seems like a limiting amount of functions, is general and generic enough to describe any type of data and operations to be executed on it. The meaning of the term \textit{operation (context)} and the purpose will be described subsequently in this chapter. 
 \newline
 
-Figure \ref{fig:preprocess-nextentry} illustrates the context of which following required and optional functions: \textbf{preprocessing}, \textbf{next entry}, \textbf{replication factor} and \textbf{distribution strategy} are used in the flow of adding new data (the append API\footnote{Application Programming Interface} will be described in chapter \ref{chp:api}).
+Figure \ref{fig:preprocess-nextentry} illustrates the context of which following required and optional functions: \textbf{preprocessing}, \textbf{next entry}, \textbf{replication factor} and \textbf{distribution strategy} are used in the flow of adding new data (the append API\footnote{Application Programming Interface} will be described in Chapter \ref{chp:api}).
 
 \begin{figure}
 	\centering
 	\includegraphics[scale=0.8]{pdf/preprocess-nextentry.pdf}
-	\caption[\texttt{SofaBaseObject} interface functions]{Illustration of where some of the \texttt{SofaBaseObject} interface functions are used. The ones depicted in a light shade of gray are other key parts of the append operation that will be described later in chapter \ref{chp:api}: Core API. \label{fig:preprocess-nextentry}}
+	\caption[\texttt{SofaBaseObject} interface functions]{Illustration of where some of the \texttt{SofaBaseObject} interface functions are used. The ones depicted in a light shade of gray are other key parts of the append operation (Chapter \ref{chp:api}). \label{fig:preprocess-nextentry}}
 \end{figure}	
 
 \subsection{Prepossessing}
@@ -89,7 +89,7 @@ A step that is executed initially when new data is added to \CodeName before it 
 The purpose of this function is to transition the responsibility of split the data correctly towards the end-user, rather than imperfection choices by the system. With this approach, \CodeName relies on the users know-how and expertise regarding the internal structure of the data and how to split it semantically correct, such that coherent parts are jointly stored.
 \newline
 
-The consideration and complexity behind this required function and its role as part of the append-flow (depicted in figure \ref{fig:preprocess-nextentry}) jointly contribute to a generic solution that optimally will accomplish following objective described in section \ref{sec:objectives}: 
+The consideration and complexity behind this required function and its role as part of the append-flow (Figure \ref{fig:preprocess-nextentry}) jointly contribute to a generic solution that optimally will accomplish following objective (Section \ref{sec:objectives}): 
 
 \begin{quotation}
 	\textit{"Split data such that semantically coherent parts are stored jointly and thus eliminating the data residual problem known from Hadoop."}
@@ -102,9 +102,9 @@ While the users now have been granted some, not unreasonable responsibilities ar
 \CodeName provides three different distribution strategies for the semantic blocks, the strategies are offered at a data level and not at a system wide level as in many other alternatives, such that it can be tailored ideally to each specific use-case. The three ones are:
 
 \begin{enumerate}
-	\item \textbf{1-by-1}: A basic implementation of the Round Robin distribution and scheduling algorithm (outlined in definition \ref{def:rr}).
+	\item \textbf{1-by-1}: A basic implementation of the Round Robin distribution and scheduling algorithm (Definition \ref{def:rr}).
 	\item \textbf{Tiles}: Extended version of the Round Robin algorithm with support for \textit{n}-by-1, such that semantic blocks are tiled/grouped by \textit{n} before distribution.
-	\item \textbf{Linear}: A specific single run-through version of the tiles strategy algorithm described above, where the blocks are distributed as equally as possible\footnote{ Eq: $\lceil blocks / storage\_nodes\rceil$, to make sure that there isn't an overabundant of blocks on last server (\CodeNameShort's interpretation of \textit{'last'} server will be explained subsequently in chapter \ref{chp:api}).} across the storage nodes.
+	\item \textbf{Linear}: A specific single run-through version of the tiles strategy algorithm described above, where the blocks are distributed as equally as possible\footnote{ Eq: $\lceil blocks / storage\_nodes\rceil$, to make sure that there isn't an overabundant of blocks on last server (\CodeNameShort's interpretation of \textit{'last'} server will be explained subsequently in Chapter \ref{chp:api}).} across the storage nodes.
 \end{enumerate}
 \vspace*{5mm}
 
@@ -115,28 +115,30 @@ While the users now have been granted some, not unreasonable responsibilities ar
 	\caption[Distribution strategies]{An example of how the three distribution strategies work in action. The figure illustrates three storage nodes denoted by s\textit{0}, s\textit{1} and s\textit{2} and the block stored on them with strategies of respectively \textbf{1-by-1}, \textbf{Tiles} of size 2 and \textbf{Linear}. \label{fig:distribution-strategies}}
 \end{figure}	
 
-It is worth to notice that all the different distribution strategies in one or another way are a variant of the Round Robin algorithm and thereby adhere to the architecture and design criterion for partitioning and distribution described in section \ref{sec:pandd}.
+It is worth to notice that all the different distribution strategies in one or another way are a variant of the Round Robin algorithm and thereby adhere to the architecture and design criterion for partitioning and distribution described in Section \ref{sec:pandd}.
 \newline
 
-Although the strategies initially appear to be approximately equal, the results of appending eight blocks on three storage nodes are very divergent (result depicted in figure \ref{fig:distribution-strategies}) and thus one could easily find very different purposes for each:
+Although the strategies initially appear to be approximately equal, the results of appending eight blocks on three storage nodes are very divergent (Figure \ref{fig:distribution-strategies}) and thus one could easily find very different purposes for each:
 
 \begin{quotation}
-Data with an extensive interrelationship between blocks are a straightforward example of where a tiled strategy would be preferable, since operations on such data usually would require a considerable amount of exchanges of ghost points with the neighbors (a technique Wilkinson \etal covers in \cite{Wilkinson:1998:PPT:289352} and that will be explained in section \ref{sec:operation}) to produce the expected results. Even though a linear distribution strategy also would work for this purpose, it is a requirement that the total number of blocks are known on beforehand, since data is streamed into \CodeName.
+Data with an extensive interrelationship between blocks are a straightforward example of where a tiled strategy would be preferable, since operations on such data usually would require a considerable amount of exchanges of ghost points with the neighbors (a technique Wilkinson \etal covers in \cite{Wilkinson:1998:PPT:289352} and that will be explained in Section \ref{sec:operation}) to produce the expected results. Even though a linear distribution strategy also would work for this purpose, it is a requirement that the total number of blocks are known on beforehand, since data is streamed into \CodeName.
 \end{quotation}
 
 One could think of other distribution strategies and algorithms to use on certain specific types of data, hence its an ambition subsequently to design and come up with a generic interface for defining individual strategies and algorithms.
 
 \subsection{Replication}
-\CodeName provides the opportunity of virtual replication at a data level specified independently for each dataset. Compared to other alternatives as the ones evaluated in section \ref{sec:related} such as Hadoop this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets with regards to importance and reproducibility of data.
+\CodeName provides the opportunity of virtual replication at a data level specified independently for each dataset. Compared to other alternatives as the ones evaluated in Section \ref{sec:related} such as Hadoop, this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets with regards to importance and reproducibility of data.
 \newline
 
-The replication factor can additionally be used as a load balancing mechanism for the dataset and thereby increase its accessibility for the end-users, this among other things were described and discussed in section \ref{sec:delegation}.
+The replication factor can additionally be used as a load balancing mechanism for the dataset and thereby increase its accessibility for the end-users.
 
 \section{Operation context} \label{sec:operation}
-An \texttt{OperationContext} is a mutable object attached to a dataset that represents and describes a function or multiple chained ones and the associated parameters and prerequisites, to be executed on the data. A number of optional specifications are available such that most most common requirements are supported out of the box to increase productivity and correctness.
+An \texttt{OperationContext} is a mutable object attached to a dataset that represents and describes a function or multiple chained ones and the associated parameters and prerequisites, to be executed on the data. 
+
+A number of optional specifications are available such that most most common requirements are supported out of the box to increase productivity and correctness.
 \newline
 
-The syntax for characterizing this object, the optional specifications, and a lot more will be examined in details throughout the rest of this section since it is crucial to understand too, like the other foundation object \texttt{SofaBaseObject} described in section \ref{sec:sofabaseobject}.
+The syntax for characterizing this object, the optional specifications, and a lot more will be examined in details throughout the rest of this section since it is crucial to understand too, like the other foundation object \texttt{SofaBaseObject} (Section \ref{sec:sofabaseobject}).
 
 \subsection{Sequential / Parallel}
 Functions of an operational context can be grouped in an unlimited amount of nested sequential and parallel containers, although it is required that the outer most container is of the sequential type. The two code snippets in the forthcoming \textbf{syntax} sections exemplifies the usage of these two varies.
@@ -169,7 +171,7 @@ OperationContext.by('[{[count, sum],
 \end{enumerate}
 
 \subsection{Ghosts}
-In \cite{Wilkinson:1998:PPT:289352} Wilkinson \etal covers the technique of ghost points which is a procedure well studied and used in high performance computing, etc. Common computing challenges where this is superior are typically situations where the data has an immense correlation between the semantic blocks such as image data or climate simulation results, as previously described. 
+Wilkinson \etal covers the technique of ghost points\cite{Wilkinson:1998:PPT:289352} which is a procedure well studied and used in high performance computing. Common computing challenges where this is superior are typically situations where the data has an immense correlation between the semantic blocks such as image data or climate simulation results. 
 \newline
 
 Figure \ref{fig:ghost-points} illustrates the fundamental idea behind ghost points also denoted as halo lines where each domain has an extra row of data added at the boundary between the others consisting of data from the neighbor. 
@@ -203,7 +205,7 @@ Figure \ref{fig:ghost-transfer} illustrates the flow of the three supported type
 	\item And in \textbf{both} directions with symmetric and asymmetric semantic units as ghosts.
 \end{enumerate}
 \vspace*{2mm}
-, though, there is a limitation held in common by all three of them; that data \textbf{overflow} from first to last when transferring left and last to first when transferring right aren't implemented for the time being.
+Though, there is a common limitation for all three of them; data \textbf{overflow} from first to last when transferring left and last to first when transferring right are not implemented for the time being.
 \newline
 
 The neighbor exchange protocol is implement by default in \CodeName and can be utilized in two different ways:
@@ -233,7 +235,7 @@ This solution, which improves number of initialization requests (from $n-1$ to $
 	\vspace*{3mm}
 \end{figure}	
 
-However, in high performance computing (HPC) clusters as this prototype framework first and foremost is targeted (as mentioned in section \ref{sec:hardware}) it is a matter of time steps and not I/O as such for which the HPC solution illustrated at Figure \ref{fig:ghost-final} is most optimal.
+However, in high performance computing (HPC) clusters as this prototype framework first and foremost is targeted (Section \ref{sec:hardware}) it is a matter of time steps and not I/O as such for which the HPC solution illustrated at Figure \ref{fig:ghost-final} is most optimal.
 \newline
 
 \begin{figure}
@@ -295,7 +297,7 @@ The framework is invented to:
 	\item Enables a dynamic load balancing (whilst the DM Multipath described in \ref{sec:recovery} provides load balancing on a disk level) on separate datasets by the \texttt{load\-balancing-threshold} in the configuration file (described in section \ref{sec:configuration}) in combination with the replication factor.
 \end{itemize}
 \vspace*{4mm}
-The delegation solution is designed as illustrated in Figure \ref{fig:delegation-framework} and is integrated into the core of storage nodes logic (defined in section \ref{sec:storage}). The responsible dispatcher is theoretically optional to use but is enforced by default, provided that it is disabled it would require the gateway (described in section \ref{sec:gateway}) to be aware of how to determine the responsible server\footnote{Equation \ref{eq:responsible}} for the particular dataset, which would violate the single point of failure (SPOF) objective listed in section \ref{sec:objectives}:
+The delegation solution is designed as illustrated in Figure \ref{fig:delegation-framework} and is integrated into the core of storage nodes logic (Section \ref{sec:storage}). The responsible dispatcher is theoretically optional to use but is enforced by default, provided that it is disabled it would require the gateway (Section \ref{sec:gateway}) to be aware of how to determine the responsible server\footnote{Equation \ref{eq:responsible}} for the particular dataset, which would violate the single point of failure (SPOF) objective listed in section \ref{sec:objectives}:
 \begin{quotation}
 \textit{"Eliminating single-point of failure on a stateful master server."}
 \end{quotation}
@@ -318,13 +320,13 @@ C. A. R. Hoare defined in his 1978 paper \textit{"Communicating Sequential Proce
 \end{quotation}
 
 \noindent
-Although this second approach currently is not achievable since it would require that \CodeName is implemented in a CSP fashion with processes and channels, it is from a theoretical perspective an interesting thought and therefor included as a conceptual task. One could think of a \CodeName system based on CSP techniques with channels between gateways and storage nodes and the forward queue to load balance the system, for example, implemented as an Alternative (explained in definition \ref{def:alternation}) that facilitates a solution without queues and with improved I/O.
+Although this second approach currently is not achievable since it would require that \CodeName is implemented in a CSP fashion with processes and channels, it is from a theoretical perspective an interesting thought and therefor included as a conceptual task. One could think of a \CodeName system based on CSP techniques with channels between gateways and storage nodes and the forward queue to load balance the system, for example, implemented as an Alternative (Definition \ref{def:alternation}) that facilitates a solution without queues and with improved I/O.
 \vspace*{3mm}
 \begin{definition}[PyCSP: Alternative] \label{def:alternation}
 \textit{A central abstraction as Bj{\o}rndalen, Vinter \etal describes in \cite{bjorndalen2007pycsp} that from a list of channels selects the one ready (for a read or write) the first and thus implements a first-come-first-serve strategy.}
 \end{definition}
 
-The model implemented is a comprise between complexity, time and expected outcome compared to the fact that this initial \CodeName implementation was purposed as a prototype to a plausible solution. It is an extended dynamic store and forward method where whole requests are redirected to a random storage node as explained in details in section \ref{sec:gateway}, which if needed based on responsible dispatcher either is executing or forwarding the request. 
+The model implemented is a comprise between complexity, time and expected outcome compared to the fact that this initial \CodeName implementation was purposed as a prototype to a plausible solution. It is an extended dynamic store and forward method where whole requests are redirected to a random storage node (Section \ref{sec:gateway}), which if needed based on responsible dispatcher either is executing or forwarding the request. 
 \newline
 
 Assuming forwarding is enabled based on the conditions previously listed and the primary replica has enough work to do, it will generate the forward queue based on a number of parameters and forward the request to the first in the queue. A worst case example is as follows:
