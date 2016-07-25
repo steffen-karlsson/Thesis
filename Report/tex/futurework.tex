@@ -1,12 +1,22 @@
 \section{Optimizing I/O interactions}
 
-\section{Parallel nodes}
-
 \section{Pipeline support}
+A prioritized future implementation is to replace the Python Pyro4 communication library possible with one of the alternatives (Section \ref{sec:communication}) that supports streaming to reduce the package latency, by implement the pipeline solution of the delegation framework (Section \ref{sec:delegation}) and the package distribution protocol in the append API call \ref{sec:api-append}.
 
-\section{Import/Export filter}
+\section{Parallel nodes}
+As a consequence of the pipeline support and thereby the elimination of the existing communication library it is a demand and crucial for the future work to implement a proper protocol for handling multiple requests in parallel.
+
+\section{Import/export filter}
 
 \section{Security layer}
-%TODO kryptering af personhenførbardata
+Implement an extended access protection layer opportunity at a dataset level by expanding the existing metadata structure with one of following two options:
+\begin{enumerate}
+	\item A public-key cryptography scheme such that it is only users with matching keys that have access to the data, such scheme is a way to identify trusted entities without involving password and used in protocols such as SSH.
+	\item Maintaining a list of verified user identifiers and validate against it before any type operations involving the dataset.
+\end{enumerate}
 
 \section{Data encryption}
+Implement an encryption/decryption layer which is optional to implement for the end-user and thus can be tailored specifically for individual dataset or applications. Such layer will facilitate options for storing and analyzing personally identifiable data out of the box in \CodeName. 
+\newline
+
+A straightforward solution extends the append flow (Figure \ref{fig:preprocess-nextentry}) such that each block is locally encrypted before distributed to the replicas. The decryption, on the other hand, has to be performed at a block level whenever an operation is executed.
