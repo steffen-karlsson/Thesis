@@ -17,7 +17,7 @@ The aspiration for the storage component is to maintain a real-time name service
 
 The storage node disks are emulated as Python \texttt{shelve}s \cite{PageShelve} for the time being in the prototype implementation since the protocol easily integrates persistent storage for arbitrary objects out of the box with nifty features such as caching and ensuring write-back\footnote{Tracking of modifications to volatile objects}.
 
-Andersen has designed a Low-Level Object Store (L-LOS) with the purpose of providing an efficient low-level support for storing data, described in the project \textit{"Optimizing I/O Interactions with Hard Disk Drives for Object Stores"}\cite{andersen2016}. The L-LOS system is evidently a future optimization that will be discussed in further details in Chapter \ref{chp:future-work}. 
+Andersen has designed a Low-Level Object Store (L-LOS) with the purpose of providing an efficient low-level support for storing data, described in the project \textit{"Optimizing I/O Interactions with Hard Disk Drives for Object Stores"}\cite{andersen2016}. The L-LOS system is evidently a future optimization and will be discussed in further details in Chapter \ref{chp:future-work}. 
 
 \section{Monitor} \label{sec:monitor}
 The third and last server type is the monitor, one of the five objectives was to:
