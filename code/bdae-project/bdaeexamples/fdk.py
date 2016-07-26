@@ -1,14 +1,14 @@
 # Created by Steffen Karlsson on 04-25-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
+from cPickle import dumps, loads
 from os import getcwd
 
-from numpy import fromfile, float32, dot, divide, int32, rint, zeros, array, add, asarray, concatenate
+from numpy import fromfile, float32, dot, divide, int32, rint, zeros, add, asarray, concatenate
 
+from bdae.dataset import AbsMapReduceDataset
 from bdae.libpy.libbdaemanager import PyBDAEManager
 from bdae.libpy.libbdaescientist import PyBDAEScientist
-from bdae.libweb import GatewayWebWrapper
-from bdae.dataset import AbsMapReduceDataset
 from sofa.foundation.operation import OperationContext, ExpectedReturnType
 
 NUM_PROJECTIONS = 320
@@ -22,6 +22,15 @@ class FDKDataset(AbsMapReduceDataset):
 
     def get_map_functions(self):
         return [fdkcore]
+
+    def serialize(self, data):
+        return dumps(data)
+
+    def deserialize(self, data):
+        return loads(data)
+
+    def is_serialized(self):
+        return True
 
     def next_entry(self, data):
         for projection in data:
@@ -118,10 +127,11 @@ if __name__ == '__main__':
     dataset = FDKDataset(name="FDK dataset", description="Testing reconstruction")
     manager.create_dataset(dataset)
     manager.append_path_to_dataset(dataset, BASE_PATH + "projections.bin")
-    print "Appended"
+
 
     def callback(res):
         print "Saved"
+
 
     args = [64,
             BASE_PATH + 'combined.bin',
@@ -129,5 +139,4 @@ if __name__ == '__main__':
             BASE_PATH + 'transform.bin',
             BASE_PATH + 'volumeweight.bin']
     scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    # GatewayWebWrapper(scientist).start(9990, hostname='0.0.0.0')
     scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
