@@ -1,4 +1,11 @@
 \section{Optimizing I/O interactions}
+Andersen has designed the concept of a Low-Level Object Store (L-LOS) and implemented a prototype in Python\cite{andersen2016} to optimize the \texttt{shelf} module used for emulating disks. The purpose is to provide an efficient low-level support for storing data based on multiple processes and memory mapped file I/O. The L-LOS framework will contribute as a filesystem in userspace (FUSE) separately on each storage node (Figure \ref{fig:sofa-llos-extension}) and operate at a software stack low-level and are responsible for all I/O interactions with the hard drive disks.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.95]{pdf/sofa-llos-extension.pdf}
+	\caption{L-LOS integration in \CodeName. \label{fig:sofa-llos-extension}}
+\end{figure}
 
 \section{Pipeline support}
 A prioritized future implementation is to replace the Python Pyro4 communication library possible with one of the alternatives (Section \ref{sec:communication}) that supports streaming to reduce the package latency, by implement the pipeline solution of the delegation framework (Section \ref{sec:delegation}) and the package distribution protocol in the append API call \ref{sec:api-append}.
@@ -6,7 +13,14 @@ A prioritized future implementation is to replace the Python Pyro4 communication
 \section{Parallel nodes}
 As a consequence of the pipeline support and thereby the elimination of the existing communication library it is a demand and crucial for the future work to implement a proper protocol for handling multiple requests in parallel.
 
-\section{Import/export filter}
+\section{Import/export extension}
+Use \CodeName as a data transformation framework to unify data formats across multiple different input formats, by creating two new extensions for \CodeName at the same level as BDAE (Figure \ref{fig:bdae-extension}). The ambition is to create two generic self-awareness protocol-based data conversion frameworks where the end-users can specify input data\footnote{By url, path or other common formats.} and a result data format protocol such as HDF5 or NetCDF.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.7]{pdf/bdae-extension.pdf}
+	\caption{Import/export extension for \CodeName. \label{fig:bdae-extension}}
+\end{figure}
 
 \section{Security layer}
 Implement an extended access protection layer opportunity at a dataset level by expanding the existing metadata structure with one of following two options:
