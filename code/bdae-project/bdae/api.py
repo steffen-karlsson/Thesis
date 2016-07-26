@@ -37,8 +37,8 @@ class GatewayManagerApi(GatewayScientistApi):
     def update(self, name, dataset_type):
         return self._api.update(name, dataset_type)
 
-    def append(self, name, data_ref):
-        return self._api.append(name, data_ref)
+    def append(self, name, data_ref, is_serialized):
+        return self._api.append(name, data_ref, is_serialized)
 
     def delete(self, name):
         return self._api.delete(name)

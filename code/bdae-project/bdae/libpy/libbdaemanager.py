@@ -130,14 +130,14 @@ class PyBDAEManager(PyBDAEScientist):
         """
 
         data = dataset.serialize(data)
-        self.append_url_to_dataset(dataset, data)
+        self.__append(dataset, data, is_serialized=True)
 
     def append_path_to_dataset(self, dataset, path):
         """
         See append_url_to_dataset documentation
         """
 
-        self.append_url_to_dataset(dataset, path)
+        self.__append(dataset, path)
 
     def append_url_to_dataset(self, dataset, url):
         """
@@ -150,7 +150,10 @@ class PyBDAEManager(PyBDAEScientist):
         :raises DatasetNotExistsException: If the dataset isn't already created by :func:`create_dataset`
         """
 
-        verify_error(self._api.append(dataset.get_name(), url))
+        self.__append(dataset, url)
+
+    def __append(self, dataset, url, is_serialized=False):
+        verify_error(self._api.append(dataset.get_name(), url, is_serialized))
 
     def delete_dataset(self, name):
         """

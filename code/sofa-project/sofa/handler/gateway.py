@@ -130,7 +130,7 @@ class GatewayHandler(object):
         self.__gcs.delete(identifier)
         return self.__get_storage_node().delete(identifier)
 
-    def append(self, name, data):
+    def append(self, name, data, is_serialized):
         identifier = self.__find_identifier(self.__virtualize_name(name))
         res = self.__get_class_from_identifier(identifier, 'class-name')
         if is_error(res):
@@ -161,7 +161,7 @@ class GatewayHandler(object):
         # Clean function cache
         self.__gcs.delete(identifier)
 
-        if class_context.is_serialized():
+        if is_serialized and class_context.is_serialized():
             if isinstance(data, unicode):
                 data = data.encode("ascii")
 

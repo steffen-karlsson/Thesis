@@ -113,8 +113,8 @@ class GatewayApi(object):
     def update(self, name, package):
         return GatewayApi._set_dataset_by_function(name, package, None, self._api.update)
 
-    def append(self, name, data_ref):
-        return self._api.append(name, data_ref)
+    def append(self, name, data_ref, is_serialized):
+        return self._api.append(name, data_ref, is_serialized)
 
     def delete(self, name):
         return self._api.delete(name)
