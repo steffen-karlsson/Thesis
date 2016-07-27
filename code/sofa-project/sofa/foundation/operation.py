@@ -143,6 +143,7 @@ class OperationContext:
         self.post_process = None
         self.return_type = ExpectedReturnType.Text
         self.num_arguments = 1
+        self.supply_meta_data_arg = False
 
     def with_initial_ghosts(self, ghost_count=(1, 1), use_cyclic=False):
         is_tuple = isinstance(ghost_count, tuple)
@@ -167,6 +168,10 @@ class OperationContext:
 
     def with_multiple_arguments(self, num_arguments):
         self.num_arguments = num_arguments
+        return self
+
+    def with_meta_data(self):
+        self.supply_meta_data_arg = True
         return self
 
     def get_num_arguments(self):
@@ -195,6 +200,9 @@ class OperationContext:
 
     def get_functions(self):
         return list(self.functions)
+
+    def requires_meta_data(self):
+        return self.supply_meta_data_arg
 
     def get_return_type(self):
         return ExpectedReturnType.as_string(self.return_type)

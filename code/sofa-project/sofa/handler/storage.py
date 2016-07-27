@@ -176,7 +176,8 @@ class StorageHandler(DelegationHandler):
         self.__dgcs = CacheSystem(defaultdict, args=dict)  # Dataset Ghosts Cache System
 
         if 'storage' in others:
-            self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri, _ in others['storage']]
+            self.__storage_nodes = [_InternalStorageApi(storage_uri) for storage_uri, _ in others['storage']
+                                    if storage_uri != self.__config.node]
         else:
             self.__storage_nodes = []
 
@@ -832,7 +833,6 @@ def _local_execute(self, functions, args, operation_context_args):
     try:
         operation_context, didentifier, fidentifier, process_state, meta_data = operation_context_args
         possible_function = functions.pop(0)
-        fun_counter = operation_context.get_functions().index(possible_function)
 
         if isinstance(possible_function, SequentialOperation):
             res = _local_execute(self, list(possible_function.functions), args, operation_context_args)
@@ -871,6 +871,16 @@ def _local_execute(self, functions, args, operation_context_args):
         # Modify and format blocks if needed
         blocks = args[BLOCKS]
         query = args[QUERY]
+
+        if operation_context.requires_meta_data():
+            if not query:
+                query = []
+
+            query = [{
+                'num-blocks': meta_data['num-blocks'],
+                'num-storage-nodes': self.get_num_storage_nodes(including_self=True),
+                'idx': self.me()
+            }] + query
 
         # If function is buit-in call it by the wrapper import utils function
         if isbuiltin(possible_function) or possible_function.__doc__ == 'wrapped':
