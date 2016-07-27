@@ -139,7 +139,6 @@ def parse_project_cfg(path, index, node_types):
                 if len(addresses) > 1:
                     others = [("sofa:%s:%s:%d" % (instance_name, node, i), address)
                               for i, address in enumerate(addresses)]
-                    others.__delitem__(index)
                     global_config.others[node] = others
             else:
                 global_config.others[node] = [("sofa:%s:%s:%d" % (instance_name, node, i), address)

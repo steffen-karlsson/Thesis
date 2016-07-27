@@ -66,9 +66,9 @@ class _StorageToMonitorApi(object):
 
 
 class _InternalStorageApi(_StorageApi):
-    def initialize_job(self, didentifier, fidentifier, function_name, root, query):
+    def initialize_job(self, didentifier, process_state, root, meta_data):
         self._validate_api()
-        async(self._api).initialize_job(didentifier, fidentifier, function_name, root, query)
+        async(self._api).initialize_job(didentifier, process_state, root, meta_data)
 
     def execute_function(self, didentifier, fidentifier, meta_data, process_state):
         self._validate_api()
