@@ -3,7 +3,7 @@
 
 from re import finditer
 from base64 import b64encode
-from simplejson import dumps
+from ujson import dumps
 
 
 class ExpectedReturnType(object):

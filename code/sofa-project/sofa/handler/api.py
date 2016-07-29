@@ -2,7 +2,7 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from inspect import getsourcefile
-from simplejson import dumps
+from ujson import dumps
 
 from Pyro4 import Proxy, locateNS, async
 
@@ -55,6 +55,9 @@ class _StorageApi(object):
     def _validate_api(self):
         if not self._api:
             self._api = Proxy(locateNS().lookup(self._storage_uri))
+
+    def get_uri(self):
+        return self._storage_uri
 
 
 class _StorageToMonitorApi(object):

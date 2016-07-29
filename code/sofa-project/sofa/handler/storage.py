@@ -13,8 +13,7 @@ from os.path import basename, isfile
 from re import compile
 from shelve import open
 from sys import getsizeof
-from simplejson import loads, dumps
-from cPickle import loads as pickle_loads
+from ujson import loads, dumps
 
 from numpy import ndarray
 

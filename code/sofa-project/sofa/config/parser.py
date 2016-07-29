@@ -9,7 +9,7 @@ from ConfigParser import SafeConfigParser
 from logging import basicConfig, INFO, debug
 from os.path import exists
 from os import makedirs
-from simplejson import loads, dumps
+from ujson import loads, dumps
 from base64 import b64encode, b64decode
 
 DEFAULT_BLOCK_SIZE = 64

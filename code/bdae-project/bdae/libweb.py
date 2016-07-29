@@ -5,7 +5,7 @@
 .. module:: libs
 """
 
-from simplejson import dumps, loads
+from ujson import dumps, loads
 from os import path
 from base64 import b64encode
 

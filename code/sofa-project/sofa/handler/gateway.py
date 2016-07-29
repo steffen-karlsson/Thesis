@@ -10,8 +10,7 @@ from os import path
 from random import choice
 from sys import getsizeof
 
-from simplejson import loads
-from cPickle import dumps as pickle_dumps
+from ujson import loads
 
 from sofa.cache import CacheSystem
 from sofa.delegation import FunctionDelegation

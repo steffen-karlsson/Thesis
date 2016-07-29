@@ -1,7 +1,7 @@
 # Created by Steffen Karlsson on 06-02-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from simplejson import dumps, loads
+from ujson import dumps, loads
 from argparse import ArgumentParser
 
 from Pyro4.errors import NamingError
