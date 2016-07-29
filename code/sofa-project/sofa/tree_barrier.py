@@ -6,7 +6,7 @@ from math import log
 
 class TreeBarrier:
     def __init__(self, current, nodes, root):
-        self.__nodes = sorted([uri for uri, _ in nodes])
+        self.__nodes = nodes
         self.__id = (self.__nodes.index(current) - self.__nodes.index(root)) % len(self.__nodes)
         self.__offset = 0 - self.__nodes.index(root)
         self.__sending_itr = 0
