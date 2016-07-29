@@ -18,7 +18,7 @@ from sofa.error import is_error, is_processing, STATUS_INVALID_DATA, STATUS_NOT_
     STATUS_SUCCESS, STATUS_NOT_ALLOWED
 from sofa.foundation import strategy as sofa_strategies
 from sofa.foundation.operation import OperationContext
-from sofa.handler import get_class_from_source
+from sofa.handler import get_class_from_source, unique_and_preserve
 from sofa.handler.api import _StorageApi
 from sofa.secure import secure_load, secure
 
@@ -176,12 +176,16 @@ class GatewayHandler(object):
         fd = FunctionDelegation(identifier) \
             .as_required_queue_delegation(None, class_context.get_replication_factor())
 
+        nodes_with_blocks = []
+
         for block in self.__next_block(class_context, data):
             # Serialize data if needed
             block = class_context.serialize(block)
 
             # Store at primary replica first
-            self.__storage_nodes[start].append(fd, identifier, block, create_new_stride)
+            storage_node = self.__storage_nodes[start]
+            storage_node.append(fd, identifier, block, create_new_stride)
+            nodes_with_blocks.append(storage_node.get_uri())
 
             block_count += 1
             current_stride += 1
@@ -196,7 +200,10 @@ class GatewayHandler(object):
         fd = FunctionDelegation(identifier) \
             .as_dispatch_delegation() \
             .as_required_queue_delegation(None, class_context.get_replication_factor())
+
         self.__get_storage_node().update_meta_key(fd, identifier, 'append', 'num-blocks', block_count)
+        unique_nodes_with_blocks = unique_and_preserve(nodes_with_blocks)
+        self.__get_storage_node().update_meta_key(fd, identifier, 'append', 'storage-nodes', unique_nodes_with_blocks)
 
     def __next_block(self, context, data):
         block = []

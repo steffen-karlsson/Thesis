@@ -24,7 +24,7 @@ from sofa.delegation.queue import with_forward_count, with_forward_queue, with_r
 from sofa.error import STATUS_ALREADY_EXISTS, STATUS_NOT_FOUND, STATUS_SUCCESS, \
     STATUS_PROCESSING, STATUS_NO_DATA, is_error
 from sofa.foundation.operation import Sequential as SequentialOperation, Parallel as ParallelOperation
-from sofa.handler import get_class_from_source, get_function_from_source
+from sofa.handler import get_class_from_source, get_function_from_source, unique_and_preserve
 from sofa.handler.api import _InternalStorageApi, _InternalGatewayApi
 from sofa.secure import secure_load
 from sofa.tree_barrier import TreeBarrier
@@ -128,6 +128,10 @@ def _get_function(meta_data, func_name):
 def _get_class_context(meta_data):
     source = secure_load(meta_data['digest'], meta_data['source'])
     return get_class_from_source(source, meta_data['class-name'])
+
+
+def _get_storage_nodes_for_dataset(meta_data):
+    return unique_and_preserve(meta_data['storage-nodes'])
 
 
 def _str_loads(s):
@@ -341,10 +345,6 @@ class StorageHandler(DelegationHandler):
         if isinstance(block, unicode):
             block = block.encode("ascii")
 
-        res = self.__get_meta_from_identifier_and_replica(identifier, replica_index)
-        if is_error(res):
-            return res, "Dataset doesn't exists"
-
         info("Writing block of size %d to datatset with identifier %s at replica %d on %s." % (
             getsizeof(block), identifier, replica_index, self.__config.node))
 
@@ -405,12 +405,16 @@ class StorageHandler(DelegationHandler):
 
         meta_data = loads(res)
         if update_type == 'append':
-            meta_data[key] += value
+            if key in meta_data:
+                meta_data[key] += value
+            else:
+                # If the key is not there, it is the same as overriding it
+                update_type = 'override'
 
         if update_type == 'override':
             meta_data[key] = value
 
-        info("%s is %s with %d" % (key, update_type, value))
+        info("%s is %s with %s" % (key, update_type, str(value)))
 
         replica_blocks = self.__find_replica(replica_index)
         replica_blocks[str(identifier)][0] = dumps(meta_data)
@@ -502,11 +506,11 @@ class StorageHandler(DelegationHandler):
             _blocks = None
 
             # Get blocks to work on
-            if process_state['block-state'] is 'raw':
+            if process_state['block-state'] == 'raw':
                 _blocks = self.__get_raw_blocks(didentifier, replica_index)
-            elif process_state['block-state'] is 'serialized':
+            elif process_state['block-state'] == 'serialized':
                 _blocks = self.__get_deserialized_raw_blocks(class_context, didentifier, replica_index)
-            elif process_state['block-state'] is 'partial':
+            elif process_state['block-state'] == 'partial':
                 # The result block is used for partial results in the case of built in functions with synchronization
                 _blocks = self.get_partial_value(didentifier, fidentifier)
 
@@ -528,7 +532,7 @@ class StorageHandler(DelegationHandler):
         if self.__dgcs.contains(fidentifier):
             blocks = _get_blocks_with_ghost()
         else:
-            if process_state['block-state'] is 'serialized':
+            if process_state['block-state'] == 'serialized':
                 blocks = self.__get_deserialized_raw_blocks(class_context, didentifier, replica_index)
             else:
                 blocks = self.__get_raw_blocks(didentifier, process_state['replica-index'])
@@ -568,26 +572,30 @@ class StorageHandler(DelegationHandler):
                 self.__terminate_job(didentifier, fidentifier, STATUS_SUCCESS)
                 return
 
-        # Update is working state before anything else
-        all_nodes = self.get_num_storage_nodes(True)  # Plus one for self
-        self.__srcs.get(didentifier)[fidentifier] = [None, all_nodes, True, gateway, process_state]
-
         # Getting meta data for common arguments
         res = self.__get_meta_from_identifier_and_replica(didentifier, function_delegation['replica-index'])
         if is_error(res):
             # Dataset doesn't exists
             self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
             return
-
         meta_data = loads(res)
+
+        # Update is working state before anything else
+        involving_storage_nodes = _get_storage_nodes_for_dataset(meta_data)
+        process_state['involving-storage-nodes'] = involving_storage_nodes
+
+        num_nodes = len(involving_storage_nodes)
+        self.__srcs.get(didentifier)[fidentifier] = [None, num_nodes, True, gateway, process_state]
 
         root = self.__config.node
         common = (didentifier, process_state, root, meta_data)
-        if all_nodes > 1:
+        if num_nodes > 1:
             # Broadcast storm to all nodes
             info("Pool wrapper initialize job")
-            args = [(node, common) for node in self.__storage_nodes] + [(self, common)]
-            ThreadPool(all_nodes).map_async(_wrapper_initialize_job, args)
+            uris = [api_access for api_access in self.__storage_nodes
+                    if api_access.get_uri() in involving_storage_nodes]
+            args = [(node, common) for node in uris] + [(self, common)]
+            ThreadPool(num_nodes).map_async(_wrapper_initialize_job, args)
         else:
             # Calculate self
             self.initialize_job(*common)
@@ -608,12 +616,11 @@ class StorageHandler(DelegationHandler):
 
         info("Initialize execution at " + str(self.__config.node) + " for function " + function_name)
 
-        self.__tb = TreeBarrier(self.__config.node,
-                                list(self.__config.others['storage']) if 'storage' in self.__config.others else [],
-                                root)
+        storage_nodes_involving = process_state['involving-storage-nodes']
+        self.__tb = TreeBarrier(self.__config.node, storage_nodes_involving, root)
 
         # If im the only node in the system
-        is_local_transfer = self.get_num_storage_nodes() == 0
+        is_local_transfer = len(storage_nodes_involving) == 1
 
         res = _get_contexts(function_name, meta_data)
         if is_error(res):
@@ -682,15 +689,15 @@ class StorageHandler(DelegationHandler):
         last_function = functions[-1]
 
         if process_state['processing']:
-            args = self.__get_operations_and_arguments(didentifier, fidentifier, class_context, process_state)
-            if is_error(args):
+            blocks = self.__get_operations_and_arguments(didentifier, fidentifier, class_context, process_state)
+            if is_error(blocks):
                 self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
                 return
 
             is_root = str(didentifier) in self.__FLAG
             operation_context_args = (operation_context, didentifier, fidentifier, process_state, meta_data)
             try:
-                res = _local_execute(self, functions, args, operation_context_args)
+                res = _local_execute(self, functions, blocks, operation_context_args)
                 process_state['processing'] = False
                 info("Result for " + str(self) + " is: " + str(res))
 
@@ -707,12 +714,14 @@ class StorageHandler(DelegationHandler):
         is_first_iteration = itr == 0
 
         try:
-            res = self.__srcs.get(didentifier)[fidentifier][RESULT]
             if self.__tb.should_send(itr):
+                res = self.__srcs.get(didentifier)[fidentifier][RESULT]
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + str(self) + " to the next")
 
                 process_state['iteration-count'] += 1
+                if class_context.is_serialized():
+                    res = class_context.serialize(res)
                 process_state['partial-value'] = res
                 receiver.execute_function(didentifier, fidentifier, meta_data, process_state)
                 return
@@ -724,15 +733,32 @@ class StorageHandler(DelegationHandler):
             data = self.__srcs.get(didentifier)[fidentifier]
 
             if is_first_iteration:
+                # No data received
                 res = data[RESULT]
             else:
-                res = last_function((process_state['partial-value'], data[RESULT]))
+                args = None
+                if operation_context.requires_meta_data():
+                    args = [{
+                        'num-blocks': meta_data['num-blocks'],
+                        'num-storage-nodes': len(process_state['involving-storage-nodes']),
+                        'idx': process_state['involving-storage-nodes'].index(str(self))
+                    }]
+
+                partial_res = process_state['partial-value']
+                if class_context.is_serialized():
+                    partial_res = class_context.deserialize(partial_res)
+                blocks = [data[RESULT], partial_res]
+
+                if args:
+                    res = last_function(blocks, args)
+                else:
+                    res = last_function(blocks)
 
             if operation_context.has_post_processing_step():
                 res = operation_context.execute_post_process(res)
-
-            # Formatting it to expected return representation
-            res = operation_context.get_data_return_representation(res)
+            else:
+                # Formatting it to expected return representation
+                res = operation_context.get_data_return_representation(res)
 
             info("Finishing with result: " + str(res))
             self.__srcs.get(didentifier)[fidentifier] = [res, None, False, data[GATEWAY], process_state]
@@ -760,12 +786,15 @@ class StorageHandler(DelegationHandler):
 
         if self.__srcs.get(didentifier)[fidentifier][REQUEST_COUNT] < 1:
             common = (didentifier, fidentifier, meta_data, process_state)
+            involving_storage_nodes = process_state['involving-storage-nodes']
+            num_nodes = len(process_state['involving-storage-nodes'])
 
-            if self.get_num_storage_nodes() > 0:
+            if num_nodes > 1:
                 info("Pool _wrapper_execute_function")
-                args = [(node, common) for node in self.__storage_nodes] + [(self, common)]
-                all_nodes = self.get_num_storage_nodes(True)
-                ThreadPool(all_nodes).map_async(_wrapper_execute_function, args)
+                uris = [api_access for api_access in self.__storage_nodes
+                        if api_access.get_uri() in involving_storage_nodes]
+                args = [(node, common) for node in uris] + [(self, common)]
+                ThreadPool(num_nodes).map_async(_wrapper_execute_function, args)
             else:
                 self.execute_function(*common)
 
@@ -877,8 +906,8 @@ def _local_execute(self, functions, args, operation_context_args):
 
             query = [{
                 'num-blocks': meta_data['num-blocks'],
-                'num-storage-nodes': self.get_num_storage_nodes(including_self=True),
-                'idx': self.me()
+                'num-storage-nodes': len(process_state['involving-storage-nodes']),
+                'idx': process_state['involving-storage-nodes'].index(str(self))
             }] + query
 
         # If function is buit-in call it by the wrapper import utils function
