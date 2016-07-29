@@ -44,3 +44,7 @@ def get_class_from_source(source, cls_name):
     except NameError:
         exec (source, globals())
         return __instantiate()
+
+
+def unique_and_preserve(data):
+    return list(sorted(set(data), key=lambda x: data.index(x)))
