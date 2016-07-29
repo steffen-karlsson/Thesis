@@ -4,11 +4,9 @@
 from cPickle import dumps, loads
 from os import getcwd
 
-from numpy import fromfile, float32, dot, divide, int32, rint, zeros, add, asarray, concatenate
+from numpy import fromfile, float32, dot, divide, int32, rint, zeros, add, asarray, concatenate, ceil
 
 from bdae.dataset import AbsMapReduceDataset
-from bdae.libpy.libbdaemanager import PyBDAEManager
-from bdae.libpy.libbdaescientist import PyBDAEScientist
 from sofa.foundation.operation import OperationContext, ExpectedReturnType
 
 NUM_PROJECTIONS = 320
@@ -27,6 +25,9 @@ class FDKDataset(AbsMapReduceDataset):
         return dumps(data)
 
     def deserialize(self, data):
+        if isinstance(data, unicode):
+            data = data.encode("ascii")
+
         return loads(data)
 
     def is_serialized(self):
@@ -46,6 +47,7 @@ class FDKDataset(AbsMapReduceDataset):
             OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]')
                 .with_post_processing(post_process)
                 .with_expected_return_type(ExpectedReturnType.Image)
+                .with_meta_data()
         ]
 
 
@@ -54,20 +56,17 @@ def post_process(res):
     import matplotlib.cm as cm
 
     path = getcwd() + "/test.png"
-
     plt.clf()
-    plt.matshow(asarray(res), fignum=1, cmap=cm.Greys_r)
+    plt.matshow(add.reduce(asarray(res)), fignum=1, cmap=cm.Greys_r)
     plt.savefig(path)
     return path
 
 
-def ndsum(blocks):
-    # No extra arguments: ignore
-    # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
-    return add.reduce(concatenate(blocks)).tolist()
+def ndsum(blocks, meta_data):
+    return add.reduce(blocks)
 
 
-def fdkcore(blocks, voxels, combined_path, z_voxel_coords_path, transform_path, volumeweight_path):
+def fdkcore(blocks, meta_data, voxels, combined_path, z_voxel_coords_path, transform_path, volumeweight_path):
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     x_voxels = y_voxels = z_voxels = voxels
 
@@ -79,64 +78,26 @@ def fdkcore(blocks, voxels, combined_path, z_voxel_coords_path, transform_path, 
     transform_matrix = fromfile(transform_path, dtype=float32)
     transform_matrix.shape = (NUM_PROJECTIONS, 3, 4)
 
-    volume_weight = fromfile(volumeweight_path, dtype=float32)
-    volume_weight.shape = (NUM_PROJECTIONS, y_voxels * x_voxels)
-
-    recon_volume = zeros((z_voxels, y_voxels, x_voxels), dtype=float32)
-
     projections = concatenate(blocks)
 
-    for p in xrange(NUM_PROJECTIONS):
-        # Numpy FDK operates on flat arrays
+    recon_volume = zeros((len(projections), z_voxels, y_voxels, x_voxels), dtype=float32)
 
-        flat_proj_data = projections[p].ravel()
+    offset = ceil(NUM_PROJECTIONS / meta_data['num-storage-nodes']) * meta_data['idx']
 
-        for z in xrange(z_voxels):
-            # Put current z voxel into combined_matrix
+    for z in xrange(z_voxels):
+        combined_matrix[2, :] = z_voxel_coords[z]
 
-            combined_matrix[2, :] = z_voxel_coords[z]
+        for p, proj in enumerate(projections):
+            vol_det_map = dot(transform_matrix[p + offset], combined_matrix)
+            rint_map = rint(divide(vol_det_map[0:2, :], vol_det_map[2, :]))
+            map_col = rint_map[0]
+            map_row = rint_map[1]
 
-            # Find the mapping between volume voxels and detector pixels
-            # for the current angle
+            mask = (map_col >= 0) & (map_row >= 0) & \
+                   (map_col < DETECTOR_COLUMNS) & (map_row < DETECTOR_ROWS)
 
-            vol_det_map = dot(transform_matrix[p], combined_matrix)
-            map_cols = rint(divide(vol_det_map[0, :], vol_det_map[2, :])).astype(int32)
-            map_rows = rint(divide(vol_det_map[1, :], vol_det_map[2, :])).astype(int32)
+            recon_volume[p][z].flat += proj.flatten()[
+                (mask * (map_col + map_row * DETECTOR_COLUMNS)).astype(int32)
+            ]
 
-            # Find the detector pixels that contribute to the current slice
-            # xrays that hit outside the detector area are masked out
-
-            mask = (map_cols >= 0) & (map_rows >= 0) & (map_cols < DETECTOR_COLUMNS) & (map_rows < DETECTOR_ROWS)
-
-            # The projection pixels that contribute to the current slice
-
-            proj_indexs = map_cols * mask + map_rows * mask * DETECTOR_COLUMNS
-
-            # Add the weighted projection pixel values to their
-            # corresponding voxels in the z slice
-
-            recon_volume[z].flat += flat_proj_data[proj_indexs] * volume_weight[p] * mask
-
-    return [recon_volume]
-
-
-if __name__ == '__main__':
-    BASE_PATH = getcwd() + "/testdata/"
-
-    manager = PyBDAEManager("sofa:textdata:gateway:0")
-    dataset = FDKDataset(name="FDK dataset", description="Testing reconstruction")
-    manager.create_dataset(dataset)
-    manager.append_path_to_dataset(dataset, BASE_PATH + "projections.bin")
-
-
-    def callback(res):
-        print "Saved"
-
-
-    args = [64,
-            BASE_PATH + 'combined.bin',
-            BASE_PATH + 'z_voxel_coords.bin',
-            BASE_PATH + 'transform.bin',
-            BASE_PATH + 'volumeweight.bin']
-    scientist = PyBDAEScientist("sofa:textdata:gateway:0")
-    scientist.submit_job("FDK dataset", "reconstruct", args, callback=callback)
+    return recon_volume
