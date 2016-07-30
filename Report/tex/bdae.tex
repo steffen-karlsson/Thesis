@@ -1,10 +1,10 @@
-\BigLetter{T}{he} purpose and ambition are to create a \CodeName extension build up on the core API explained in chapter \ref{chp:api}, to demonstrate the opportunities with a tangible and present example to set a standard. The extension seeks to model a data access layer (DAL) as a MapReduce framework (Definition \ref{def:mapreduce}) for \CodeName like Hadoop for HDFS.
+\BigLetter{T}{he} purpose and ambition are to create a \CodeName extension build up on the core API explained in chapter \ref{chp:api}, to demonstrate the opportunities with a present example to set a standard. The extension seeks to model a data access layer (DAL) as a MapReduce framework (Definition \ref{def:mapreduce}) for \CodeName like Hadoop for HDFS.
 
 \section{Investigation}
-The initial idea and thoughts were to create a bridge between the DAL of Disco (Section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, such that \CodeName would be an optimized and semantic-intelligent replacement for DDFS (Disco Distributed File System). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
+The initial idea were to create a bridge between the DAL of Disco (Section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, so that \CodeName would be an optimized and semantic-intelligent replacement for DDFS (Disco Distributed File System). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
 \newline
 
-The reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second and likewise significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
+The reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
 
 \section{Assumption}
 A small but sufficient number of assumptions has been put together, based on the brief but necessary investigation and the knowledge obtained by the examination of related work (Section \ref{sec:related}), to limit the extension to the project scope:
@@ -19,7 +19,7 @@ A small but sufficient number of assumptions has been put together, based on the
 Additionally, it is a requirement and thereby an assumption that the \texttt{OperationContext}s (Section \ref{sec:operation}) of the datasets can be modeled in terms of a MapReduce scheme.
 
 \section{Objectives} \label{sec:bdae-objectives}
-Based on the assumptions and the general knowledge taught by studying similar frameworks has following objectives been composed:
+Based on the assumptions and the general knowledge learned by studying similar frameworks has following objectives been composed:
 \begin{itemize}
 	\item Utilize the \CodeName storage system and its API to create MapReduce based DAL.
 	\item Define and design a collection structure to batch similar datasets.
@@ -41,12 +41,12 @@ BDAE (\textit{/b'dei'/}) is the name and acronym of the big data analysis engine
 \subsection{Dataset}
 The \texttt{SofaBaseObject} (Section \ref{sec:sofabaseobject}) has been extended and delimited along with the requirement of the functions defined in the \texttt{OperationContex}, as a consequence of the chosen execution model. 
 \begin{itemize}
-	\item A \texttt{MapReduceDataset} has been defined which requires functions executed on the data to be ordered into a \texttt{map} and a \texttt{reduce} category. 
-	\item All functions defined in an extended \texttt{OperationContex} is at runtime verified towards the two categories since the MapReduce execution model prescribes that each operation has at least one map function and at most one reduce function as the.
+	\item A \texttt{MapReduceDataset} has been defined which requires functions executed on the data to be ordered into two categories: \texttt{map} and \texttt{reduce}. 
+	\item All functions defined in an extended \texttt{OperationContex} is at runtime verified towards the two categories since the MapReduce execution model prescribes that each operation has at least one map function and at most one reduce function at the end.
 \end{itemize}
 
 \section{Collection} \label{sec:collection}
-A dataset in \CodeName is defined by a dictionary with metadata and a list of associated semantic blocks, but this metadata structure can with slightly modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives (Section \ref{sec:bdae-objectives}):
+A dataset in \CodeName is defined by a dictionary with metadata and a list of associated semantic blocks, but this metadata structure can with small modifications also be used as a descriptor for a collection of similar datasets, which was one of the objectives (Section \ref{sec:bdae-objectives}):
 
 \begin{quotation}
 	\textit{"Define and design a collection structure to batch similar datasets."}
@@ -76,7 +76,7 @@ Figure \ref{fig:map-reduce-tree} illustrates the two steps explained above, wher
 One of the objectives for BDAE was to: \textit{"Characterize a domain specific access model"} to first and foremost redeem expectations of system-wide access control, such that the scientist research employees who submit new map reduce operations does not have direct access to boot and teardown servers, as an example.
 \newline
 
-The entire BDAE + \CodeName system are divided into three major responsibilities, which each has its domain specific user access level. The responsibilities are inherited as the level increases, which means that a \textbf{manager} have the same rights as the \textbf{scientist} and so fourth.
+The entire BDAE + \CodeName system are divided into three major responsibilities, which each has its domain specific user access level. The responsibilities are inherited as the level increases, which means that the \textbf{data manager} have the same rights as the \textbf{data scientist} and so fourth.
 \newline
 
 The core API of \CodeName has been wrapped into a BDAE specific controller that grants access based on user level, in order to restrict the API access and thus accomplish this.
@@ -175,3 +175,30 @@ The application supports following features:
 	\item Listing metadata information about all datasets currently available in \CodeName.
 	\item View the results of all the previous executed operations.
 \end{itemize}
+
+\section{Example}
+The productivity, readability and maintainability levels of \CodeName and BDAE are demonstrated and compared to Hadoop since the implemented prototype is a more or less complete framework. Hadoop was chosen based on the popularity and thus comprehensive usage and thereby plenty of very well-produced examples.
+\newline
+
+The example used to illustrate the mentioned features of \CodeName and BDAE is a simple processes of log files to summarize the events by type\cite{PageTomWheeler}. This: \texttt{2013-06-29 22:17:05.362 CDT ERROR "Out of memory"} is an example of a log output and thereby a job input for the \texttt{MapReduce} operation. 
+\newline
+
+The map and reduce functions are mainly\footnote{Other languages such as Python are available through the Hadoop Streaming API.} written in Java and thus forces an object-oriented class structure of the function logic. The \texttt{Mapper} and \texttt{Reducer} class representations requires specific and hard coded object types of the input and output parameters, partially due to the programming language restrictions but also because that Hadoop sorts the output of the map function before applying the reduce function.
+
+\subsection{Map}
+The map function in BDAE to implement the logic described is defined by a simple 5 line code snippet (Code \ref{lst:bdae-map}), whereas the corresponding Hadoop code is specified by 39 lines of code (Appendix \ref{sec:hadoop-map}).
+\begin{center}
+\begin{lstlisting}[basicstyle=\fontsize{5}{5}\selectfont\ttfamily, language=Python, xleftmargin=0.8cm, caption={BDAE map function}, label={lst:bdae-map}]
+def log_mapper(blocks, levels):
+    res = zeros((1, len(levels)))
+    for entry in sum(blocks, []):
+        res += array([entry.count(level) for level in levels])
+    return res
+\end{lstlisting}
+\end{center}
+
+\subsection{Reduce}
+\begin{lstlisting}[basicstyle=\fontsize{5}{5}\selectfont\ttfamily, language=Python, xleftmargin=0.8cm, caption={BDAE reduce function}, label={lst:bdae-reduce}]
+def log_reducer(blocks):
+    return array(blocks).sum(axis=0)
+\end{lstlisting}
