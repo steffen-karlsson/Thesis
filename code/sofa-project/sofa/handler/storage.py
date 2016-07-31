@@ -694,13 +694,13 @@ class StorageHandler(DelegationHandler):
                 self.__terminate_job(didentifier, fidentifier, STATUS_NOT_FOUND)
                 return
 
-            is_root = str(didentifier) in self.__FLAG
             operation_context_args = (operation_context, didentifier, fidentifier, process_state, meta_data)
             try:
                 res = _local_execute(self, functions, blocks, operation_context_args)
                 process_state['processing'] = False
                 info("Result for " + str(self) + " is: " + str(res))
 
+                is_root = str(didentifier) in self.__FLAG
                 if is_root:
                     self.__srcs.get(didentifier)[fidentifier][RESULT] = res
                 else:
