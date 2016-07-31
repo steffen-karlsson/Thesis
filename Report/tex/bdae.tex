@@ -186,19 +186,21 @@ The example used to illustrate the mentioned features of \CodeName and BDAE is a
 The map and reduce functions are mainly\footnote{Other languages such as Python are available through the Hadoop Streaming API.} written in Java and thus forces an object-oriented class structure of the function logic. The \texttt{Mapper} and \texttt{Reducer} class representations requires specific and hard coded object types of the input and output parameters, partially due to the programming language restrictions but also because that Hadoop sorts the output of the map function before applying the reduce function.
 
 \subsection{Map}
-The map function in BDAE to implement the logic described is defined by a simple 5 line code snippet (Code \ref{lst:bdae-map}), whereas the corresponding Hadoop code is specified by 39 lines of code (Appendix \ref{sec:hadoop-map}).
-\begin{center}
-\begin{lstlisting}[basicstyle=\fontsize{5}{5}\selectfont\ttfamily, language=Python, xleftmargin=0.8cm, caption={BDAE map function}, label={lst:bdae-map}]
+The map function in BDAE implementing the logic described is defined by a simple 5 line code snippet (Code \ref{lst:bdae-map}), whereas the corresponding Hadoop code is specified by 39 lines of code (Appendix \ref{sec:hadoop-map}).
+
+\begin{lstlisting}[float, basicstyle=\fontsize{8}{5}\selectfont\ttfamily, language=Python, xleftmargin=.8cm, caption={BDAE map function}, label={lst:bdae-map}]
 def log_mapper(blocks, levels):
     res = zeros((1, len(levels)))
     for entry in sum(blocks, []):
         res += array([entry.count(level) for level in levels])
     return res
 \end{lstlisting}
-\end{center}
 
 \subsection{Reduce}
-\begin{lstlisting}[basicstyle=\fontsize{5}{5}\selectfont\ttfamily, language=Python, xleftmargin=0.8cm, caption={BDAE reduce function}, label={lst:bdae-reduce}]
+The BDAE reduce function is a simple function with 2 lines of code (Code \ref{lst:bdae-reduce}) that calculates the aggregated amount of log events. The corresponding Hadoop code is 25 lines of code (Appendix \ref{sec:hadoop-reduce}).
+\vspace*{4mm}
+
+\begin{lstlisting}[basicstyle=\fontsize{8}{5}\selectfont\ttfamily, language=Python, xleftmargin=0.8cm, caption={BDAE reduce function}, label={lst:bdae-reduce}]
 def log_reducer(blocks):
     return array(blocks).sum(axis=0)
 \end{lstlisting}

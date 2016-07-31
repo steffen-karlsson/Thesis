@@ -129,3 +129,81 @@ The nodes are bootable by the python daemon too, in the case of misconfigured SS
     		\caption[]{A dialog displaying the result of a CT reconstruction operation.}
   	\end{minipage}
 \end{figure*}
+
+\chapter{Hadoop Source Code Example}
+\definecolor{pblue}{rgb}{0.13,0.13,1}
+\definecolor{pgreen}{rgb}{0,0.5,0}
+\definecolor{pred}{rgb}{0.9,0,0}
+\definecolor{pgrey}{rgb}{0.46,0.45,0.48}
+
+\section{Map} \label{sec:hadoop-map}
+\begin{lstlisting}[language=Java, commentstyle=\color{pgreen}, keywordstyle=\color{pblue}, stringstyle=\color{pred},basicstyle=\fontsize{6}{5}\selectfont\ttfamily, xleftmargin=0.8cm]
+package com.cloudera.example;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Mapper;
+
+import java.io.IOException;
+
+public class LogEventParseMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    
+    enum Level { TRACE, DEBUG, INFO, WARN, ERROR, FATAL };
+
+    @Override
+    public void map(LongWritable key, Text value, Context context)
+            throws IOException, InterruptedException {
+
+        String line = value.toString();
+
+        // ignore empty lines
+        if (line.trim().isEmpty()) {
+            return;
+        }
+        String[] fields = line.split(" ");
+
+        // ensure this line is not malformed
+        if (fields.length <= 3) {
+            return;
+        }
+
+        String levelField = fields[3];
+        for (Level level : Level.values()) {
+            String levelName = level.name();
+            if (levelName.equalsIgnoreCase(levelField)) {
+                context.write(new Text(levelName), new IntWritable(1));
+            }
+        }
+    }
+}
+\end{lstlisting}
+\newpage
+\section{Reduce} \label{sec:hadoop-reduce}
+\begin{lstlisting}[language=Java, commentstyle=\color{pgreen}, keywordstyle=\color{pblue}, stringstyle=\color{pred},basicstyle=\fontsize{6}{5}\selectfont\ttfamily, xleftmargin=0.8cm]
+package com.cloudera.example;
+
+import java.io.IOException;
+
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Reducer;
+
+public class LogEventSumReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
+
+    @Override
+    public void reduce(Text key, Iterable<IntWritable> values, Context context) 
+            throws IOException, InterruptedException {
+
+        // used to count the number of messages for this event type
+        int sum = 0;
+        // increment it for each new value received
+        for (IntWritable value : values) {
+            sum += value.get();
+        }
+
+        // Our output is the event type (key) and the sum (value)
+        context.write(key, new IntWritable(sum));
+    }
+}
+\end{lstlisting}
