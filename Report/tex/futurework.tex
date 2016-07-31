@@ -34,3 +34,6 @@ Implement an encryption/decryption layer which is optional to implement for the 
 \newline
 
 A straightforward solution extends the append flow (Figure \ref{fig:preprocess-nextentry}) such that each block is locally encrypted before distributed to the replicas. The decryption, on the other hand, has to be performed at a block level whenever an operation is executed.
+
+\section{Enhanced benchmarks}
+A final and evidently relevant task for the future is to implement an extended benchmark suite to compare \CodeName + BDAE against Hadoop and other big data analysis frameworks targeting the same audiences. The extensive comparison between the frameworks is only relevant whenever the rest of the optimizations and prioritized tasks described in this chapter has been applied.
