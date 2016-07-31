@@ -3,7 +3,7 @@
 
 The protocol exposes a vast amount of various \texttt{get}-methods to retrieve useful information regarding the datasets, in addition to the routines explained in this chapter.
 
-\section{General}
+\section{General} \label{sec:general}
 The formalities which are consistent throughout all of the routines are examined and described in this section.
 
 The API is implemented in Python\cite{PagePython}, which is a high-productivity rather than high-performance programming language that have caught much attention and gained popularity in the high performance and research communities. The reason for the increased acceptance is because the language is easily extended by open source libraries written in other traditional high-performance languages like Fortran or C++, with a corresponding bridge such as Cython\cite{PageCPython} for C/C++. 
@@ -15,7 +15,12 @@ These types of bridges are usually the optimising static compilers for Python th
 Python as the main programming language was chosen over others such as C++ and Java based primarily on its high-productivity and thus an appropriate prototype environment in addition to the integration abilities described above.
 \newline
 
-All communication in \CodeName between nodes and the public API is implemented using a Pyro4\cite{PagePyro4}, a remote procedure call library for Python that facilitates communication across the network by minimizing the workload. The library was chosen due to simplicity and precedence with regards to the project scope, but there were other alternatives (Section \ref{sec:communication}), which in a final solution potentially would increase performance.
+\begin{definition}[RPC] \label{def:rpc}
+\textit{A remote procedure call is a subroutine exposed by a service-providing machine connected to a network, that another machine can call or request without knowing the underlying network details.}
+\end{definition}
+\vspace*{3mm}
+
+All communication in \CodeName between nodes and the public API is implemented using a Pyro4\cite{PagePyro4}, a remote procedure call (Definition \ref{def:rpc}) library for Python that facilitates communication across the network by minimizing the workload. The library was chosen due to simplicity in terms of establishing a connection between the nodes with a minimal programming effort. Though, there were other RPC alternatives such as the gRPC \cite{PageGRPC} based on Google Protocol Buffers \cite{PageProtocolBuffers} or Facebook Thrift \cite{slee2007thrift}, which in a final solution potentially would increase performance.
 \newline
 
 The API is implemented using a classic CRUD (Create, Read, Update and Delete) pattern with two small modifications - \textit{retrieve} instead of read in terms of the \texttt{get}-methods and an extra \textit{append} functionality to attach data to the dataset.
@@ -32,8 +37,9 @@ The anonymous unique identifier of a dataset is calculated by a hash function\fo
 The concatenated package and class name are internally transformed to \CodeName \texttt{OperationContext} closure byte stream by compressing\footnote{Using the \texttt{marshall} \cite{PageMarshall} library which by \cite{Brody2015} is approximately 50\% faster than the regular \texttt{cPickle}.} it with an associated digest as a cryptographic signature. The closure is the core of operation execution in \CodeName, which will be explained further in details in Section \ref{sec:submit}.
 
 \begin{figure}[ht!]
+	\vspace*{5mm}
 	\centering
-	\includegraphics[scale=1.1]{pdf/package-pipeline.pdf}
+	\includegraphics[scale=1.3]{pdf/package-pipeline.pdf}
 	\caption{Timing diagram with example of package pipelining \label{fig:package-pipeline}}
 \end{figure}	
 
@@ -117,6 +123,7 @@ Figure \ref{fig:submit-job} illustrates the bulk synchronous parallel-like model
 	\caption{Flow diagram of the submit API call. \label{fig:submit-job}}
 \end{figure}	
 
+\newpage
 \noindent
 The reason for the barrier before the execution is to ensure that all storage nodes are in charge of the data required for the calculation, such that no superfluous intercommunication is needed.
 \newline

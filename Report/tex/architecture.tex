@@ -60,9 +60,6 @@ The design and structure of the storage node will be described as part of Chapte
 \end{figure}
 \end{definition}
 
-\section{Communication} \label{sec:communication}
-%TODO 
-
 \section{Partitioning and distribution} \label{sec:pandd}
 The partitioning and distribution protocol in \CodeName is based on consistent hashing (\reference{def:ch}{sec:partitioning}) and the round-robin load balancing algorithm (Definition \ref{def:rr}). The downside of this distribution algorithm is that it does not take state, availability and workload among other properties of the servers into account. 
 \newline
