@@ -1,0 +1,12 @@
+The goal of the project is to design and implemented a file archive for big data analysis with high performance and scientific computing in mind. Existing MapReduce\cite{Dean:2008:MSD:1327452.1327492} frameworks such as the commonly used Apache Hadoop\cite{PageHadoop} is designed and developed for different purposes than what they are used for nowadays. 
+
+The conventional file system approach with fixed size data blocks implemented in Hadoop makes it suboptimal for scientific data processing because splitting data at arbitrary positions means that high-level data structures such as NetCDF data and multidimensional arrays are distributed across multiple machines. A consequence of this is increased latency and intercommunication between machines during data processing.
+\newline
+
+Hadoop has previously been investigated and evaluated speci\-fically for scientific data-intensive operations\cite{fadika2012evaluating} and even extended and modified for individual use-case such as NetCDF\cite{buck2011scihadoop}.
+\newline
+
+This project introduces \CodeNameShort, a distributed semantic oriented file archive for big data analysis that preserves the structure of data by jointly storing semantically coherent data parts of arbitrary size. The responsibility of correctly splitting the data is transitioned towards the end-user and thus not inaccurately made by the system. The system will be targeted inexpensive commodity hardware like other similar frameworks and will thus primarily rely on the underlying file system for redundancy and hardware for recovery.
+\newline
+
+The \CodeName framework provides a range of different system customizations and data related opportunities such as instance based virtualization and the unique and innovative opportunity of virtual replication at a data level specified independently for each entry, 	instead of at a machine level. The framework provides a public available core API that exposes a vast amount of high level routines for developing powerful and useful extensions and applications. The project introduces such an extension BDAE (\textit{/b'dei'/}) which models the notion of a data access and processing layer for \CodeNameShort.
