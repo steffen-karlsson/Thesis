@@ -19,7 +19,7 @@ The single master pattern in Hadoop at the earlier versions (before \textbf{2.x}
 Later versions support fail-over to a working redundant standby copy, with hardware and communication cost. Other solutions to the SPOF error (Section \ref{sec:related}) such as the Facebook Avatarnode Hadoop extension requires integrations and instances of extra systems like ZooKeeper.
 \newline
 
-Systems like the Google File System follows the same stateful metadata master model, whereas DDFS, which is the data access layer of Disco, implements an interesting model where the metadata and data chunks are stored jointly on the cluster hosts. Nevertheless are a simple metadata cache system implemented on the master, which appears like is a single master pattern and is motivated by the preference for consistency over availability in the CAP Theorem (Definition \ref{def:cap}).
+Systems like the Google File System follows the same stateful metadata master model, whereas DDFS, which is the data access layer of Disco, implements an interesting model where the metadata and data blocks are stored jointly on the cluster hosts. Nevertheless are a simple metadata cache system implemented on the master, which appears like is a single master pattern and is motivated by the preference for consistency over availability in the CAP Theorem (Definition \ref{def:cap}).
 
 \section{Partitioning} \label{sec:partitioning}
 The concept of data partitioning has been covered a substantial amount of times by Wilkinson \etal \cite{Wilkinson:1998:PPT:289352} among others and consistent hashing (Definition \ref{def:ch}) is one opportunity to separate data uniformly across multiple machines.
@@ -40,7 +40,7 @@ Systems such as Hadoop implements a straightforward and random blocks allocation
 \end{itemize}
 
 \section{Replication} \label{sec:replication}
-The block replica placement strategy in HDFS is a predominant and critical aspect regarding data reliability, performance and potentially network bandwidth utilization too. By default is a user-defined number of replicas (default is 3) is placed as following in the system:
+The block replica placement strategy in HDFS is a predominant and critical aspect regarding data reliability, performance and potentially network bandwidth utilization too. The number of replicas is user-defined (default is 3) and is placed as following in the system:
 \begin{itemize}
 	\item First block is placed on the node where the writer is located.
 	\item Location of second and third block is a distance based calculation favoring bandwidth and cluster structure.
@@ -63,17 +63,17 @@ Based on the analysis and reasoning throughout this chapter are presumptions con
 \section{Objectives} \label{sec:objectives}
 \begin{itemize}
 	\item Split data such that semantically coherent parts are stored jointly and thus eliminating the data residual problem known from Hadoop.
-	\item Store data in arbitrary sized chunks as a consequence of above mentioned.
-	\item Eliminating single-point of failure on a stateful master server.
-	\item Implement a transparent but suitable load balancing protocol with big data analysis in mind.
-	\item Design and built a monitor service to measure and observe the system and handle redistribution when necessary.
+	\item Store data in arbitrary sized blocks as a consequence of above mentioned.
+	\item Eliminating single-point of failure that stems from a stateful master server.
+	\item Implement a transparent load balancing protocol with big data analysis in mind.
+	\item Design and build a monitor service to measure and observe the system and handle redistribution when necessary.
 \end{itemize}
 
 \section{Examples} \label{sec:examples}
 The focus of this project will be on three different types of datasets, which combined will contribute to an exploratory research and development process of the big data file archive and will challenge various critical aspects. 
 
 \subsection*{Image data}
-The type of image data challenges the aspects of the solution with regards to datasets with fixed sized chunks and thus enabling the opportunity of precisely calculating positions and offsets when fetching the data from disk again. Also does this part cover the problem of choosing, designing and implementing a domain-specific metadata language for describing the content and data context. 
+The type of image data challenges the aspects of the solution with regards to datasets with fixed sized blocks and thus enabling the opportunity of precisely calculating positions and offsets when fetching the data from disk again. Also does this part cover the problem of choosing, designing and implementing a domain-specific metadata language for describing the content and data context. 
 
 The choice of test image data is limited to high-resolution grayscale X-rays represented as matrices of photon counters.
 

@@ -6,14 +6,14 @@ The initial idea were to create a bridge between the DAL of Disco (Section \ref{
 
 The reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
 
-\section{Assumption}
+\section{Assumptions}
 A small but sufficient number of assumptions has been put together, based on the brief but necessary investigation and the knowledge obtained by the examination of related work (Section \ref{sec:related}), to limit the extension to the project scope:
 
 \begin{itemize}
 	\item The solution is targeted and used for big data analysis.	
 	\item Data is assumed to be research and scientific related material. 
 \end{itemize}
-, which generally is inspired and based on the ones for \CodeName (Section \ref{sec:assumption}).
+The assumptions are generally inspired and based on the ones for \CodeName (Section \ref{sec:assumption}).
 \newline
 
 Additionally, it is a requirement and thereby an assumption that the \texttt{OperationContext}s (Section \ref{sec:operation}) of the datasets can be modeled in terms of a MapReduce scheme.

@@ -127,7 +127,7 @@ Data with an extensive interrelationship between blocks are a straightforward ex
 One could think of other distribution strategies and algorithms to use on certain specific types of data, hence its an ambition subsequently to design and come up with a generic interface for defining individual strategies and algorithms.
 
 \subsection{Replication}
-\CodeName provides the opportunity of virtual replication at a data level specified independently for each dataset. Compared to other alternatives as the ones evaluated in Section \ref{sec:related} such as Hadoop, this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets based on importance and reproducibility of data.
+\CodeName provides the opportunity of virtual replication at a data level speci\-fied independently for each dataset. Compared to other alternatives as the ones evaluated in Section \ref{sec:related} such as Hadoop, this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets based on importance and reproducibility of data.
 \newline
 
 The replication factor can additionally be used as a load balancing mechanism for the dataset and thereby increase its accessibility for the end-users.
@@ -218,14 +218,14 @@ The neighbor exchange protocol is implement by default in \CodeName and can be u
 \subsubsection*{Protocol}
 The naïve approach for implementing a ghost point distribution protocol using Figure \ref{fig:sofa-overview} as starting point is to:
 \begin{enumerate}
-	\item First of all, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset is defined in section \ref{sec:api-create} in an forthcoming chapter} for that particular dataset.
-	\item Moreover, let that node initialize the calculation and exchange protocol on all the nodes with segments of the data.
+	\item First, let the gateway initialize the process at the root node\footnote{The definition of a root node for a dataset is defined in section \ref{sec:api-create} in an forthcoming chapter} for that particular dataset.
+	\item Then, let that node initialize the calculation and exchange protocol in parallel on all the nodes with segments of the data.
 	\item Finally, let every storage node requests every neighbor for their needs in terms of ghost semantic blocks.
 \end{enumerate}
 \vspace*{2mm}
-Such procedure as explained above requires a minimum of $5n-1$ I/O requests which is rather suboptimal. In distributed systems the focus is on optimizing the number of those requests and one could easily think of an optimized solution such as the one illustrated at Figure \ref{fig:ghost-v1}. 
+Such procedure as explained above requires a minimum of $5n-1$ I/O requests which is far from optimal. In distributed systems research the focus is on optimizing the number of those requests and one could easily think of an optimized solution such as the one illustrated at Figure \ref{fig:ghost-v1}. 
 
-This solution, which improves number of initialization requests (from $n-1$ to $n/2-1$) among others, requires $\frac{5}{2}n-1$ I/O operations which is a remarkable improvement compared to the previous amount.
+This solution, which improves the number of initialization requests (from $n-1$ to $n/2-1$) among others, requires $\frac{5}{2}n-1$ I/O operations which is a remarkable improvement compared to the previous amount.
 
 \begin{figure}[ht!]
 	\centering
@@ -244,7 +244,7 @@ However, in high performance computing (HPC) clusters as this prototype framewor
 	\caption{Ghost protocol v3: The HPC solution \label{fig:ghost-final}}
 \end{figure}	
 
-This solution implements a \textit{"send fast, receive late"}-terminology based broadcast storms\footnote{Requires reasonable network and communication library implementation to be an improvement to prior solutions.} on the prior knowledge that every node knows what the two neighbors needs (regarding ghost semantic blocks), due to the scalable access model where all storage components at real-time can calculate others ids and thereby requirements. The broadcast storm is superior in highly synchronous environments like this where everybody can calculate and send at the same time and equivalently for receiving and thus utilizing the network bandwidth the most. 
+This solution implements a \textit{"send early, receive late"}-terminology based broadcast storms\footnote{Requires reasonable network and communication library implementation to be an improvement to prior solutions.} on the prior knowledge that every node knows what the two neighbors needs (regarding ghost semantic blocks), due to the scalable access model where all storage components at real-time can calculate others ids and thereby requirements. The broadcast storm is superior in highly synchronous environments like this where everybody can calculate and send at the same time and equivalently for receiving and thus utilizing the network bandwidth the most. 
 
 \subsection{Postprocessing}
 An optional step executed after the core of the operation has completed and before the end-user gets the result. This step facilitates options such as filtering or plotting data to produce quality figures on-the-fly at once.
@@ -316,7 +316,7 @@ A range of different opportunities are examined, reviewed, and some tested to im
 The protocol was first of all discarded due to the increased complexity in logic on the gateway servers and the sudden intercommunication between them that it would cause, and secondly because it would require the servers to be moderately stateful\footnoteref{note:stateful}.
 \newline
 
-C. A. R. Hoare defined in his 1978 paper \textit{"Communicating Sequential Processes"}\cite{Hoare:1978:CSP:359576.359585} a formal language for describing patterns of interaction in concurrent systems, which later has been implemented in a variety of different well known programming languages such as Python by Bj{\o}rndalen, Vinter \etal in \cite{bjorndalen2007pycsp}.
+C. A. R. Hoare defined in his 1978 paper \textit{"Communicating Sequential Processes"}\cite{Hoare:1978:CSP:359576.359585} a formal language for describing patterns of interaction in concurrent systems, which later has been implemented in a variety of different well known programming languages such as Python by Bj{\o}rndalen \etal in \cite{bjorndalen2007pycsp}.
 \newline
 
 \noindent
