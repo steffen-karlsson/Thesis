@@ -1,4 +1,4 @@
-\BigLetter{A}{ progressively} increasing challenge in high performance and scientific computing (HPC) is how to store the large amount of data on disk efficiently, especially with the ubiquitous enthusiasm for Big Data Analysis (BDA) frameworks, within the area of influence. A commonly used distributed computation framework for BDA is Apache's Hadoop\cite{PageHadoop}, where data access is based on the Hadoop Distributed File System (HDFS) \cite{Shvachko:2010:HDF:1913798.1914427} and the primary execution model is based on MapReduce\cite{Dean:2008:MSD:1327452.1327492}. These frameworks are developed under different circumstances, and with different purposes compared to what they are presently used.
+\BigLetter{A}{ progressively} increasing challenge in high performance computing (HPC) is how to store the large amount of data on disk efficiently, especially with the ubiquitous enthusiasm for Big Data Analysis (BDA) frameworks, within the area of influence. A commonly used distributed computation framework for BDA is Apache's Hadoop\cite{PageHadoop}, where data access is based on the Hadoop Distributed File System (HDFS) \cite{Shvachko:2010:HDF:1913798.1914427} and the primary execution model is based on MapReduce\cite{Dean:2008:MSD:1327452.1327492}. These frameworks are developed under different circumstances, and with different purposes compared to what they are presently used.
 \newline
 
 HDFS, as well as the Google File System \cite{Ghemawat:2003:GFS:945445.945450}, follows a centralized architectural master/slave organization (described in \cite{Tanenbaum:2006:DSP:1202502} and briefly in \cite{Wilkinson:1998:PPT:289352}) where what is denoted as NameNode acts as the master. This server maintains attributes such as permissions and namespace tree for slaves. Also, it implements a proxy to handle operations realised on the file system at the slaves. 
@@ -180,14 +180,5 @@ Following assumptions are constructed first and foremost to limit the prototype 
 	\item The majority of the datasets are passive, \eg not quite accessed as much as expected in systems like GFS.
 \end{itemize}
 
-\section{Expected results} \label{sec:expected-results}
-\begin{itemize}
-	\item Investigate and evaluate different file system architectures, in order to optimize performance for big data.	
-	\item Analyze one or more approaches, to efficiently pipeline described computations on incoming data.
-	\item Define or use existing descriptive configuration language to specify computational filters.
-	\item Understand and apply suitable high performance computing and other efficiency measures.
-	\item Examine and reflect on performance benchmark results.
-\end{itemize}
-
-\section{\todo{Outline}}
-
+\section{Outline}
+Part \ref{prt:sofa} explains the needs and requirements of the file archive for big data analysis based on the knowledge learned from analysis existing solutions in Chapter \ref{sec:introduction}. Additionally, it describes the architecture and design along with the implementation of the prototype. Part \ref{prt:extensions} explains the implementation of an extension build on top of the file archive based on the API described in Chapter \ref{chp:api}. Part \ref{prt:evaluation} finally, validates the correctness and measures the efficiency of the final solutions in addition to describing the plans for the future.

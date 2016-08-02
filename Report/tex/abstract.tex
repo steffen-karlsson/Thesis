@@ -1,4 +1,4 @@
-The goal of the project is to design and implemented a file archive for big data analysis with high performance and scientific computing in mind. Existing MapReduce\cite{Dean:2008:MSD:1327452.1327492} frameworks such as the commonly used Apache Hadoop\cite{PageHadoop} is designed and developed for different purposes than what they are used for nowadays. 
+The goal of the project is to design and implemented a file archive for big data analysis with high performance and scientific data in mind. Existing MapReduce\cite{Dean:2008:MSD:1327452.1327492} frameworks such as the commonly used Apache Hadoop\cite{PageHadoop} is designed and developed for different purposes than what they are used for nowadays. 
 
 The conventional file system approach with fixed size data blocks implemented in Hadoop makes it suboptimal for scientific data processing because splitting data at arbitrary positions means that high-level data structures such as NetCDF data and multidimensional arrays are distributed across multiple machines. A consequence of this is increased latency and intercommunication between machines during data processing.
 \newline
