@@ -42,11 +42,42 @@ Simulation results are computed by the cone-beam step-and-shoot method based on 
 The sequential implementation of the CT reconstruction simulation is used as a baseline for calculating the speedup based on the runtime from executing it using the BDAE and \CodeName framework.
 \newpage
 
-The sequential source code is rewritten using the Numpy array template (Section \ref{sec:templates}) based on the BDAE MapReduce dataset. The 2D projections are loaded as part of the preprocessing step (Section \ref{sec:sofabaseobject}) and distributed using the chosen distribution strategy.
+The sequential source code is rewritten using the Numpy array template (Section \ref{sec:templates}) based on the BDAE \texttt{MapReduceDataset}. The 2D projections are loaded as part of the preprocessing step (Section \ref{sec:sofabaseobject}) and distributed using the chosen distribution strategy.
 
 \begin{itemize}
 	\item The \texttt{map} function is basically the sequential code with a reduced number of iterations\footnote{Based on the distribution strategy and the number of storage nodes}.
 	\item The \texttt{reduce} function reduces the partial results by applying a universal add operation recursively along the required axis.
 \end{itemize}
 
+The CT reconstruction code is executed on three different datasets in increasing volume, and the expectations for the results are that the performance of BDAE will rise the larger the data. Figure \ref{fig:fdk-speedup} presents the speedup results of BDAE compared to the sequential implementation of the CT reconstruction (Graphs of the execution times are in Appendix \ref{app:fdk}).
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.4]{img/fdk-speedup.png}
+	\caption[]{Speedup gained using BDAE on the three different datasets. \label{fig:fdk-speedup}}
+\end{figure}
+
+The speedup gained is constant using four or more storage nodes on the small 64x64x64 voxels dataset as expected, this is due to the network communication overhead which is dominating the combined execution time. Otherwise, the speedup is quite satisfactory considering the fact that the communication protocol is based on the pure Python library Pyro4 (Section \ref{sec:general}) which: \textit{"$\ldots$ is not designed to efficiently transfer large amounts of binary data over the network. Try to find another protocol that better suits this requirement"}\cite{PagePyro4}.
+
 \section{Circle detection}
+One of the useful and productive features in BDAE the ability to transform sequential code into a MapReduce operation with minimal programming effort and without profound knowledge of how the code works. All it takes is: 
+\begin{itemize}
+	\item Identify the reduction part and determine the need for ghosts (Section \ref{sec:operation}) in the original code.
+	\item Define the data using on the of available BDAE templates (Section \ref{sec:templates}) or by extending the \texttt{MapReduceDataset} (Section \ref{sec:bdae-overview}).
+	\item Combine the specified \texttt{map} and \texttt{reduce} functions in a operation (Section \ref{sec:operation}) to produce the expected result.
+\end{itemize}
+
+\vspace*{3mm}
+\noindent
+The next benchmark: \textit{Circle detection}, has been implemented using this described blackbox strategy with existing physics code divided into following steps:
+\begin{itemize}
+	\item \texttt{map}: Median filter.
+	\item \texttt{map}: Thresholding.
+	\item \texttt{neighborhood:2} (Built-in keywords section \ref{sec:operation}).
+	\item \texttt{map}: Eroding.
+	\item \texttt{map}: Local connected components.
+	\item \texttt{reduce}: Find connected groups.
+\end{itemize}
+
+\subsection*{Simulation results}
+
