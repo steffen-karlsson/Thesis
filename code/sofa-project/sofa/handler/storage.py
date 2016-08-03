@@ -13,6 +13,7 @@ from os.path import basename, isfile
 from re import compile
 from shelve import open
 from sys import getsizeof
+from Pyro4 import expose
 from ujson import loads, dumps
 
 from numpy import ndarray
@@ -171,6 +172,7 @@ class Keywords(dict):
 KEYWORDS = Keywords()
 
 
+@expose
 class StorageHandler(DelegationHandler):
     def __init__(self, config, others):
         self.__config = config
@@ -713,7 +715,31 @@ class StorageHandler(DelegationHandler):
         itr = int(process_state['iteration-count'])
         is_first_iteration = itr == 0
 
+        def execute_last():
+            _partial_res = process_state['partial-value']
+            if class_context.is_serialized():
+                _partial_res = class_context.deserialize(_partial_res)
+
+            _data = self.__srcs.get(didentifier)[fidentifier]
+            _blocks = [_data[RESULT], _partial_res]
+
+            args = None
+            if operation_context.requires_meta_data():
+                args = [{
+                    'num-blocks': meta_data['num-blocks'],
+                    'num-storage-nodes': len(process_state['involving-storage-nodes']),
+                    'idx': process_state['involving-storage-nodes'].index(str(self))
+                }]
+
+            if args:
+                return last_function(_blocks, args)
+            else:
+                return last_function(_blocks)
+
         try:
+            if not is_first_iteration:
+                self.__srcs.get(didentifier)[fidentifier][RESULT] = [execute_last()]
+
             if self.__tb.should_send(itr):
                 res = self.__srcs.get(didentifier)[fidentifier][RESULT]
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
@@ -726,9 +752,6 @@ class StorageHandler(DelegationHandler):
                 receiver.execute_function(didentifier, fidentifier, meta_data, process_state)
                 return
 
-            if not is_first_iteration:
-                self.__srcs.get(didentifier)[fidentifier] = [last_function((process_state['partial-value'], res))]
-                return
         except StopIteration:
             data = self.__srcs.get(didentifier)[fidentifier]
 
@@ -736,23 +759,7 @@ class StorageHandler(DelegationHandler):
                 # No data received
                 res = data[RESULT]
             else:
-                args = None
-                if operation_context.requires_meta_data():
-                    args = [{
-                        'num-blocks': meta_data['num-blocks'],
-                        'num-storage-nodes': len(process_state['involving-storage-nodes']),
-                        'idx': process_state['involving-storage-nodes'].index(str(self))
-                    }]
-
-                partial_res = process_state['partial-value']
-                if class_context.is_serialized():
-                    partial_res = class_context.deserialize(partial_res)
-                blocks = [data[RESULT], partial_res]
-
-                if args:
-                    res = last_function(blocks, args)
-                else:
-                    res = last_function(blocks)
+                res = execute_last()
 
             if operation_context.has_post_processing_step():
                 res = operation_context.execute_post_process(res)

@@ -9,6 +9,7 @@ from math import floor, ceil
 from os import path
 from random import choice
 from sys import getsizeof
+from Pyro4 import expose
 
 from ujson import loads
 
@@ -28,6 +29,7 @@ def find_identifier(name, mod):
     return identifier if mod is None else identifier % mod
 
 
+@expose
 class GatewayHandler(object):
     def __init__(self, config, others):
         self.__config = config
@@ -180,7 +182,8 @@ class GatewayHandler(object):
 
         for block in self.__next_block(class_context, data):
             # Serialize data if needed
-            block = class_context.serialize(block)
+            if class_context.is_serialized():
+                block = class_context.serialize(block)
 
             # Store at primary replica first
             storage_node = self.__storage_nodes[start]
