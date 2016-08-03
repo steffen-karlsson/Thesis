@@ -1,10 +1,9 @@
 # Created by Steffen Karlsson on 04-25-2016
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
-from cPickle import dumps, loads
-from os import getcwd
-
-from numpy import fromfile, float32, dot, divide, int32, rint, zeros, add, asarray, concatenate, ceil
+from msgpack import packb, unpackb
+from msgpack_numpy import encode, decode
+from numpy import fromfile, float32, dot, divide, int32, rint, zeros, add, concatenate, ceil
 
 from bdae.dataset import AbsMapReduceDataset
 from sofa.foundation.operation import OperationContext, ExpectedReturnType
@@ -22,13 +21,13 @@ class FDKDataset(AbsMapReduceDataset):
         return [fdkcore]
 
     def serialize(self, data):
-        return dumps(data)
+        return packb(data, default=encode)
 
     def deserialize(self, data):
         if isinstance(data, unicode):
             data = data.encode("ascii")
 
-        return loads(data)
+        return unpackb(data, object_hook=decode)
 
     def is_serialized(self):
         return True
@@ -45,9 +44,9 @@ class FDKDataset(AbsMapReduceDataset):
     def get_operations(self):
         return [
             OperationContext.by(self, "reconstruct", '[fdkcore, ndsum]')
-                .with_post_processing(post_process)
                 .with_expected_return_type(ExpectedReturnType.Image)
                 .with_meta_data()
+                .with_post_processing(post_process)
         ]
 
 
