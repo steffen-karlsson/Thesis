@@ -5,7 +5,8 @@ from logging import error, info
 from sys import argv
 from signal import signal, SIGTERM, SIGINT
 
-from Pyro4 import Daemon, locateNS, config as pyro_config
+from Pyro4 import Daemon, config as pyro_config
+from Pyro4.naming import locateNS, startNSloop
 
 from sofa.handler.gateway import GatewayHandler
 from sofa.handler.storage import StorageHandler
@@ -15,7 +16,13 @@ from sofa.config.parser import Configuration
 
 REGISTRY_NAME = None
 DAEMON = None
-NS = locateNS()
+NS = None
+
+pyro_config.SERVERTYPE = "thread"
+pyro_config.THREADING2 = True
+pyro_config.SERIALIZER = 'pickle'
+pyro_config.SERIALIZERS_ACCEPTED.add('pickle')
+pyro_config.COMPRESSION = True
 
 
 def _handle_kill_signal(signal, frame):
@@ -24,10 +31,11 @@ def _handle_kill_signal(signal, frame):
     exit(1)
 
 
-if __name__ == "__main__":
-    pyro_config.SERVERTYPE = "thread"
-    pyro_config.THREADING2 = True
+def start_nameserver(hostname='localhost', port=9090):
+    startNSloop(host=hostname, port=port)
 
+
+if __name__ == "__main__":
     node_types = argv[3:]
     node_type = node_types[0]
 
@@ -47,6 +55,8 @@ if __name__ == "__main__":
         error("Unable to start %s without configuration" % node_type)
         exit(1)
 
+    NS = locateNS(host=config.name_server[0], port=config.name_server[1])
+
     instance = None
     if node_type == "gateway":
         instance = GatewayHandler
@@ -59,7 +69,7 @@ if __name__ == "__main__":
         error("Node with type: %s is not supported" % config.node.type)
         exit(1)
 
-    DAEMON = Daemon(port=config.port)
+    DAEMON = Daemon(port=config.port, host=config.hostname)
 
     uri = DAEMON.register(instance(config, config.others))
     REGISTRY_NAME = config.node

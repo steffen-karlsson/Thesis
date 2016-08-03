@@ -46,6 +46,7 @@ def parse_project_cfg(path, index, node_types):
         keyspace-size =
         mount-point =
         instance-name =
+        nameserver =
 
         # Defined in seconds
         heartbeat-scheduler-delay =
@@ -99,6 +100,10 @@ def parse_project_cfg(path, index, node_types):
     if config.has_option("general", "mount-point"):
         global_config.mount_point = config.get("general", "mount-point")
 
+    if config.has_option("general", "nameserver"):
+        nameserver = config.get("general", "nameserver").split(":")
+        global_config.name_server = (nameserver[0].strip(), int(nameserver[1].strip()))
+
     if not exists(global_config.mount_point):
         makedirs(global_config.mount_point)
 
@@ -134,6 +139,7 @@ def parse_project_cfg(path, index, node_types):
             if idx == 0:
                 global_config.node = "sofa:%s:%s:%d" % (instance_name, node, index)
                 global_config.node_idx = index
+                global_config.hostname = addresses[index].split(":")[0].strip()
                 global_config.port = int(addresses[index].split(":")[1])
 
                 if len(addresses) > 1:
@@ -162,6 +168,7 @@ class Configuration:
         self.block_size = DEFAULT_BLOCK_SIZE
         self.node = None
         self.node_idx = None
+        self.name_server = ('localhost', 9090)
         self.others = {}
         self.keyspace_size = DEFAULT_KEYSPACE_SIZE
         self.port = DEFAULT_PORT
