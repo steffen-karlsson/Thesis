@@ -29,7 +29,7 @@ Based on the assumptions and the general knowledge learned by studying similar f
 \end{itemize}
 
 \section{Overview} \label{sec:bdae-overview}
-BDAE (\textit{/b'dei'/}) is the name and acronym of the big data analysis engine targeting MapReduce operations that are implemented. The solution is built solely using the \CodeName API as illustrated in Figure \ref{fig:bdae-overview} and extending existing core components primarily from the foundation package.
+BDAE (\textit{/b'dei'/}) is the name and acronym of the Big Data Analysis Engine targeting MapReduce operations that are implemented. The solution is built solely using the \CodeName API as illustrated in Figure \ref{fig:bdae-overview} and extending existing core components primarily from the foundation package.
 
 \begin{figure}
 	\centering
@@ -118,7 +118,7 @@ The templates provided includes:
 \end{itemize}
 
 \subsection{Module binder}
-The module binder is not as such a template, but provides opportunities for conveniently binding Python built-in and other third party library functions like \texttt{map} and \texttt{reduce} specific \texttt{OperationContext} functions.
+The module binder is not as such a template, but provides opportunities for conveniently binding Python built-in and other third party library functions to \texttt{map} and \texttt{reduce} specific \texttt{OperationContext} functions.
 \newline
 
 An example: \texttt{count(}x, y\texttt{)} is a built-in function from the \texttt{string} module in Python \cite{PagePython} that counts number of \texttt{y} in \texttt{x}. The following snippet transforms the \texttt{count(}x, y\texttt{)} into \texttt{count\_occurrences(}x, y\texttt{)} with identical logic parameters and results.

@@ -1,6 +1,5 @@
 \chapter{Installation Guide} \label{app:installation}
-
-A installation guide\footnote{Linux-based operation system is preferred} for both \CodeName and BDAE including an available test and example suite with samples such as the ones explained in section \ref{sec:examples} in the analysis phase of \CodeName. The source code archive\footnote{\texttt{<project path>/src/}} of the combined project will onwards be referenced as \texttt{src/} and assumed to be fetched from the repository.
+\BigLetter{A}{} installation guide\footnote{Linux-based operation system is preferred} for both \CodeName and BDAE including an available test and example suite with samples such as the ones explained in section \ref{sec:examples} in the analysis phase of \CodeName. The source code archive\footnote{\texttt{<project path>/src/}} of the combined project will onwards be referenced as \texttt{src/} and assumed to be fetched from the repository.
 
 \begin{enumerate}
 	\item Install \CodeName:
@@ -61,10 +60,11 @@ A installation guide\footnote{Linux-based operation system is preferred} for bot
 
 
 \chapter{Execution Guide} \label{app:execution}
-Assuming the installation guide at appendix \ref{app:installation} is completed.
+{\footnotesize \textit{Assuming the installation guide at appendix \ref{app:installation} is completed.}}
+\newline
 
+\BigLetter{A}{} general boot script is provided as part of the installation of \CodeName and can succesfully initialize all three type of server. The script requires that the SSH (explained in appendix \ref{app:installation}) is properly configured on each machine.
 \begin{itemize}
-	\item {\sffamily\textbf{NOTE:}} A general boot script is provided as part of the installation of \CodeName and can succesfully initialize all three type of server. The script requires that the SSH (explained in appendix \ref{app:installation}) is properly configured on each machine.
 	\begin{lstlisting}[numbers=none, backgroundcolor=\color{sourcebackground}, rulecolor=\color{sourcebackground}, framextopmargin=5pt, framexbottommargin=5pt, frame=tb, xrightmargin=15pt, commentstyle=\color{bashcommetcolor}, showstringspaces=false, deletendkeywords={file, list}]
 	cd $SOFA_HOME/
 	
