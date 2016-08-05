@@ -176,6 +176,17 @@ The application supports following features:
 	\item View the results of all the previous executed operations.
 \end{itemize}
 
+\section{Blackbox}
+One of the useful and productive features in BDAE the ability to transform sequential code into a MapReduce operation with minimal programming effort and without profound knowledge of how the code works. 
+
+All it takes is: 
+\begin{itemize}
+	\item Identify the reduction part in the original code.
+	\item Determine the need for ghosts (Section \ref{sec:operation}).
+	\item Describe the data using on the of available BDAE templates (Section \ref{sec:templates}) or by extending the \texttt{MapReduceDataset} (Section \ref{sec:bdae-overview}).
+	\item Combine the specified \texttt{map} and \texttt{reduce} functions in a operation (Section \ref{sec:operation}) to produce the expected result.
+\end{itemize}
+
 \section{Example}
 The productivity, readability and maintainability levels of \CodeName and BDAE are demonstrated and compared to Hadoop since the implemented prototype is a more or less complete framework. Hadoop was chosen based on the popularity and thus comprehensive usage and thereby plenty of very well-produced examples.
 \newline

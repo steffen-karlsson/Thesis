@@ -16,7 +16,7 @@ The benchmarks are executed on an Ubuntu 14.04 LTS (Trusty Tahr)\cite{PageUbuntu
 \end{table}
 
 \section{CT reconstruction}
-In the healthcare industry tomographic imaging is widely used for confirming injuries such as broken bones. The reconstruction (Figure \ref{fig:ct}) can be simulated by a mathematical model for transforming a series of at least 180 degrees\footnote{The rest of the 180 degrees is simply a mirror of the others.} of 2D images (\textit{projections}) into a 3D volume (\textit{reconstruction}).
+In the healthcare industry tomographic imaging is widely used for diagno\-sing. The reconstruction (Figure \ref{fig:ct}) can be simulated by a mathematical model for transforming a series of at least 180 degrees\footnote{The rest of the 180 degrees is simply a mirror of the others.} of 2D images (\textit{projections}) into a 3D volume (\textit{reconstruction}).
 \newpage
 
 \begin{figure}
@@ -59,25 +59,6 @@ The CT reconstruction code is executed on three different datasets in increasing
 
 The speedup gained is constant using four or more storage nodes on the small 64x64x64 voxels dataset as expected, this is due to the network communication overhead which is dominating the combined execution time. Otherwise, the speedup is quite satisfactory considering the fact that the communication protocol is based on the pure Python library Pyro4 (Section \ref{sec:general}) which: \textit{"$\ldots$ is not designed to efficiently transfer large amounts of binary data over the network. Try to find another protocol that better suits this requirement"}\cite{PagePyro4}.
 
-\section{Circle detection}
-One of the useful and productive features in BDAE the ability to transform sequential code into a MapReduce operation with minimal programming effort and without profound knowledge of how the code works. All it takes is: 
-\begin{itemize}
-	\item Identify the reduction part and determine the need for ghosts (Section \ref{sec:operation}) in the original code.
-	\item Define the data using on the of available BDAE templates (Section \ref{sec:templates}) or by extending the \texttt{MapReduceDataset} (Section \ref{sec:bdae-overview}).
-	\item Combine the specified \texttt{map} and \texttt{reduce} functions in a operation (Section \ref{sec:operation}) to produce the expected result.
-\end{itemize}
-
-\vspace*{3mm}
-\noindent
-The next benchmark: \textit{Circle detection}, has been implemented using this described blackbox strategy with existing physics code divided into following steps:
-\begin{itemize}
-	\item \texttt{map}: Median filter.
-	\item \texttt{map}: Thresholding.
-	\item \texttt{neighborhood:2} (Built-in keywords section \ref{sec:operation}).
-	\item \texttt{map}: Eroding.
-	\item \texttt{map}: Local connected components.
-	\item \texttt{reduce}: Find connected groups.
-\end{itemize}
+\section{NetCDF}
 
 \subsection*{Simulation results}
-
