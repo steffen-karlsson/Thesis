@@ -737,10 +737,13 @@ class StorageHandler(DelegationHandler):
                 return last_function(_blocks)
 
         try:
+            # Calling it here to invoke the StopIteration exceptions, such that execute_last isn't called twice
+            should_send = self.__tb.should_send(itr)
+
             if not is_first_iteration:
                 self.__srcs.get(didentifier)[fidentifier][RESULT] = [execute_last()]
 
-            if self.__tb.should_send(itr):
+            if should_send:
                 res = self.__srcs.get(didentifier)[fidentifier][RESULT]
                 receiver = self.__storage_nodes[self.__tb.get_receiver_idx()]
                 info("Sending from " + str(self) + " to the next")
