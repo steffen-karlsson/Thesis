@@ -2,7 +2,9 @@
 # Copyright (c) 2016 The Niels Bohr Institute at University of Copenhagen. All rights reserved.
 
 from abc import ABCMeta
-from cPickle import dumps, loads
+from msgpack import packb, unpackb
+from msgpack_numpy import encode, decode
+
 import numpy
 
 from bdae.templates.import_utils import map_function_binder, module_binder, reduce_function_binder
@@ -13,10 +15,13 @@ class NumpyArrayDataset(AbsMapReduceDataset):
     __metaclass__ = ABCMeta
 
     def serialize(self, data):
-        return dumps(data)
+        return packb(data, default=encode)
 
     def deserialize(self, data):
-        return loads(data)
+        if isinstance(data, unicode):
+            data = data.encode("ascii")
+
+        return unpackb(data, object_hook=decode)
 
     def is_serialized(self):
         return True

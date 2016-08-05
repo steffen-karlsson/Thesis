@@ -7,6 +7,9 @@ from numpy.core.multiarray import bincount
 from numpy.lib import stride_tricks, median
 from tifffile import imread
 
+from msgpack import packb, unpackb
+from msgpack_numpy import encode, decode
+
 from bdae.templates.image_dataset import ImageDataset
 from sofa.foundation.operation import OperationContext
 from sofa.foundation.strategy import Tiles
@@ -53,9 +56,21 @@ class AVS5MDataset(ImageDataset):
 
     def get_operations(self):
         return [
-            OperationContext.by(self, "circle recognition", '[median_filter, thresholding, '
+            OperationContext.by(self, "circle recognition", '[median_filter, thresholding, neighborhood:3,'
                                                             'eroding, connected_components, find_groups]')
         ]
+
+    def serialize(self, data):
+        return packb(data, default=encode)
+
+    def deserialize(self, data):
+        if isinstance(data, unicode):
+            data = data.encode("ascii")
+
+        return unpackb(data, object_hook=decode)
+
+    def is_serialized(self):
+        return True
 
     def next_entry(self, data):
         for i in xrange(NUM_SLICES):
@@ -66,9 +81,6 @@ class AVS5MDataset(ImageDataset):
 
     def get_map_functions(self):
         return [median_filter, thresholding, eroding, connected_components]
-
-    def get_distribution_strategy(self):
-        return Tiles(2)
 
 
 def median_filter(blocks):
@@ -88,14 +100,14 @@ def median_filter(blocks):
         slices = stride_tricks.as_strided(im, shape=slice_shape, strides=(im.strides + im.strides))
         median_image[i, ...] = median(slices, axis=(-1, -2))
 
-    return [median_image]
+    return median_image
 
 
 def thresholding(blocks):
     # Flatten blocks to one large, assuming linear distributions model such that all blocks are alligned
     median_image = concatenate(blocks)
     v = mean(median_image[0][Y + M].T[X + M])
-    return [less(log(power(median_image - v, 2) + 1), PIXEL_DIST)]
+    return less(log(power(median_image - v, 2) + 1), PIXEL_DIST)
 
 
 def eroding(blocks):
@@ -120,7 +132,7 @@ def eroding(blocks):
     partial_erode = logical_and(slices[:, :, :], STREL)
     partial_erode = equal(partial_erode, STREL)
 
-    return [npsum(partial_erode, axis=(-1, -2, -3)) == size(STREL)]
+    return npsum(partial_erode, axis=(-1, -2, -3)) == size(STREL)
 
 
 def connected_components(blocks):
@@ -163,7 +175,7 @@ def connected_components(blocks):
             old_sum = new_sum
 
     # Remove padding from image
-    return [result[1:-1, 1:-1, 1:-1]]
+    return result[1:-1, 1:-1, 1:-1]
 
 
 def find_groups(blocks):
