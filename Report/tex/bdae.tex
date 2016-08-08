@@ -1,7 +1,7 @@
 \BigLetter{T}{he} purpose and ambition are to create a \CodeName extension build up on the core API explained in chapter \ref{chp:api}, to demonstrate the opportunities with a present example to set a standard. The extension seeks to model a data access layer (DAL) as a MapReduce framework (Definition \ref{def:mapreduce}) for \CodeName like Hadoop for HDFS.
 
 \section{Investigation}
-The initial idea were to create a bridge between the DAL of Disco (Section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, so that \CodeName would be an optimized and semantic-intelligent replacement for DDFS (Disco Distributed File System). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
+The initial idea were to create a bridge between the DAL of Disco (Section \ref{sec:related}) and the API of \CodeName and thereby create a combined integration of the two systems, so that \CodeName would be an optimized and semantic-intelligent replacement for the Disco Distributed File System (DDFS). The Disco end-user experience is written in Python programming language like \CodeName and thus would be more convenient to incorporate, rather than frameworks such as Hadoop, which is written in Java.
 \newline
 
 The reason to design and implement an entirely new framework and thereby discard the Disco based solution was due to the demand and desire to have full control across the whole execution stack from the disk to the end-user input fields. A second significant reason is the optimization opportunities of having control of the full implementation such as caching of temporary and final results and data accessing.
@@ -68,7 +68,7 @@ Figure \ref{fig:map-reduce-tree} illustrates the two steps explained above, wher
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.7]{pdf/map-reduce-tree.pdf}
+	\includegraphics[scale=0.55]{pdf/map-reduce-tree.pdf}
 	\caption[BDAE MapReduce implementation]{Utilization of the tree barrier based operation execution model in \CodeName for MapReduce in BDAE. \texttt{m} = map and \texttt{r} = reduce. \label{fig:map-reduce-tree}}
 \end{figure}	
 
@@ -115,6 +115,7 @@ The templates provided includes:
 	\item A template for \textbf{image} data that simplifies the burden of transforming raw data such as tiff-files into Numpy arrays.
 	\item The template for \textbf{Numpy/Bohrium array}'s is a simple solution that uses the template module binder described subsequently to bind regularly used functions from the respective libraries.
 	\item One of the objectives listed in Section \ref{sec:bdae-objectives} includes: \textit{"Load complex data structures such as NetCDF $\ldots$ in an intelligent and thus efficiently way to reduce I/O cost."}, which is accomplished by utilizing the collection module (Section \ref{sec:collection}) to create a \textbf{NetCDF} template. This is possible since this data format essentially is a group of related data records. 
+	\item The final templates is for the \textbf{FASTA} file format used in bioinformatics for representing nucleotide or peptide sequences. The template is built using the Basic Local Alignment Search Tool algorithm (BLAST) implementation of the \texttt{biopython} \cite{PageBiopython} library. 
 \end{itemize}
 
 \subsection{Module binder}
@@ -143,7 +144,7 @@ Using the rather simple \CodeName core API it is possible to write useful and co
 \end{figure}
 
 A simple graphical user interface represented as a website (illustrated in Figure \ref{fig:website}) is provided as part of the BDAE framework installation (explained in Appendix \ref{app:installation}). 
-\clearpage
+\newline
 
 The website expands the options regarding the scientist position, since it is no longer a requirement to master the skill of programming in order to operate BDAE at that user tier. At the moment it is possible to:
 \begin{itemize}
@@ -151,7 +152,6 @@ The website expands the options regarding the scientist position, since it is no
 	\item Submit a new MapReduce operation.
 	\item And view the result whenever it has finished the execution.
 \end{itemize}
-, but supporting more features are in the project pipeline.
 
 \subsection{Android application} \label{sec:bdaeapp}
 The Android application provides a handheld modern access to the scientist level of BDAE, implemented in a minimalist Google approved material design \cite{PageMaterialDesign} (Figure \ref{fig:app-overview}) (Appendix \ref{chp:app-screenshots}).
@@ -160,7 +160,7 @@ The Android application provides a handheld modern access to the scientist level
 \begin{figure}[h!]
 	\centering
 	\vspace*{4mm}
-	\includegraphics[width=0.4\textwidth]{img/overview.png}
+	\includegraphics[width=0.3\textwidth]{img/overview.png}
 	\caption[Android application overview]{Android application overview of the current MapReduce operations executing in BDAE. \label{fig:app-overview}}
 	\vspace*{4mm}
 \end{figure}
@@ -188,7 +188,9 @@ All it takes is:
 \end{itemize}
 
 \section{Example}
-The productivity, readability and maintainability levels of \CodeName and BDAE are demonstrated and compared to Hadoop since the implemented prototype is a more or less complete framework. Hadoop was chosen based on the popularity and thus comprehensive usage and thereby plenty of very well-produced examples.
+The productivity, readability and maintainability levels of \CodeName and BDAE are demonstrated and compared to Hadoop since the implemented prototype is a more or less complete framework. 
+
+Hadoop was chosen based on the popularity and thus comprehensive usage and thereby plenty of very well-produced examples.
 \newline
 
 The example used to illustrate the mentioned features of \CodeName and BDAE is a simple processes of log files to summarize the events by type\cite{PageTomWheeler}. This: \texttt{2013-06-29 22:17:05.362 CDT ERROR "Out of memory"} is an example of a log output and thereby a job input for the \texttt{MapReduce} operation. 

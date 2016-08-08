@@ -1,4 +1,4 @@
-\BigLetter{T}{he} core public API\footnote{Application Programming Interface} of \CodeName will be explained, demonstrated and documented in the following chapter. The routines defined, provides facilities to develop powerful and useful extensions and applications, through the minimal but adequate interface. Two examples of extensions empowered by the public \CodeName API are explained subsequently in part \ref{prt:extensions} and are demonstrations of the strength and confirms that all the building blocks needed are available.
+\BigLetter{T}{he} core public API\footnote{Application Programming Interface} of \CodeName will be explained, demonstrated and documented in the following chapter. The routines defined, provides facilities to develop powerful and useful extensions and applications, through the minimal but adequate interface. An example of such extension empowered by the public \CodeName API is explained subsequently in part \ref{prt:extensions} and are demonstrations of the strength and confirms that all the building blocks needed are available.
 \newline
 
 The protocol exposes a vast amount of various \texttt{get}-methods to retrieve useful information regarding the datasets, in addition to the routines explained in this chapter.
@@ -67,7 +67,7 @@ The gateway is for this call capable of determining the responsible server witho
 	\Big\lfloor\Big(\texttt{id}:root + \dfrac{\texttt{\#}blocks}{stride}\Big) \texttt{ mod } \texttt{\#}storagenodes\Big\rfloor
 \end{equation}
 
-, where the \textit{stride} is a constant specific for each dataset and decided by the distribution strategy (Section \ref{sec:sofabaseobject}).
+The \textit{stride} is a constant specific for each dataset and decided by the distribution strategy (Section \ref{sec:sofabaseobject}).
 
 \begin{quotation}
 	{\sffamily\textbf{NOTE:}} As an effect of the calculation in equation \ref{eq:startindex}, it is possible henceforth to pick up and append new data to dataset where it left off.
@@ -82,12 +82,12 @@ The latency for streaming one package, assuming a network speed of 1 Mb/s and a 
 	\dfrac{\texttt{\#}fpackage}{network\text{ }speed} = \dfrac{8\cdot 1024^2 \text{ bits}}{1024^3 \text{ bits/s}} = \dfrac{1}{128} \text{ sec}
 \end{equation}
 
-, which with a replication factor of \textit{x} and an assuming total package size of maximum 64 MB (customisable in the system configurations) leads to a replication latency of:
+With a replication factor of \textit{x} and an assuming total package size of maximum 64 MB (customisable in the system configurations) leads to a replication latency of:
 \begin{equation}
 	(64 + x - 1) \cdot \dfrac{1}{128} \text{ sec}
 \end{equation}
 
-, where the $x - 1$ directly can be derived from Figure \ref{fig:package-pipeline}, with the light gray, dotted line indicates when the first node has finished receiving and transmitting.
+The $x - 1$ directly can be derived from Figure \ref{fig:package-pipeline}, with the light gray, dotted line indicates when the first node has finished receiving and transmitting.
 \newline
 
 \noindent
@@ -102,7 +102,7 @@ Current implementation has following latency on sending one 64 MB semantic packa
 \vspace*{2mm}
 
 \noindent
-, and thus have a \textit{x} replication latency of:
+This will thus have a \textit{x} replication latency of:
 \begin{equation}
 	x \cdot 0.5 \text{ sec}
 \end{equation}
@@ -137,7 +137,7 @@ The calculation of whom to send to who is based on a multiplication of the \text
 \begin{equation} \label{eq:reduction}
 \underbrace{\dfrac{\texttt{id}:node}{2^{i}}}_{\forall i \in \mathbb{N}_0} \texttt{ mod } 2 \equiv 1
 \end{equation}
-, and will resolve in boolean values that indicate whether the node has to send its result to the closest neighbor on the left-hand side.
+It will resolve in boolean values that indicate whether the node has to send its result to the closest neighbor on the left-hand side.
 \newline
 
 \begin{figure}

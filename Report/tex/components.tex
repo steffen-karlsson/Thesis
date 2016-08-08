@@ -127,21 +127,27 @@ Data with an extensive interrelationship between blocks are a straightforward ex
 One could think of other distribution strategies and algorithms to use on certain specific types of data, hence its an ambition subsequently to design and come up with a generic interface for defining individual strategies and algorithms.
 
 \subsection{Replication}
-\CodeName provides the opportunity of virtual replication at a data level speci\-fied independently for each dataset. Compared to other alternatives as the ones evaluated in Section \ref{sec:related} such as Hadoop, this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets based on importance and reproducibility of data.
+\CodeName provides the opportunity of virtual replication (Figure \ref{fig:replication}) at a data level specified independently for each dataset. Compared to other alternatives as the ones evaluated in Section \ref{sec:related} such as Hadoop, this is a unique and contemporary privilege, since replication commonly is at a machine level. Preceding enables options for prioritizing datasets based on importance and reproducibility of data.
 \newline
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[scale=0.5]{pdf/replication.pdf}
+	\caption[]{Example of a replication strategy with a replication factor of 3 using 6 storage nodes, where the single quote represents first replication and the double quote represents the second replication. \label{fig:replication}}
+\end{figure}
 
 The replication factor can additionally be used as a load balancing mechanism for the dataset and thereby increase its accessibility for the end-users.
 
 \section{Operation context} \label{sec:operation}
 An \texttt{OperationContext} is a mutable object attached to a dataset that represents and describes a function or multiple chained ones and the associated parameters and prerequisites, to be executed on the data. 
 
-A number of optional specifications are available such that most most common requirements are supported out of the box to increase productivity and correctness.
+A number of optional specifications are available such that most common requirements are supported out of the box to increase productivity and correctness.
 \newline
 
 The syntax for characterizing this object, the optional specifications, and a lot more will be examined in details throughout the rest of this section since it is crucial to understand too, like the other foundation object \texttt{SofaBaseObject} (Section \ref{sec:sofabaseobject}).
 
 \subsection{Sequential / Parallel}
-Functions of an operational context can be grouped in an unlimited amount of nested sequential and parallel containers, although it is required that the outer most container is of the sequential type. The two code snippets in the forthcoming \textbf{syntax} sections exemplifies the usage of these two varies.
+Functions of an operational context can be grouped in an unlimited amount of nested sequential and parallel containers, although it is required that the outer most container is of the sequential type. The two code snippets in the forthcoming \textbf{syntax} section exemplifies the usage of these two varies.
 
 \subsection{Syntax}
 The \texttt{OperationContext} object can be instantiated in two ways depending on the end-users preferences:
@@ -181,7 +187,7 @@ Figure \ref{fig:ghost-points} illustrates the fundamental idea behind ghost poin
 	\includegraphics[scale=0.92]{pdf/ghost-points.pdf}
 	\vspace*{3mm}
 	\caption{Fundamental idea of ghost points \label{fig:ghost-points}}
-	\vspace{2mm}
+	\vspace{6mm}
 \end{figure}	
 
 One or more rows are exchanged between neighbors in order to compute the accurate results beyond everything, but also to minimize the I/O-cost compared to exchanging data independently when needed.
@@ -193,7 +199,6 @@ One or more rows are exchanged between neighbors in order to compute the accurat
 \includegraphics[scale=0.55]{pdf/ghost-transfer.pdf}
 \vspace*{4mm}
 \caption[Ghost transfer example]{Example of how ghost points are transferred between nodes.}
-\vspace*{6mm}
 \label{fig:ghost-transfer}
 \end{figure}
 
@@ -225,22 +230,22 @@ The naïve approach for implementing a ghost point distribution protocol using F
 \vspace*{2mm}
 Such procedure as explained above requires a minimum of $5n-1$ I/O requests which is far from optimal. In distributed systems research the focus is on optimizing the number of those requests and one could easily think of an optimized solution such as the one illustrated at Figure \ref{fig:ghost-v1}. 
 
-This solution, which improves the number of initialization requests (from $n-1$ to $n/2-1$) among others, requires $\frac{5}{2}n-1$ I/O operations which is a remarkable improvement compared to the previous amount.
-
 \begin{figure}[ht!]
 	\centering
 	\vspace*{3mm}
-	\includegraphics[scale=0.68]{pdf/ghost-v1.pdf}
+	\includegraphics[scale=0.63]{pdf/ghost-v1.pdf}
 	\caption{Ghost protocol v2: Initial design and thoughts \label{fig:ghost-v1}}
 	\vspace*{3mm}
 \end{figure}	
 
-However, in high performance computing (HPC) clusters as this prototype framework first and foremost is targeted (Section \ref{sec:hardware}) it is a matter of time steps and not I/O as such for which the HPC solution illustrated at Figure \ref{fig:ghost-final} is most optimal.
+This solution, which improves the number of initialization requests (from $n-1$ to $n/2-1$) among others, requires $\frac{5}{2}n-1$ I/O operations which is a remarkable improvement compared to the previous amount.
 \newline
+
+However, in high performance computing (HPC) clusters as this prototype framework first and foremost is targeted (Section \ref{sec:hardware}) it is a matter of time steps and not I/O as such for which the HPC solution illustrated at Figure \ref{fig:ghost-final} is most optimal.
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.68]{pdf/ghost-final.pdf}
+	\includegraphics[scale=0.61]{pdf/ghost-final.pdf}
 	\caption{Ghost protocol v3: The HPC solution \label{fig:ghost-final}}
 \end{figure}	
 
@@ -251,9 +256,8 @@ An optional step executed after the core of the operation has completed and befo
 
 \subsection{Built-in keywords}
 \CodeName offers a range\footnote{Effortlessly extended when demanded} of different built-in keyword functions for conventional operations on data along with a module importer library that easily binds language specific core functions to \CodeName operations and functions, with a function name change if requested.
-\newline
+\clearpage
 
-\noindent
 Noticeable keyword to discussed and elaborate on are:
 \vspace*{2mm}
 
@@ -279,14 +283,13 @@ The delegation framework in \CodeName serves a vast amount of important, practic
 	\item Forwarding the request to the next replica\footnote{\label{note:replication-factor}If \texttt{replication factor} is larger than one.} in the \textbf{forward queue} if the local operation count is larger than the specified threshold\footnoteref{note:explained}.
 	\item Redirecting the request to the next replica\footnoteref{note:replication-factor} in the \textbf{redirect queue} if the request requires replication.
 \end{itemize}
-\vspace*{4mm}
+\clearpage
 
 \begin{figure}[ht!]
 	\centering
 	\vspace*{5mm}
-	\includegraphics[scale=0.8]{pdf/delegation-framework.pdf}
+	\includegraphics[scale=0.7]{pdf/delegation-framework.pdf}
 	\caption[Overview of the delegation framework]{Overview of the flow in the delegation framework. \label{fig:delegation-framework}}
-	\vspace*{5mm}
 \end{figure}	
 
 \noindent
@@ -302,7 +305,7 @@ The delegation solution is designed as illustrated in Figure \ref{fig:delegation
 \textit{"Eliminating single-point of failure on a stateful master server."}
 \end{quotation}
 , since the gateway then would require slightly more discernment than expected for a stateless server\footnote{\label{note:stateful}A stateful server is commonly a synonym with SPOF.}.
-\clearpage
+\newline
 
 The responsible server is calculated based on following calculation (\ref{eq:responsible}), and the current server is executing the function if the result is equal to this. Otherwise, the request is routed to the responsible.
 \begin{equation} \label{eq:responsible}
@@ -313,7 +316,7 @@ The responsible server is calculated based on following calculation (\ref{eq:res
 A range of different opportunities are examined, reviewed, and some tested to implement such framework as described. The first choice was to design a gossip based protocol as Tanenbaum \etal examines in \cite{Tanenbaum:2006:DSP:1202502} between gateways to let the others know what "\textit{you}" are doing. Such a protocol will in \textbf{best case scenario} improve performance since the gateways will be capable of predicting which server to send the request to, \textbf{worst case scenario} on the other hand would not be different from the default behavior and thus not affecting the correctness of the results.
 \newline
 
-The protocol was first of all discarded due to the increased complexity in logic on the gateway servers and the sudden intercommunication between them that it would cause, and secondly because it would require the servers to be moderately stateful\footnoteref{note:stateful}.
+The protocol was first of all discarded due to the increased complexity in logic on the gateway servers and the sudden demand for intercommunication between them that it would cause, and secondly because it would require the servers to be moderately stateful\footnoteref{note:stateful}.
 \newline
 
 C. A. R. Hoare defined in his 1978 paper \textit{"Communicating Sequential Processes"}\cite{Hoare:1978:CSP:359576.359585} a formal language for describing patterns of interaction in concurrent systems, which later has been implemented in a variety of different well known programming languages such as Python by Bj{\o}rndalen \etal in \cite{bjorndalen2007pycsp}.

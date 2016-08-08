@@ -14,7 +14,7 @@ Writing to the Hadoop file system can likely cause what's known as the data resi
 	\caption[HDFS data residual problem]{HDFS data residual problem which ultimately requires Data Node 1 and 2 to exchange data for a consistent processing of block B, leading to an increased I/O cost. \label{fig:data-residual}}
 \end{figure}
 
-As a matter of fact, the only case where data partitioning is ensured to be avoided is when the \textit{size of the data} modulo \textit{the block size} is equal to zero. As a consequence, individual computer scientist are required to implement a network communication protocol between the slaves to handle this problem, which typically causes increased latency. The goal is to ensure a consistent view and process of the coherent data representations.
+As a matter of fact, the only case where data partitioning is ensured to be avoided is when \textit{the size of the data} modulo \textit{the block size} is equal to zero. As a consequence, individual computer scientist are required to implement a network communication protocol between the slaves to handle this problem, which typically causes increased latency. The goal is to ensure a consistent view and process of the coherent data representations.
 
 \section{Problem definition} \label{sec:problem}
 \begin{quotation}

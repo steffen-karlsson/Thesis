@@ -32,7 +32,7 @@ The fact that the underlying component is a file archive related system built by
 \vspace*{3mm}
 
 \section{Architectural style} \label{sec:architectural-style}
-The overall architecture of the project will be affected by knowledge and benefits from existing solutions (Section \ref{sec:related}) along with the theoretical background knowledge acquired by Tanenbaum \etal's description of distributed system architectures\cite{Tanenbaum:2006:DSP:1202502}. 
+The overall architecture of the project will be affected by knowledge and benefits from the existing solutions (Section \ref{sec:related}) along with the theoretical background knowledge acquired by Tanenbaum \etal's description of distributed system architectures\cite{Tanenbaum:2006:DSP:1202502}. 
 \newline
 
 The result will seek to model the notion of a hybrid related distributed system with a decentralized collection of interconnected peer-to-peer storage nodes accessible by potentially multiple replicated stateless gateway servers and observed by one or more monitors.
@@ -61,7 +61,7 @@ The design and structure of the storage node will be described as part of Chapte
 \end{definition}
 
 \section{Partitioning and distribution} \label{sec:pandd}
-The partitioning and distribution protocol in \CodeName is based on consistent hashing (\reference{def:ch}{sec:partitioning}) and the round-robin load balancing algorithm (Definition \ref{def:rr}). The downside of this distribution algorithm is that it does not take state, availability and workload among other properties of the servers into account. 
+The partitioning and distribution protocol in \CodeName is based on consistent hashing (Definition \ref{def:ch}) and the round-robin load balancing algorithm (Definition \ref{def:rr}). The downside of this distribution algorithm is that it does not take state, availability and workload among other properties of the servers into account. 
 \newline
 
 However, this should be adequate assuming data is large enough and the framework primarily is expected to be operating in homogeneous and high-performance computing environment like a cluster (Section \ref{sec:presumptions}). Furthermore, one of the assumptions (Section \ref{sec:assumption}) is to implement a transparent but suitable load balancing protocol with big data analysis in mind.
@@ -101,7 +101,7 @@ The pattern of the naming scheme of node components (depicted at as a general ov
 The naming scheme of data (Chapter \ref{chp:components}) are defined as above, where \texttt{instance name} is the same as above, the \texttt{data type} is an optional parameter if the framework supports multiple types. The name of the data is required to be unique and specified as \texttt{data name}. The \texttt{sofa} identifier is not necessary since the data is only accessible in a sofa based context.
 
 \section{Redundancy and replication}
-Redundancy in \CodeName is carried out using \eg software RAID-Z in ZFS (Description \ref{def:zfs}), which provides block-level striping with double distributed parity, that ensures fault tolerance by upto two failed drives. The motivation for this is that the existing replication protocols in \eg Hadoop and Google File System (Section \ref{sec:related} and \ref{sec:replication}) are using a vast amount of space and communication are too expensive considering that the primary usage of this is big datasets.
+Redundancy in \CodeName is carried out using \eg software RAID-Z in ZFS (Definition \ref{def:zfs}), which provides block-level striping with double distributed parity, that ensures fault tolerance by upto two failed drives. The motivation for this is that the existing replication protocols in \eg Hadoop and Google File System (Section \ref{sec:related} and \ref{sec:replication}) are using a vast amount of space and communication are too expensive considering that the primary usage of this is big datasets.
 \newline
 
 If the redundancy protocol however is based on erasure codes then it is no longer replication, but fault tolerance with a degree of durability. This type of responsibility is in this system carried out in hardware by the JBODs, such that there is no need for the extensive amount of network data transfer.
@@ -117,7 +117,7 @@ If the redundancy protocol however is based on erasure codes then it is no longe
 The RAID-Z configuration described in the previous section with the purpose of replication are also used as a basic recovery protocol to conceal disk failures. A second recovery initiative is redundant multipaths to efficiently hide server error.
 \newline
 
-The system will run on economical low-cost hardware such as JBODs (Definition \ref{def:jbod}) as explained in section \ref{sec:hardware}. Having SAS-controlled\footnote{Serial Attached SCSI: serial point-to-point protocol for moving data} disks enables fail-over features such as multipathing (Definition \ref{def:multipath}) that allows redundant data paths between host servers and the block-level devices.
+The system will run on economical low-cost hardware such as JBODs (Definition \ref{def:jbod}) as explained in Section \ref{sec:hardware}. Having SAS-controlled\footnote{Serial Attached SCSI: serial point-to-point protocol for moving data} disks enables fail-over features such as multipathing (Definition \ref{def:multipath}) that allows redundant data paths between host servers and the block-level devices.
 
 \begin{figure}[h!]
 	\vspace*{3mm}

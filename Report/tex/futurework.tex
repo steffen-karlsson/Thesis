@@ -10,7 +10,7 @@ Andersen has designed the concept of a Low-Level Object Store (L-LOS) and implem
 \section{Pipeline support}
 A prioritized future implementation is to replace the Python Pyro4 communication library possible with one of the alternatives (Section \ref{sec:general}) that supports streaming to reduce the package latency, by implement the pipeline solution of the delegation framework (Section \ref{sec:delegation}) and the package distribution protocol in the append API call \ref{sec:api-append}.
 
-\section{Parallel nodes}
+\section{Parallel nodes} \label{sec:parallel}
 As a consequence of the pipeline support and thereby the elimination of the existing communication library it is a demand and crucial for the future work to implement a proper protocol for handling multiple requests in parallel.
 
 \section{Import/export extension}

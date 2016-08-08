@@ -14,7 +14,7 @@ Supercomputing enthusiast Glenn Lockwood describes in his blog post \cite{PageLo
 A vast majority of the computing platforms discussed in Section \ref{sec:related} are based on a master/slave architecture where the specific master is stateful and could be a potential bottleneck (Definition \ref{def:bottle}) in the system. Additionally is such setting also a single point of failure (SPOF) error, meaning that a fail or crash can be fatal, expensive, or even a catastrophe.
 \newline
 
-The single master pattern in Hadoop at the earlier versions (before \textbf{2.x}) was a serious issue because the stateful master that keeps the entire namespace in random access memory (RAM) did not support automatic fail-over. Although the master periodically persists namespace state on disk as a system-record image and moreover keeps a synchronized log of all events too, it is required replay the record and the logs at a restart to recover the global state.
+The single master pattern in Hadoop at the earlier versions (before \textbf{2.x}) was a serious issue because the stateful master that keeps the entire namespace in random access memory (RAM) did not support automatic fail-over. Although the master periodically persists namespace state on disk as a system-record image and moreover keeps a synchronized log of all events too, it is required to replay the record and the logs at a restart to recover the global state.
 
 Later versions support fail-over to a working redundant standby copy, with hardware and communication cost. Other solutions to the SPOF error (Section \ref{sec:related}) such as the Facebook Avatarnode Hadoop extension requires integrations and instances of extra systems like ZooKeeper.
 \newline
