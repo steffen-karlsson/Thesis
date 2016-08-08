@@ -741,7 +741,7 @@ class StorageHandler(DelegationHandler):
             should_send = self.__tb.should_send(itr)
 
             if not is_first_iteration:
-                self.__srcs.get(didentifier)[fidentifier][RESULT] = [execute_last()]
+                self.__srcs.get(didentifier)[fidentifier][RESULT] = execute_last()
 
             if should_send:
                 res = self.__srcs.get(didentifier)[fidentifier][RESULT]

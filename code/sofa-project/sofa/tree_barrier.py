@@ -34,5 +34,4 @@ class TreeBarrier:
         return False
 
     def get_receiver_idx(self):
-        # Note normally root isn't part of others list, thats why the -1
-        return self.__id - self.__start(self.__sending_itr) - self.__offset - 1
+        return self.__id - self.__start(self.__sending_itr) - self.__offset

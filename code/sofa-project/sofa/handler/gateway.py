@@ -29,23 +29,18 @@ def find_identifier(name, mod):
     return identifier if mod is None else identifier % mod
 
 
-def get_size(obj, seen=set()):
+def get_size(obj):
     size = getsizeof(obj)
 
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    seen.add(obj_id)
-
     if isinstance(obj, dict):
-        size += sum((get_size(v, seen) for v in obj.values()))
-        size += sum((get_size(k, seen) for k in obj.keys()))
+        size += sum((get_size(v) for v in obj.values()))
+        size += sum((get_size(k) for k in obj.keys()))
     elif hasattr(obj, 'nbytes'):
         size += eval("obj.nbytes")
     elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
+        size += get_size(obj.__dict__)
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum((get_size(i, seen) for i in obj))
+        size += sum((get_size(i) for i in obj))
     return size
 
 
@@ -235,12 +230,15 @@ class GatewayHandler(object):
         block_size = 0
         for entry in context.next_entry(data):
             entry_size = get_size(entry)
+            if entry_size == 0:
+                continue
+
             if block_size + entry_size > self.__block_size:
                 if len(block) == 0:
                     block.append(entry)
 
                 yield block
-                block = []
+                block = [entry]
                 block_size = 0
             else:
                 block_size += entry_size
